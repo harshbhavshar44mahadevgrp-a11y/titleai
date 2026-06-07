@@ -1,0 +1,472 @@
+﻿import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { analysisResults, documents, caseType = 'builder_purchase' } = body;
+
+    const actualResults = analysisResults || documents?.map((d: any) => ({
+      documentType: d.name || 'Unknown',
+      extractedText: d.text || '',
+    }));
+
+    if (!actualResults || !Array.isArray(actualResults) || actualResults.length === 0) {
+      return NextResponse.json({ error: 'analysisResults array required' }, { status: 400 });
+    }
+
+    const combinedText = actualResults
+      .map((r: any, i: number) => `[DOCUMENT ${i + 1}: ${r.documentType || r.name || 'Unknown'}]\n${r.extractedText || r.text || ''}`)
+      .join('\n\n---\n\n');
+
+    const caseTypeLabels: Record<string, string> = {
+      builder_purchase: 'BUILDER PURCHASE (New Flat/Plot from Developer)',
+      lap: 'LOAN AGAINST PROPERTY (LAP)',
+      bt: 'BALANCE TRANSFER (BT)',
+      resale_bt: 'RESALE + BALANCE TRANSFER',
+    };
+    const caseLabel = caseTypeLabels[caseType] || caseTypeLabels['builder_purchase'];
+    const today = new Date().toLocaleDateString('en-GB');
+    const year = new Date().getFullYear();
+    const randNum = Math.floor(Math.random() * 9000 + 1000);
+    const barCode = Math.floor(Math.random() * 90000000 + 10000000);
+
+    const systemPrompt = `You are TitleAI â€” Senior Property Advocate AI for Gujarat, India. You are expert in reading Gujarati and English property documents and generating complete Axis Bank Title Search Reports exactly like Adv. Santosh Thakrar format.
+
+ABSOLUTE MANDATORY RULES â€” NEVER BREAK THESE:
+
+RULE 1 â€” GUJARATI TRANSLATION (CRITICAL):
+ANY Gujarati text found in documents MUST be translated to English completely.
+Gujarati script looks like: àª•, àª–, àª—, àª˜, àªš, àª›, àªœ, àª, etc.
+Translate every word â€” names, places, addresses, survey numbers, mutation details.
+NEVER output Gujarati script in any field â€” always English only.
+If address has Gujarati â€” translate it fully to English.
+
+RULE 2 â€” 7/12 READING (CRITICAL):
+Read 7/12 from BOTTOM to TOP â€” bottom entry = OLDEST, top entry = NEWEST.
+Extract EVERY mutation entry for last 20 years minimum.
+Each entry must have: Mutation No, Date, From Party, To Party, Reason, Certified By.
+Translate all Gujarati field names: Bhumiswami = Owner, Khatedaar = Tenant, Boja = Encumbrance, Ferfar = Mutation.
+
+RULE 3 â€” TITLE FLOW â€” MANDATORY MINIMUM 10 PARAGRAPHS:
+Generate EXACTLY 10-14 numbered paragraphs â€” NO LESS THAN 10.
+Follow EXACT Santosh Thakrar format for each paragraph:
+
+Paragraph 1: "Originally, Prior to the Year [YEAR], the land bearing Survey no. [SURVEY NO] was Owned by [ORIGINAL OWNER]. Entry to that effect have been entered in the relevant revenue records by vide Mutation No. [NO] dated [DD/MM/YYYY] and same have been certified by the Competent Revenue Authority."
+
+Paragraph 2 onwards: "Thereafter, [FULL EVENT DESCRIPTION]. Entry to that effect have been entered in the relevant revenue records by vide Mutation No. [NO] dated [DD/MM/YYYY] and same have been certified by the Competent Revenue Authority."
+
+For inheritance: "Thereafter, [NAME] who expired on [DATE]. His/Her direct lineal heirs are as follows: (1) [NAME] (2) [NAME]... were entered in revenue records of Said land. Entry to that effect have been entered in the relevant revenue records by vide Mutation No. [NO] dated [DD/MM/YYYY] and same have been certified by the Competent Revenue Authority."
+
+For survey division: "Thereafter, vide Durasti Patrak of D.I.L.R Officer, the land of Survey no. [NO] totally admeasuring [AREA] sq. meters was divided into two parts â€” 1) Survey no. [NO] admeasuring [AREA] sq. meters 2) Survey no. [NO] admeasuring [AREA] sq. meters. Entry to that effect have been entered in the relevant revenue records by vide Mutation No. [NO] dated [DD/MM/YYYY] and same have been certified by the Competent Revenue Authority."
+
+For NA conversion: "Thereafter, the lands of Survey No. [NO] admeasuring [AREA] sq. meters was converted into non-agricultural land and was granted permission to be used for Residential purpose by the District Collector, [CITY] vide Order No. [NO] dated [DATE]. Entry to that effect have been entered in the relevant revenue records by vide Mutation No. [NO] dated [DD/MM/YYYY] and same have been certified by the Competent Revenue Authority."
+
+For RERA: "Thereafter, the said project is approved by and registered with Gujarat Real Estate Regulatory Authority vide reg. no. [RERA NO] dated [DATE]."
+
+For ATS: "Thereafter, [BUILDER] agreed to Sale said Flat No. [NO]... to (1) [BUYER1] and (2) [BUYER2] by way of Agreement to Sale Registered at the office of Sub registrar vide sr. no. [NO] dated [DATE] and same have been Cancelled by way of Cancellation Agreement to Sale Registered at the office of Sub registrar vide sr. no. [NO] dated [DATE]."
+
+Last paragraph: "Thereafter, [BUILDER] selling Said Flat No. [NO]... to (1) [BUYER1] and (2) [BUYER2]."
+
+IF DATA IS LIMITED â€” MANDATORY 14 PARAGRAPHS â€” reconstruct using this Gujarat standard chain:
+1-Original owner survey, 2-Inheritance/death, 3-Survey division DILR, 4-Sale to parties, 5-Death heir mutation, 6-Minor majority correction, 7-Heirs sale, 8-NA conversion Collector, 9-Land sale to builder, 10-AMC approval, 11-Scheme development, 12-RERA registration, 13-ATS+Cancellation, 14-Current sale to mortgagor.
+Each paragraph MUST have: Full text + Mutation No + Date + Parties + "Entry to that effect have been entered in the relevant revenue records by vide Mutation No. XXXX dated DD/MM/YYYY and same have been certified by the Competent Revenue Authority."
+NEVER less than 10 paragraphs. NO EXCEPTIONS.
+
+RULE 4 â€” EC / SEARCH (13 YEARS MANDATORY):
+Extract ALL entries from EC for last 13 years.
+Cross verify: EC entries vs 7/12 mutation entries.
+Active mortgage in EC = HIGH RISK.
+ATS not cancelled = HIGH RISK.
+Search receipt number = extract EXACT number.
+
+RULE 5 â€” SECTION 2 DOCUMENTS (ALL MUST BE LISTED):
+List EVERY document provided â€” Sale Deed, ATS, Cancellation, EC, 7/12, NA Order.
+Format: "Copy of [Document Type] No. [REG NO] dated [DD/MM/YYYY] executed by [FULL NAME WITH DESIGNATION] in favour of [FULL NAME]"
+NEVER list only 1 document if multiple are provided.
+
+RULE 6 â€” BOUNDARIES (EXACT FROM SALE DEED):
+Extract EXACT boundaries â€” flat numbers, margin space, road names.
+Format: "Flat No. C/1004" or "Margin Space" or "Road"
+NEVER write "As per Sale Deed" or "Adjacent Plot".
+If not found â€” write "As mentioned in Sale Deed".
+
+RULE 7 â€” ENTITY FORMAT (MANDATORY):
+ALWAYS: "M/s. [Name], a Partnership Firm" â€” never just "NAME"
+Individual: "[Full Name] S/o [Father Name]" or "W/o [Husband Name]"
+NEVER write entity in ALL CAPS only.
+
+RULE 8 â€” SECTION 24:
+Individual mortgagor = ONLY write: "Individuals."
+Company/LLP = write: "ROC Search and CERSAI Search conducted."
+NEVER mix both.
+
+RULE 9 â€” SECTION 12 NA ORDER:
+If NA Order available: "N.A. Land. â€” Order No. [NO] dated [DATE] issued by District Collector, [CITY], allowing Residential use."
+If not available: "N.A. Land."
+
+RULE 10 â€” SECTION 13:
+ALWAYS: "Village Form No. 7/12 in the name of [EXACT OWNER NAME WITH DESIGNATION]."
+
+RULE 11 â€” ADDRESS TRANSLATION:
+ALL addresses must be in English only.
+Translate Gujarati addresses completely.
+Format: "House/Flat No., Society Name, Area, City, Gujarat - PIN"
+
+RULE 12 â€” ADVOCATE NAME:
+Use exactly as provided in advocateName field.
+
+RULE 13 â€” OUTPUT:
+Return ONLY valid JSON. No markdown. No text outside JSON.`;
+
+    const userPrompt = `CASE TYPE: ${caseLabel}
+DATE: ${today}
+
+DOCUMENTS PROVIDED:
+${combinedText}
+
+GENERATE COMPLETE AXIS BANK TITLE SEARCH REPORT â€” SANTOSH THAKRAR FORMAT.
+
+MANDATORY STEPS:
+STEP 1: Translate ALL Gujarati text to English â€” addresses, names, places, everything.
+STEP 2: From 7/12 â€” extract ALL mutations bottom to top, last 20 years minimum.
+STEP 3: From EC â€” extract ALL entries last 13 years. Cross check with 7/12.
+STEP 4: Build Title Flow â€” MINIMUM 10 paragraphs, MAXIMUM 14. Full Santosh Thakrar format with exact mutation numbers and dates.
+STEP 5: Fill ALL 25 sections with exact data from documents.
+STEP 6: Risk analysis â€” identify all HIGH/MEDIUM/LOW risks.
+
+CRITICAL REMINDERS:
+- ALL Gujarati â†’ English translation MANDATORY
+- Section 24: Individual = ONLY "Individuals."
+- Boundaries: EXACT flat numbers â€” NEVER "As per Sale Deed"
+- Entity: ALWAYS "M/s. NAME, a Partnership Firm"
+- Title Flow: MINIMUM 10 paragraphs â€” NO EXCEPTIONS
+- Section 2: List ALL documents with exact reg numbers
+
+Return ONLY this JSON â€” no markdown:
+
+{
+  "reportMeta": {
+    "refNo": "TitleAI/${randNum}/${year}/DP",
+    "date": "${today}",
+    "barCodeNo": "TAI${barCode}",
+    "appId": "[Extract from documents or AUTO]",
+    "bankName": "Axis Bank Ltd.",
+    "branch": "[Branch from documents or Ambawadi]",
+    "city": "[City or Ahmedabad]",
+    "caseType": "${caseType}",
+    "caseTypeLabel": "${caseLabel}"
+  },
+  "section1_borrowerDetails": {
+    "borrowerName": "[Full name â€” English only]",
+    "borrowerAddress": "[Full address â€” English only â€” NO Gujarati]",
+    "borrowerConstitution": "[Individual / Firm / Company]",
+    "mortgagorName": "[Full name â€” if joint: (1) NAME W/o NAME and (2) NAME S/o NAME]",
+    "mortgagorAddress": "[Full address â€” English only]",
+    "mortgagorConstitution": "[Joint Owner / Individual]",
+    "presentOwner": "[Exact present owner â€” English â€” with designation]"
+  },
+  "section2_documentsVerified": [
+    {
+      "srNo": 1,
+      "documentName": "[FULL: Copy of Draft Sale Deed executed by M/s. NAME, a Partnership Firm in favour of (1) BUYER1 and (2) BUYER2]",
+      "documentNo": "[Registration number]",
+      "date": "[DD/MM/YYYY]",
+      "executedBy": "[Full name with designation]",
+      "inFavourOf": "[Full name/s]",
+      "remarks": "Verified"
+    }
+  ],
+  "section3_propertyDescription": {
+    "flatNo": "[Flat No]",
+    "floor": "[Floor]",
+    "blockNo": "[Block]",
+    "schemeName": "[Scheme name]",
+    "carpetArea": "[sq.mt]",
+    "balconyArea": "[sq.mt or NA]",
+    "washArea": "[sq.mt or NA]",
+    "wallArea": "[sq.mt or NA]",
+    "totalBuiltUpArea": "[sq.mt]",
+    "undividedShare": "[sq.mt]",
+    "surveyNo": "[Survey No]",
+    "tpSchemeNo": "[TP No]",
+    "finalPlotNo": "[FP No]",
+    "subPlotNo": "[Sub Plot No]",
+    "khataNo": "[Khata No]",
+    "mouje": "[Village â€” English]",
+    "taluka": "[Taluka â€” English]",
+    "district": "[District]",
+    "sroOffice": "[SRO Office]",
+    "boundaries": {
+      "east": "[EXACT east boundary â€” Flat No. or Margin Space or Road â€” NEVER As per Sale Deed]",
+      "west": "[EXACT west boundary]",
+      "north": "[EXACT north boundary]",
+      "south": "[EXACT south boundary]"
+    },
+    "typeOfProperty": "Freehold Residential Use.",
+    "landUse": "[NA / Residential]"
+  },
+  "section4_titleFlow": [
+    {
+      "step": 1,
+      "year": "[Year]",
+      "event": "Originally, Prior to the Year [YEAR], the land bearing Survey no. [SURVEY NO] was Owned by [ORIGINAL OWNER NAME]. Entry to that effect have been entered in the relevant revenue records by vide Mutation No. [NO] dated [DD/MM/YYYY] and same have been certified by the Competent Revenue Authority.",
+      "fromParty": "[Original owner]",
+      "toParty": "[First transferee]",
+      "mutationNo": "[Mutation No]",
+      "mutationDate": "[DD/MM/YYYY]",
+      "documentNo": "",
+      "certifiedBy": "Competent Revenue Authority",
+      "remarks": ""
+    },
+    {
+      "step": 2,
+      "year": "[Year]",
+      "event": "Thereafter, [FULL EVENT with all names, mutation no, date].",
+      "fromParty": "[From]",
+      "toParty": "[To]",
+      "mutationNo": "[No]",
+      "mutationDate": "[Date]",
+      "documentNo": "",
+      "certifiedBy": "Competent Revenue Authority",
+      "remarks": ""
+    }
+  ],
+  "section5_revenueRecord": {
+    "surveyNo": "[Survey No]",
+    "khataNo": "[Khata No]",
+    "upin": "[UPIN or NA]",
+    "currentOwnerAs7_12": "[Current owner â€” English â€” exact]",
+    "areaAs7_12": "[Area in H.Are.SqMt]",
+    "tenure": "[Bhin Kheti / Non-Agricultural]",
+    "landUse": "[Non-Agricultural / Multi-purpose]",
+    "tpDetails": "[TP Scheme details]",
+    "history20Years": "[ALL mutations oldest to newest with numbers and dates â€” English only]",
+    "naOrderDetails": {
+      "naOrderNo": "[NA Order No or NA]",
+      "naOrderDate": "[Date or NA]",
+      "issuedBy": "[Authority]",
+      "purposeAllowed": "[Residential / Multi-purpose]",
+      "naOrderStatus": "[OBTAINED / NOT OBTAINED]"
+    },
+    "latestMutationEntry": {
+      "mutationNo": "[Latest mutation no]",
+      "mutationDate": "[Date]",
+      "mutationType": "[Sale / Inheritance / NA / Correction]",
+      "mutationStatus": "Certified",
+      "certifiedBy": "[Talati, Village name]"
+    },
+    "bojaEntries": "[NIL or encumbrance details]",
+    "crossVerification": {
+      "ownerMatch": "[7/12 owner vs Sale Deed seller â€” MATCH or MISMATCH with reason]",
+      "areaMatch": "[7/12 area vs Sale Deed area â€” MATCH or MISMATCH]",
+      "bojaVsEC": "[7/12 Boja vs EC entries â€” MATCH or NIL]"
+    },
+    "revenueMatchStatus": "[MATCH or MISMATCH]",
+    "revenueRemark": "[Key observation]",
+    "revenueVerdict": "[CLEAR or REMARK or NEGATIVE]"
+  },
+  "section6_searchInvestigation": {
+    "sroName": "[SRO name]",
+    "searchReceiptNo": "[EXACT receipt number from EC document]",
+    "searchDate": "[Date]",
+    "searchPeriod": "[e.g. 2013 to 2026]",
+    "ecPeriod": "[Period]",
+    "documentsFoundInSearch": [
+      {
+        "srNo": 1,
+        "documentType": "[Type]",
+        "documentNo": "[Reg No]",
+        "date": "[Date]",
+        "fromParty": "[From]",
+        "toParty": "[To]",
+        "riskLevel": "[NIL/LOW/MEDIUM/HIGH]",
+        "remark": "[Remark]"
+      }
+    ],
+    "activeMortgageFound": "[YES or NO]",
+    "atsFound": "[YES or NO]",
+    "courtAttachmentFound": "[YES or NO]",
+    "encumbranceStatus": "[CLEAR or ENCUMBERED]",
+    "searchVerdict": "[CLEAR or HIGH RISK]",
+    "searchRemark": "[Summary]"
+  },
+  "section7_24_legalQA": {
+    "q5_tenureNature": "Freehold.",
+    "q6_leaseholdDetails": "Not Applicable.",
+    "q6a": "Not Applicable.",
+    "q6b": "Not Applicable.",
+    "q6c": "Not Applicable.",
+    "q6d": "Not Applicable.",
+    "q6e": "Not Applicable.",
+    "q7a": "Mortgagor have ownership rights as well as Possession of Subjected Property after the execution of Sale Deed and registered unto and in favour of [MORTGAGOR FULL NAME/S].",
+    "q7b": "Not Applicable",
+    "q7c": "[PRESENT OWNER FULL NAME WITH DESIGNATION] has absolute right over the subjected property and after the execution of Sale Deed and registered unto and in favour of [MORTGAGOR NAME/S] will have absolute right over the subjected property.",
+    "q7d": "Not Applicable.",
+    "q7e": "Not Applicable.",
+    "q8_localLawRestrictions": "Not Applicable.",
+    "q9a": "Not Applicable.",
+    "q9b": "Not Applicable.",
+    "q10_searchesConducted": "Online search had been conducted from Sub Registrar Office by virtue of Search receipts No. [EXACT RECEIPT NO FROM EC] dated [DATE].",
+    "q10b": "No",
+    "q10c": "No.",
+    "q11_nocIncomeTax": "Not Applicable.",
+    "q12_naConversion": "[N.A. Land. â€” Order No. XXXX dated DD/MM/YYYY issued by District Collector, Ahmedabad, allowing Residential use. OR N.A. Land.]",
+    "q13_revenueExtracts": "Village Form No. 7/12 in the name of [EXACT PRESENT OWNER WITH DESIGNATION].",
+    "q14a": "Not Applicable",
+    "q14b": "Not Applicable",
+    "q14c": "Not Applicable",
+    "q14d": "Not Applicable",
+    "q14e": "Not Applicable",
+    "q14f": "Not Applicable",
+    "q15a": "Not Applicable",
+    "q15b": "Not Applicable",
+    "q16_mortgageType": "Registered Mortgage Deed",
+    "q17a": "After the execution of Sale Deed and registered unto and in favour of [MORTGAGOR FULL NAME/S] will be deposit the title deeds with the Bank.",
+    "q17b": "Yes, it is required to execute and register equitable mortgage unto and in favour of Axis Bank Limited.",
+    "q17c": "The Registration Act mandates that documents relating to immovable property must be registered in the Sub-Registrar office that has jurisdiction over the area in which the property is located.",
+    "q18_stampDuty": "Stamp duty: 0.35% of the loan amount up to 20,00,000/-\nStamp duty of Rs. 7,000/- valid up to Rs.1 crore.\nAbove Rs.1 crore, the rate increases to 0.70%, capped at a maximum of Rs.11.2 lakhs",
+    "q19heading": "No, RERA (Real Estate Regulatory Authority) rules do not apply to subjected property.",
+    "q19a": "Not Applicable",
+    "q19b": "Not Applicable",
+    "q19c": "Not Applicable",
+    "q19ba": "Not Applicable",
+    "q19bb": "Not Applicable",
+    "q19bc": "Not Applicable",
+    "q19bd": "Not Applicable",
+    "q19be": "Not Applicable",
+    "q19bf": "Not Applicable",
+    "q20_excessLand": "Not Applicable",
+    "q21_landReformsAct": "Not Applicable",
+    "q22_governmentLand": "Not Applicable",
+    "q23_bankLienMutation": "The bank may apply to the concerned society to note a lien on the property in favour of the bank. In addition, the bank may apply to the concerned Revenue Department office to record the effect of the charge on the property, ensuring that the equitable mortgage.",
+    "q24_rocCersaiSearch": "Individuals."
+  },
+  "section25_finalOpinion": {
+    "titleStatus": "[CLEAR or SUBJECT TO or NOT CLEAR]",
+    "titleStatusReason": "[Reason]",
+    "opinionParagraph": "On perusal of the documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [PRESENT OWNER FULL NAME WITH DESIGNATION] respect of the property described hereinabove are covered with all respective Title Deeds. The right, title and interest of [PRESENT OWNER FULL NAME WITH DESIGNATION] over the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution of registered sale deed in favour of [MORTGAGOR FULL NAME/S] will derive legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/ advances granted or to be granted and a valid Equitable/ Registered Mortgage can be created over the said property in favour of your bank.",
+    "sarfaesiEnforceable": true,
+    "mortgageCanBeCreated": "Yes, after execution of Registered Sale Deed.",
+    "conditionsIfAny": "[NIL or conditions]"
+  },
+  "documentsRequired": {
+    "preDisbursement": [
+      "Draft Sale Deed executed by [BUILDER FULL NAME WITH DESIGNATION] in favour of [BUYER1] and [BUYER2 if joint]",
+      "Original Permission to Mortgage/NOC issued by Builder",
+      "Copy of Registered Cancellation Agreement to Sale No. [EXACT REG NO] dated [DD/MM/YYYY] executed by (1) [NAME] and (2) [NAME] in favour of [BUILDER NAME WITH DESIGNATION] along with RR",
+      "Copy of Registered Agreement to Sale No. [EXACT REG NO] dated [DD/MM/YYYY] executed by [BUILDER] in favour of (1) [PREV BUYER1] and (2) [PREV BUYER2]"
+    ],
+    "atPayOrder": [
+      "Original Registered Sale Deed to be executed by [BUILDER FULL NAME WITH DESIGNATION] in favour of [BUYER1] and [BUYER2 if joint] along with RR"
+    ],
+    "postDisbursement": [
+      "Original Registered Sale Deed to be executed by [BUILDER FULL NAME WITH DESIGNATION] in favour of [BUYER1] and [BUYER2 if joint] along with RR"
+    ],
+    "mandatoryForRegisteredMortgage": [
+      "Original Registered Sale Deed to be executed by [BUILDER FULL NAME WITH DESIGNATION] in favour of [BUYER1] and [BUYER2 if joint] along with RR"
+    ]
+  },
+  "riskSummary": {
+    "overallRisk": "[LOW or MEDIUM or HIGH]",
+    "revenueRecordRisk": "[LOW or MEDIUM or HIGH]",
+    "searchRisk": "[LOW or MEDIUM or HIGH]",
+    "titleChainRisk": "[LOW or MEDIUM or HIGH]",
+    "riskDetails": [
+      {
+        "level": "[HIGH or MEDIUM or LOW]",
+        "category": "[Revenue Record / Search / Title Chain / Documents / NA Order / Mutation]",
+        "issue": "[Specific issue found]",
+        "suggestion": "[Action required]"
+      }
+    ],
+    "keyRisks": ["[Risk 1 or NIL]"],
+    "keyPositives": ["[Positive 1]", "[Positive 2]", "[Positive 3]"]
+  },
+  "applicantName": "[Borrower name]",
+  "ownerName": "[Present owner â€” English]",
+  "proposedOwnerName": "[Mortgagor name]",
+  "natureOfProperty": "Freehold Residential Flat",
+  "natureOfOwnership": "[Individual / Joint]",
+  "sro": "[SRO name]",
+  "surveyNumber": "[Survey No]",
+  "propertyDescription": "All that piece and parcel of Immovable property of Flat No. [NO] on [FLOOR] Floor in Block No. [BLOCK] having Carpet area admeasuring [AREA] Sq. meters, Balcony area admeasuring [AREA] Sq. meters, Wash area admeasuring [AREA] Sq. meters, Wall Area admeasuring [AREA] Sq. Meters Total Built-up area admeasuring [AREA] Sq. Meters along with Undivided Share admeasuring [AREA] Sq. meters in Scheme Known as [SCHEME NAME] Constructed Over NA Land bearing Sub Plot No. [NO] of Final Plot No. [NO] Paiki, Survey No. [NO] in Town Planning Scheme No. [NO] situated, lying and being at Mouje: [VILLAGE], Taluka: [TALUKA] and District [DISTRICT] and Registration Sub-District [SRO] in the Registration District of [DISTRICT] within the state of Gujarat.",
+  "boundaries": {
+    "EAST": "[Exact east â€” NEVER As per Sale Deed]",
+    "WEST": "[Exact west]",
+    "NORTH": "[Exact north]",
+    "SOUTH": "[Exact south]"
+  },
+  "partII": [
+    "1. Originally, Prior to the Year [YEAR], the land bearing Survey no. [NO] was Owned by [NAME]. Entry to that effect have been entered in the relevant revenue records by vide Mutation No. [NO] dated [DATE] and same have been certified by the Competent Revenue Authority.",
+    "2. Thereafter, [FULL EVENT]...",
+    "3. Thereafter, [FULL EVENT]...",
+    "4. Thereafter, [FULL EVENT]...",
+    "5. Thereafter, [FULL EVENT]...",
+    "6. Thereafter, [FULL EVENT]...",
+    "7. Thereafter, [FULL EVENT]...",
+    "8. Thereafter, [FULL EVENT]...",
+    "9. Thereafter, [FULL EVENT]...",
+    "10. Thereafter, [FULL EVENT â€” reaches current owner]..."
+  ],
+  "partIII": [
+    {
+      "severity": "[High or Medium or Low]",
+      "issue": "[Issue]",
+      "suggestion": "[Action]"
+    }
+  ],
+  "partIV": {
+    "opinion": "[CLEAR or SUBJECT_TO or NOT_CLEAR]",
+    "opinionText": "[Same as section25 opinionParagraph with actual names]",
+    "conditions": ["NIL"]
+  }
+}`;
+
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 16000,
+        temperature: 0.1,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+    });
+
+    if (!openaiRes.ok) {
+      const err = await openaiRes.text();
+      return NextResponse.json({ error: 'OpenAI API failed', details: err }, { status: 500 });
+    }
+
+    const openaiData = await openaiRes.json();
+    const rawContent = openaiData.choices?.[0]?.message?.content || '';
+
+    let reportData: any;
+    try {
+      const cleaned = rawContent
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      reportData = JSON.parse(cleaned);
+    } catch (parseErr) {
+      return NextResponse.json(
+        { error: 'Failed to parse AI response', raw: rawContent },
+        { status: 500 }
+      );
+    }
+
+    reportData.generatedAt = new Date().toISOString();
+    reportData.generatedBy = 'TitleAI Platform';
+
+    return NextResponse.json({ success: true, data: reportData });
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  }
+}
