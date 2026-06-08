@@ -1,15 +1,17 @@
 ﻿"use client"
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
+import { supabase } from '@/lib/supabase'
 
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
 const CASE_TYPES = [
-    { id: 'builder_purchase', label: 'Builder Purchase', icon: '🏗️', desc: 'New flat/plot/shop from developer', color: '#f59e0b' },
-    { id: 'resale', label: 'Resale', icon: '🔑', desc: 'Resale property purchase', color: '#6366f1' },
-    { id: 'bt', label: 'Balance Transfer', icon: '🔄', desc: 'BT from another bank', color: '#3b82f6' },
-    { id: 'seller_bt', label: 'Seller BT', icon: '💼', desc: 'Seller side Balance Transfer', color: '#8b5cf6' },
-    { id: 'lap', label: 'LAP / Mortgage', icon: '🏦', desc: 'Loan Against Property', color: '#10b981' },
+    { id: 'builder_purchase', label: 'Builder Purchase', icon: '🏗️', color: '#f59e0b' },
+    { id: 'resale', label: 'Resale', icon: '🔑', color: '#6366f1' },
+    { id: 'bt', label: 'Balance Transfer', icon: '🔄', color: '#3b82f6' },
+    { id: 'seller_bt', label: 'Seller BT', icon: '💼', color: '#8b5cf6' },
+    { id: 'lap', label: 'LAP / Mortgage', icon: '🏦', color: '#10b981' },
 ]
 
 const loanTypeMap: Record<string, string> = {
@@ -45,6 +47,7 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function UploadPage() {
+    const router = useRouter()
     const [dragging, setDragging] = useState(false)
     const [files, setFiles] = useState<DocFile[]>([])
     const [selectedType, setSelectedType] = useState('')
@@ -55,11 +58,17 @@ export default function UploadPage() {
     const [reportData, setReportData] = useState<any>(null)
     const [step, setStep] = useState(0)
 
+    // Details sheet
     const [bankName, setBankName] = useState('')
     const [applicantNameInput, setApplicantNameInput] = useState('')
     const [coApplicantInput, setCoApplicantInput] = useState('')
     const [currentOwnerInput, setCurrentOwnerInput] = useState('')
     const [propertyDescInput, setPropertyDescInput] = useState('')
+
+    // Free limit
+    const [reportsUsed, setReportsUsed] = useState(0)
+    const [limitReached, setLimitReached] = useState(false)
+    const [userId, setUserId] = useState<string | null>(null)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -74,6 +83,24 @@ export default function UploadPage() {
 
     const selectedCase = CASE_TYPES.find(c => c.id === caseType) || CASE_TYPES[0]
 
+    // Check free limit on load
+    useEffect(() => {
+        const checkLimit = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            setUserId(user.id)
+            const { count } = await supabase
+                .from('reports')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+            const used = count || 0
+            setReportsUsed(used)
+            if (used >= 5) setLimitReached(true)
+        }
+        checkLimit()
+    }, [])
+
+    // Matrix animation
     useEffect(() => {
         const canvas = canvasRef.current; if (!canvas) return
         const ctx = canvas.getContext('2d'); if (!ctx) return
@@ -126,8 +153,7 @@ export default function UploadPage() {
                     const scale = Math.min(2.0, maxPx / Math.max(baseVp.width, baseVp.height))
                     const vp = page.getViewport({ scale })
                     const cv = document.createElement('canvas')
-                    cv.width = vp.width
-                    cv.height = vp.height
+                    cv.width = vp.width; cv.height = vp.height
                     await page.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
                     imgArr.push({ base64: cv.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg', name: file.name + '_p' + pageNum })
                 }
@@ -137,10 +163,15 @@ export default function UploadPage() {
     }
 
     const handleGenerate = async () => {
-        if (!bankName.trim()) { setErrorMsg('Bank name mandatory hai — Details Sheet fill karo!'); return }
-        if (!applicantNameInput.trim()) { setErrorMsg('Applicant name mandatory hai — Details Sheet fill karo!'); return }
-        if (!currentOwnerInput.trim()) { setErrorMsg('Current owner name mandatory hai — Details Sheet fill karo!'); return }
-        if (!propertyDescInput.trim()) { setErrorMsg('Property description mandatory hai — Details Sheet fill karo!'); return }
+        // FREE LIMIT CHECK
+        if (limitReached) {
+            router.push('/payments')
+            return
+        }
+        if (!bankName.trim()) { setErrorMsg('Bank name mandatory hai!'); return }
+        if (!applicantNameInput.trim()) { setErrorMsg('Applicant name mandatory hai!'); return }
+        if (!currentOwnerInput.trim()) { setErrorMsg('Current owner name mandatory hai!'); return }
+        if (!propertyDescInput.trim()) { setErrorMsg('Property description mandatory hai!'); return }
         if (files.length === 0) { setErrorMsg('Pehle documents upload karo!'); return }
 
         setGenerating(true); setReportData(null); setStep(0); setErrorMsg('')
@@ -166,12 +197,12 @@ export default function UploadPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-  userId: (await supabase.auth.getUser()).data.user?.id,
+                    userId: userId,
                     documentText: allText,
                     images: imageFiles.map((img: any) => ({ data: img.base64, mediaType: img.mediaType, name: img.name })),
                     caseType,
                     appId: 'AUTO-' + Date.now().toString().slice(-6),
-                    bankName: bankName,
+                    bankName,
                     loanType: loanTypeMap[caseType] || 'LAP',
                     loanAmount: 'As per Application',
                     applicantName: applicantNameInput,
@@ -183,7 +214,12 @@ export default function UploadPage() {
             const data = await res.json()
             clearInterval(iv); setStep(steps.length)
             if (data.success) {
-                setTimeout(() => { setReportData({ htmlReport: data.report }); setGenerating(false) }, 300)
+                setTimeout(() => {
+                    setReportData({ htmlReport: data.report })
+                    setGenerating(false)
+                    setReportsUsed(prev => prev + 1)
+                    if (reportsUsed + 1 >= 5) setLimitReached(true)
+                }, 300)
             } else { throw new Error(data.error || 'Analysis failed') }
         } catch (err: any) {
             clearInterval(iv)
@@ -204,29 +240,12 @@ export default function UploadPage() {
         if (w) { w.document.write(reportData.htmlReport); w.document.close() }
     }
 
-    const handleCaseSelect = (id: string) => {
-        setCaseType(id)
-        setCaseSelected(true)
-    }
-
-    const handleChangeCaseType = () => {
-        setCaseSelected(false)
-        setCaseType('')
-        setFiles([])
-        setReportData(null)
-    }
-
+    const handleCaseSelect = (id: string) => { setCaseType(id); setCaseSelected(true) }
+    const handleChangeCaseType = () => { setCaseSelected(false); setCaseType(''); setFiles([]); setReportData(null) }
     const handleNewReport = () => {
-        setReportData(null)
-        setFiles([])
-        setCaseSelected(false)
-        setCaseType('')
-        setBankName('')
-        setApplicantNameInput('')
-        setCoApplicantInput('')
-        setCurrentOwnerInput('')
-        setPropertyDescInput('')
-        setErrorMsg('')
+        setReportData(null); setFiles([]); setCaseSelected(false); setCaseType('')
+        setBankName(''); setApplicantNameInput(''); setCoApplicantInput('')
+        setCurrentOwnerInput(''); setPropertyDescInput(''); setErrorMsg('')
     }
 
     return (
@@ -242,52 +261,74 @@ export default function UploadPage() {
                         <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Document <span style={{ color: '#6366f1' }}>Upload & Report</span></div>
                         <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}>UPLOAD — AI ANALYSE — LEGAL SCRUTINY REPORT</div>
                     </div>
-                    {caseSelected && (
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            <div onClick={handleChangeCaseType} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '100px', padding: '8px 16px', cursor: 'pointer' }}>
-                                <span>{selectedCase.icon}</span>
-                                <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '700' }}>{selectedCase.label}</span>
-                                <span style={{ fontSize: '10px', color: '#6366f1' }}>✎</span>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        {/* FREE LIMIT COUNTER */}
+                        {!limitReached && (
+                            <div style={{
+                                padding: '6px 16px', borderRadius: '100px',
+                                background: reportsUsed >= 4 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+                                border: `1px solid ${reportsUsed >= 4 ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}`,
+                            }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: reportsUsed >= 4 ? '#f87171' : '#10b981' }}>
+                                    {5 - reportsUsed} Free Reports Left
+                                </span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '100px', padding: '8px 18px' }}>
-                                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }}></div>
-                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>AI ENGINE READY</span>
+                        )}
+                        {caseSelected && (
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <div onClick={handleChangeCaseType} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '100px', padding: '8px 16px', cursor: 'pointer' }}>
+                                    <span>{selectedCase.icon}</span>
+                                    <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '700' }}>{selectedCase.label}</span>
+                                    <span style={{ fontSize: '10px', color: '#6366f1' }}>✎</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '100px', padding: '8px 18px' }}>
+                                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+                                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>AI ENGINE READY</span>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
 
                 <div style={{ padding: '32px' }}>
 
+                    {/* LIMIT REACHED FULL PAGE */}
+                    {limitReached && !generating && !reportData && (
+                        <div style={{ textAlign: 'center', padding: '80px 32px' }}>
+                            <div style={{ fontSize: '60px', marginBottom: '24px' }}>🔒</div>
+                            <div style={{ fontSize: '11px', color: '#f59e0b', letterSpacing: '3px', fontWeight: '700', marginBottom: '16px' }}>FREE LIMIT REACHED</div>
+                            <div style={{ fontSize: '32px', fontWeight: '900', color: '#fff', marginBottom: '12px' }}>
+                                5 Free Reports Use Ho Gaye!
+                            </div>
+                            <div style={{ fontSize: '14px', color: '#475569', maxWidth: '440px', margin: '0 auto 40px', lineHeight: '1.8' }}>
+                                Aur reports generate karne ke liye plan upgrade karo. Affordable plans available hain!
+                            </div>
+                            <button onClick={() => router.push('/payments')} style={{
+                                padding: '16px 48px', borderRadius: '14px', border: 'none', cursor: 'pointer',
+                                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                color: '#000', fontSize: '15px', fontWeight: '900',
+                                boxShadow: '0 12px 40px rgba(245,158,11,0.4)',
+                            }}>
+                                View Plans & Upgrade →
+                            </button>
+                        </div>
+                    )}
+
                     {/* CASE TYPE SELECTION */}
-                    {!caseSelected && !generating && !reportData && (
+                    {!limitReached && !caseSelected && !generating && !reportData && (
                         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-
-                            {/* ✅ PREMIUM HEADING — ONLY THIS SECTION CHANGED */}
                             <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-
-                                {/* Top badge */}
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '20px', padding: '6px 18px', borderRadius: '100px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)' }}>
                                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 8px #6366f1' }} />
                                     <span style={{ fontSize: '10px', color: '#6366f1', fontWeight: '700', letterSpacing: '3px' }}>SELECT CASE TYPE</span>
                                 </div>
-
-                                {/* Main gradient title */}
                                 <div style={{
-                                    fontSize: '42px',
-                                    fontWeight: '900',
-                                    letterSpacing: '-1px',
-                                    marginBottom: '20px',
+                                    fontSize: '42px', fontWeight: '900', letterSpacing: '-1px', marginBottom: '20px',
                                     background: 'linear-gradient(135deg, #ffffff 0%, #c7d2fe 40%, #818cf8 100%)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                    backgroundClip: 'text',
-                                    lineHeight: '1.1',
+                                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                                 }}>
                                     Type of Case
                                 </div>
-
-                                {/* Decorative divider */}
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                                     <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.6))' }} />
                                     <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 12px #6366f1' }} />
@@ -296,34 +337,19 @@ export default function UploadPage() {
                                     <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, rgba(99,102,241,0.6), transparent)' }} />
                                 </div>
                             </div>
-                            {/* ✅ END PREMIUM HEADING */}
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {CASE_TYPES.map(ct => (
-                                    <div
-                                        key={ct.id}
-                                        onClick={() => handleCaseSelect(ct.id)}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: '20px',
-                                            padding: '20px 24px', borderRadius: '16px', cursor: 'pointer',
-                                            background: 'rgba(10,10,20,0.8)',
-                                            border: `1px solid rgba(99,102,241,0.15)`,
-                                            transition: 'all 0.2s',
-                                        }}
-                                        onMouseEnter={e => {
-                                            (e.currentTarget as HTMLDivElement).style.border = `1px solid ${ct.color}`
-                                                ; (e.currentTarget as HTMLDivElement).style.background = 'rgba(99,102,241,0.08)'
-                                        }}
-                                        onMouseLeave={e => {
-                                            (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(99,102,241,0.15)'
-                                                ; (e.currentTarget as HTMLDivElement).style.background = 'rgba(10,10,20,0.8)'
-                                        }}
+                                    <div key={ct.id} onClick={() => handleCaseSelect(ct.id)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 24px', borderRadius: '16px', cursor: 'pointer', background: 'rgba(10,10,20,0.8)', border: '1px solid rgba(99,102,241,0.15)', transition: 'all 0.2s' }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = `1px solid ${ct.color}`; (e.currentTarget as HTMLDivElement).style.background = 'rgba(99,102,241,0.08)' }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(99,102,241,0.15)'; (e.currentTarget as HTMLDivElement).style.background = 'rgba(10,10,20,0.8)' }}
                                     >
-                                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `rgba(99,102,241,0.1)`, border: `1px solid rgba(99,102,241,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
+                                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
                                             {ct.icon}
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '3px' }}>{ct.label}</div>
+                                            <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>{ct.label}</div>
                                         </div>
                                         <div style={{ fontSize: '18px', color: '#334155' }}>→</div>
                                     </div>
@@ -332,18 +358,18 @@ export default function UploadPage() {
                         </div>
                     )}
 
-                    {/* STEP 2 — DETAILS SHEET + UPLOAD */}
-                    {caseSelected && !generating && !reportData && (
+                    {/* STEP 2 — DETAILS + UPLOAD */}
+                    {!limitReached && caseSelected && !generating && !reportData && (
                         <>
                             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-                                <div style={{ fontSize: '13px', color: '#6366f1', letterSpacing: '3px', fontWeight: '700', marginBottom: '8px' }}></div>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: `rgba(99,102,241,0.1)`, border: `1px solid rgba(99,102,241,0.3)`, borderRadius: '100px', padding: '8px 20px' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '100px', padding: '8px 20px' }}>
                                     <span style={{ fontSize: '20px' }}>{selectedCase.icon}</span>
                                     <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>{selectedCase.label}</span>
                                     <span style={{ fontSize: '11px', color: '#6366f1', cursor: 'pointer', marginLeft: '4px' }} onClick={handleChangeCaseType}>← Change</span>
                                 </div>
                             </div>
 
+                            {/* DETAILS SHEET */}
                             <div style={{ background: 'rgba(2,2,8,0.95)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                                     <span style={{ fontSize: '16px' }}>📋</span>
@@ -379,7 +405,7 @@ export default function UploadPage() {
 
                                 <div style={{ marginTop: '14px', padding: '10px 14px', background: 'rgba(99,102,241,0.06)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.15)' }}>
                                     <div style={{ fontSize: '10px', color: '#475569', lineHeight: '1.6' }}>
-                                        💡 <strong style={{ color: '#6366f1' }}>Details Sheet</strong> — AI in details ko anchor ki tarah use karega aur correct property aur parties identify karega. Ye mandatory hai.
+                                        💡 <strong style={{ color: '#6366f1' }}>Details Sheet</strong> — AI in details ko anchor ki tarah use karega. Ye mandatory hai.
                                     </div>
                                 </div>
                             </div>
@@ -390,17 +416,20 @@ export default function UploadPage() {
                                 </div>
                             )}
 
+                            {/* DOC TYPE */}
                             <div style={{ marginBottom: '24px' }}>
                                 <div style={{ fontSize: '11px', color: '#334155', letterSpacing: '2px', fontWeight: '700', marginBottom: '12px' }}>SELECT DOCUMENT TYPE</div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                     {DOC_TYPES.map(type => (
-                                        <button key={type} onClick={() => setSelectedType(type === selectedType ? '' : type)} style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', border: selectedType === type ? '1px solid #6366f1' : '1px solid rgba(99,102,241,0.2)', background: selectedType === type ? 'rgba(99,102,241,0.2)' : 'rgba(2,2,8,0.8)', color: selectedType === type ? '#fff' : '#475569' }}>
+                                        <button key={type} onClick={() => setSelectedType(type === selectedType ? '' : type)}
+                                            style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', border: selectedType === type ? '1px solid #6366f1' : '1px solid rgba(99,102,241,0.2)', background: selectedType === type ? 'rgba(99,102,241,0.2)' : 'rgba(2,2,8,0.8)', color: selectedType === type ? '#fff' : '#475569' }}>
                                             {type}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
+                            {/* DROP ZONE */}
                             <div
                                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
                                 onDragLeave={() => setDragging(false)}
@@ -421,6 +450,7 @@ export default function UploadPage() {
                                 <input ref={inputRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} style={{ display: 'none' }} />
                             </div>
 
+                            {/* FILE LIST */}
                             {files.length > 0 && (
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>
@@ -459,15 +489,9 @@ export default function UploadPage() {
                     {/* GENERATING */}
                     {generating && (
                         <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '20px', padding: '48px 32px', textAlign: 'center' }}>
-                            <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px', letterSpacing: '2px' }}>
-                                ⚡ GENERATING LEGAL SCRUTINY REPORT...
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '8px' }}>
-                                {selectedCase.icon} {selectedCase.label} — Deep legal analysis in progress
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#334155', marginBottom: '32px' }}>
-                                {applicantNameInput} | {propertyDescInput}
-                            </div>
+                            <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px', letterSpacing: '2px' }}>⚡ GENERATING LEGAL SCRUTINY REPORT...</div>
+                            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '8px' }}>{selectedCase.icon} {selectedCase.label} — Deep legal analysis in progress</div>
+                            <div style={{ fontSize: '11px', color: '#334155', marginBottom: '32px' }}>{applicantNameInput} | {propertyDescInput}</div>
                             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
                                 {steps.map((s, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', marginBottom: '10px', background: i < step ? 'rgba(245,158,11,0.08)' : 'rgba(10,10,20,0.5)', border: `1px solid ${i < step ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.04)'}`, borderRadius: '12px', transition: 'all 0.3s' }}>
@@ -479,8 +503,6 @@ export default function UploadPage() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                            <div style={{ marginTop: '24px', fontSize: '11px', color: '#334155' }}>
                             </div>
                         </div>
                     )}
