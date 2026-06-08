@@ -19,9 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
-const client = new Anthropic({
-  apiKey: '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',
-})
+const client = new Anthropic()
 
 // ================================================================
 // SUPABASE ADMIN CLIENT (Service Role — Server Side Only)

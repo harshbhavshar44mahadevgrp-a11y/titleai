@@ -392,6 +392,7 @@ export async function POST(req: NextRequest) {
         const opinionColor = s8.titleStatus === 'NOT_CLEAR' ? 'C00000' :
             s8.titleStatus === 'CLEAR_SUBJECT_TO' ? 'B8500A' : '1B6B1B';
 
+        // ✅ FIXED: opinionBox rows array — both TableRows properly closed with )
         const opinionBox = new Table({
             width: { size: 9360, type: WidthType.DXA },
             columnWidths: [9360],
@@ -407,19 +408,19 @@ export async function POST(req: NextRequest) {
                             ]
                         })],
                     })]
-                },
-                    new TableRow({
-                        children: [new TableCell({
-                            borders,
-                            margins: { top: 160, bottom: 160, left: 240, right: 240 },
-                            children: [new Paragraph({
-                                children: [
-                                    new TextRun({ text: s8.opinionParagraph || '', size: 19, font: 'Arial', italics: true }),
-                                ]
-                            })],
-                        })]
-                    },
-      ],
+                }),
+                new TableRow({
+                    children: [new TableCell({
+                        borders,
+                        margins: { top: 160, bottom: 160, left: 240, right: 240 },
+                        children: [new Paragraph({
+                            children: [
+                                new TextRun({ text: s8.opinionParagraph || '', size: 19, font: 'Arial', italics: true }),
+                            ]
+                        })],
+                    })]
+                }),
+            ],
         });
 
         const conditionParas: any[] = [];
@@ -576,4 +577,4 @@ export async function POST(req: NextRequest) {
         console.error('Word generation error:', error);
         return NextResponse.json({ error: error.message || 'Word generation failed' }, { status: 500 });
     }
-} 
+}
