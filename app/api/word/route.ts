@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
     AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
-    Header, Footer, PageNumber, NumberFormat
+    Header, Footer
 } from 'docx';
 
 const DARK_BLUE = '1B3A6B';
@@ -11,7 +11,6 @@ const LIGHT_GRAY = 'F2F2F2';
 const WHITE = 'FFFFFF';
 const GREEN_BG = 'E8F5E9';
 const AMBER_BG = 'FFF8E1';
-const RED_BG = 'FFEBEE';
 
 const thinBorder = { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' };
 const borders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
@@ -44,7 +43,6 @@ function sectionTitle(text: string) {
         children: [
             new TextRun({
                 text: '  ' + text, bold: true, size: 22, color: WHITE, font: 'Arial',
-                highlight: undefined
             }),
         ],
         shading: { fill: DARK_BLUE, type: ShadingType.CLEAR },
@@ -98,7 +96,6 @@ export async function POST(req: NextRequest) {
         const s8 = r.section8_finalOpinion || {};
         const ec = r.ecEntries || [];
 
-        // ═══ HEADER ═══
         const header = new Header({
             children: [
                 new Paragraph({
@@ -113,7 +110,6 @@ export async function POST(req: NextRequest) {
             ],
         });
 
-        // ═══ FOOTER ═══
         const footer = new Footer({
             children: [
                 new Paragraph({
@@ -126,40 +122,23 @@ export async function POST(req: NextRequest) {
             ],
         });
 
-        // ═══ TITLE BOX ═══
         const titleTable = new Table({
             width: { size: 9360, type: WidthType.DXA },
             columnWidths: [9360],
             rows: [new TableRow({
-                children: [
-                    new TableCell({
-                        borders: thickBorders,
-                        shading: { fill: DARK_BLUE, type: ShadingType.CLEAR },
-                        margins: { top: 160, bottom: 160, left: 240, right: 240 },
-                        children: [
-                            new Paragraph({
-                                alignment: AlignmentType.CENTER, children: [
-                                    new TextRun({ text: 'SUB: DOCUMENT SCRUTINY REPORT', bold: true, size: 32, color: WHITE, font: 'Arial' }),
-                                ]
-                            }),
-                            new Paragraph({
-                                alignment: AlignmentType.CENTER, spacing: sp(60, 60), children: [
-                                    new TextRun({ text: `${meta.bankName || 'Axis Bank Ltd.'}   |   ${meta.caseTypeLabel || ''}`, size: 20, color: 'AAAAAA', font: 'Arial' }),
-                                ]
-                            }),
-                            new Paragraph({
-                                alignment: AlignmentType.CENTER, children: [
-                                    new TextRun({ text: `Ref. No.: ${meta.refNo || ''}   |   Date: ${meta.date || ''}`, size: 18, color: GOLD, font: 'Arial' }),
-                                ]
-                            }),
-                        ],
-                    }),
-                ]
-            }),
-            ]
+                children: [new TableCell({
+                    borders: thickBorders,
+                    shading: { fill: DARK_BLUE, type: ShadingType.CLEAR },
+                    margins: { top: 160, bottom: 160, left: 240, right: 240 },
+                    children: [
+                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'SUB: DOCUMENT SCRUTINY REPORT', bold: true, size: 32, color: WHITE, font: 'Arial' })] }),
+                        new Paragraph({ alignment: AlignmentType.CENTER, spacing: sp(60, 60), children: [new TextRun({ text: `${meta.bankName || 'Axis Bank Ltd.'}   |   ${meta.caseTypeLabel || ''}`, size: 20, color: 'AAAAAA', font: 'Arial' })] }),
+                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `Ref. No.: ${meta.refNo || ''}   |   Date: ${meta.date || ''}`, size: 18, color: GOLD, font: 'Arial' })] }),
+                    ],
+                })]
+            })]
         });
 
-        // ═══ SECTION 1 ═══
         const sec1Table = new Table({
             width: { size: 9360, type: WidthType.DXA },
             columnWidths: [2800, 6560],
@@ -181,7 +160,6 @@ export async function POST(req: NextRequest) {
             ],
         });
 
-        // ═══ SECTION 2 ═══
         const sec2Table = new Table({
             width: { size: 9360, type: WidthType.DXA },
             columnWidths: [2800, 6560],
@@ -209,7 +187,6 @@ export async function POST(req: NextRequest) {
             ],
         });
 
-        // ═══ SECTION 3 — DOCUMENTS TABLE ═══
         const sec3Rows = [
             new TableRow({
                 children: [
@@ -230,10 +207,8 @@ export async function POST(req: NextRequest) {
                     cell(d.parties || '', { width: 2760 }),
                     cell(d.status || '', {
                         width: 1500,
-                        fill: (d.status || '').includes('✓') ? GREEN_BG :
-                            (d.status || '').includes('⚠') ? AMBER_BG : WHITE,
-                        color: (d.status || '').includes('✓') ? '1B5E20' :
-                            (d.status || '').includes('⚠') ? '7B4F00' : '000000',
+                        fill: (d.status || '').includes('✓') ? GREEN_BG : (d.status || '').includes('⚠') ? AMBER_BG : WHITE,
+                        color: (d.status || '').includes('✓') ? '1B5E20' : (d.status || '').includes('⚠') ? '7B4F00' : '000000',
                     }),
                 ]
             })),
@@ -245,14 +220,11 @@ export async function POST(req: NextRequest) {
             rows: sec3Rows,
         });
 
-        // ═══ SECTION 4 — TITLE CHAIN PARAGRAPHS ═══
         const titleChainParas: any[] = [];
         s4.forEach((p: any) => {
             titleChainParas.push(new Paragraph({
                 spacing: sp(120, 60),
-                children: [
-                    new TextRun({ text: `PARA ${p.paraNo} — ${p.heading || ''}`, bold: true, size: 20, color: DARK_BLUE, font: 'Arial' }),
-                ],
+                children: [new TextRun({ text: `PARA ${p.paraNo} — ${p.heading || ''}`, bold: true, size: 20, color: DARK_BLUE, font: 'Arial' })],
             }));
             titleChainParas.push(new Paragraph({
                 spacing: sp(0, 120),
@@ -260,7 +232,6 @@ export async function POST(req: NextRequest) {
             }));
         });
 
-        // ═══ EC TABLE ═══
         const ecRows = [
             new TableRow({
                 children: [
@@ -290,10 +261,9 @@ export async function POST(req: NextRequest) {
             rows: ecRows,
         });
 
-        // ═══ SECTION 5 — RISK ═══
         const riskParas: any[] = [];
-        const riskColor = (r.section5_riskAnalysis?.overallRisk || 'LOW').toUpperCase().includes('HIGH') ? 'C00000' :
-            (r.section5_riskAnalysis?.overallRisk || 'LOW').toUpperCase().includes('MEDIUM') ? 'B8500A' : '1E7A1E';
+        const riskColor = (s5.overallRisk || 'LOW').toUpperCase().includes('HIGH') ? 'C00000' :
+            (s5.overallRisk || 'LOW').toUpperCase().includes('MEDIUM') ? 'B8500A' : '1E7A1E';
 
         riskParas.push(new Paragraph({
             spacing: sp(80, 80),
@@ -301,43 +271,22 @@ export async function POST(req: NextRequest) {
         }));
 
         if (s5.positiveObservations?.length > 0) {
-            riskParas.push(new Paragraph({
-                spacing: sp(80, 60), children: [
-                    new TextRun({ text: '5A. POSITIVE OBSERVATIONS — LOW RISK:', bold: true, size: 20, color: '1E7A1E', font: 'Arial' }),
-                ]
-            }));
+            riskParas.push(new Paragraph({ spacing: sp(80, 60), children: [new TextRun({ text: '5A. POSITIVE OBSERVATIONS — LOW RISK:', bold: true, size: 20, color: '1E7A1E', font: 'Arial' })] }));
             s5.positiveObservations.forEach((obs: string) => {
-                riskParas.push(new Paragraph({
-                    spacing: sp(0, 40), children: [
-                        new TextRun({ text: `✓  ${obs}`, size: 18, color: '1E7A1E', font: 'Arial' }),
-                    ]
-                }));
+                riskParas.push(new Paragraph({ spacing: sp(0, 40), children: [new TextRun({ text: `✓  ${obs}`, size: 18, color: '1E7A1E', font: 'Arial' })] }));
             });
         }
 
         if (s5.conditions?.length > 0) {
             riskParas.push(emptyLine());
-            riskParas.push(new Paragraph({
-                spacing: sp(80, 60), children: [
-                    new TextRun({ text: '5B. CONDITIONS / MEDIUM RISK OBSERVATIONS:', bold: true, size: 20, color: 'B8500A', font: 'Arial' }),
-                ]
-            }));
+            riskParas.push(new Paragraph({ spacing: sp(80, 60), children: [new TextRun({ text: '5B. CONDITIONS / MEDIUM RISK OBSERVATIONS:', bold: true, size: 20, color: 'B8500A', font: 'Arial' })] }));
             s5.conditions.forEach((c: any) => {
                 if (!c.title) return;
-                riskParas.push(new Paragraph({
-                    spacing: sp(80, 40), children: [
-                        new TextRun({ text: `⚠  CONDITION ${c.conditionNo}: ${c.title}`, bold: true, size: 19, color: 'B8500A', font: 'Arial' }),
-                    ]
-                }));
-                riskParas.push(new Paragraph({
-                    spacing: sp(0, 80), children: [
-                        new TextRun({ text: c.description || '', size: 18, font: 'Arial', italics: true }),
-                    ]
-                }));
+                riskParas.push(new Paragraph({ spacing: sp(80, 40), children: [new TextRun({ text: `⚠  CONDITION ${c.conditionNo}: ${c.title}`, bold: true, size: 19, color: 'B8500A', font: 'Arial' })] }));
+                riskParas.push(new Paragraph({ spacing: sp(0, 80), children: [new TextRun({ text: c.description || '', size: 18, font: 'Arial', italics: true })] }));
             });
         }
 
-        // ═══ SECTION 6 — DOCUMENT DEMAND ═══
         const demandParas: any[] = [];
         const demandSections = [
             { title: 'PRE-DISBURSEMENT — MANDATORY:', items: s6.preDisbursement || [], color: DARK_BLUE },
@@ -347,23 +296,14 @@ export async function POST(req: NextRequest) {
 
         demandSections.forEach(ds => {
             if (ds.items.length > 0) {
-                demandParas.push(new Paragraph({
-                    spacing: sp(100, 60), children: [
-                        new TextRun({ text: ds.title, bold: true, size: 20, color: ds.color, font: 'Arial' }),
-                    ]
-                }));
+                demandParas.push(new Paragraph({ spacing: sp(100, 60), children: [new TextRun({ text: ds.title, bold: true, size: 20, color: ds.color, font: 'Arial' })] }));
                 ds.items.forEach((item: string) => {
-                    demandParas.push(new Paragraph({
-                        spacing: sp(0, 40), children: [
-                            new TextRun({ text: `—  ${item}`, size: 18, font: 'Arial' }),
-                        ]
-                    }));
+                    demandParas.push(new Paragraph({ spacing: sp(0, 40), children: [new TextRun({ text: `—  ${item}`, size: 18, font: 'Arial' })] }));
                 });
                 demandParas.push(emptyLine());
             }
         });
 
-        // ═══ SECTION 7 — Q&A TABLE ═══
         const qaItems = [
             ['Q1. Nature of Title', s7.q1_natureOfTitle],
             ['Q2. Tenure', s7.q2_tenure],
@@ -385,14 +325,12 @@ export async function POST(req: NextRequest) {
         const qaTable = new Table({
             width: { size: 9360, type: WidthType.DXA },
             columnWidths: [2400, 6960],
-            rows: qaItems.map(([q, a]) => twoColRow(q, a || 'N/A', 2400, 6960)),
+            rows: qaItems.map(([q, a]) => twoColRow(q as string, (a as string) || 'N/A', 2400, 6960)),
         });
 
-        // ═══ SECTION 8 — FINAL OPINION ═══
         const opinionColor = s8.titleStatus === 'NOT_CLEAR' ? 'C00000' :
             s8.titleStatus === 'CLEAR_SUBJECT_TO' ? 'B8500A' : '1B6B1B';
 
-        // ✅ FIXED: opinionBox rows array — both TableRows properly closed with )
         const opinionBox = new Table({
             width: { size: 9360, type: WidthType.DXA },
             columnWidths: [9360],
@@ -403,9 +341,8 @@ export async function POST(req: NextRequest) {
                         shading: { fill: opinionColor, type: ShadingType.CLEAR },
                         margins: { top: 120, bottom: 120, left: 240, right: 240 },
                         children: [new Paragraph({
-                            alignment: AlignmentType.CENTER, children: [
-                                new TextRun({ text: `⚖  ${s8.opinionHeading || 'TITLE IS CLEAR AND MARKETABLE'}`, bold: true, size: 26, color: WHITE, font: 'Arial' }),
-                            ]
+                            alignment: AlignmentType.CENTER,
+                            children: [new TextRun({ text: `⚖  ${s8.opinionHeading || 'TITLE IS CLEAR AND MARKETABLE'}`, bold: true, size: 26, color: WHITE, font: 'Arial' })],
                         })],
                     })]
                 }),
@@ -414,9 +351,7 @@ export async function POST(req: NextRequest) {
                         borders,
                         margins: { top: 160, bottom: 160, left: 240, right: 240 },
                         children: [new Paragraph({
-                            children: [
-                                new TextRun({ text: s8.opinionParagraph || '', size: 19, font: 'Arial', italics: true }),
-                            ]
+                            children: [new TextRun({ text: s8.opinionParagraph || '', size: 19, font: 'Arial', italics: true })],
                         })],
                     })]
                 }),
@@ -426,20 +361,17 @@ export async function POST(req: NextRequest) {
         const conditionParas: any[] = [];
         if (s8.conditions?.length > 0) {
             conditionParas.push(new Paragraph({
-                spacing: sp(120, 60), children: [
-                    new TextRun({ text: '— SUBJECT TO THE FOLLOWING CONDITIONS —', bold: true, size: 20, color: opinionColor, font: 'Arial' }),
-                ]
+                spacing: sp(120, 60),
+                children: [new TextRun({ text: '— SUBJECT TO THE FOLLOWING CONDITIONS —', bold: true, size: 20, color: opinionColor, font: 'Arial' })],
             }));
             s8.conditions.forEach((c: string) => {
                 conditionParas.push(new Paragraph({
-                    spacing: sp(0, 60), children: [
-                        new TextRun({ text: `—  ${c}`, size: 18, font: 'Arial' }),
-                    ]
+                    spacing: sp(0, 60),
+                    children: [new TextRun({ text: `—  ${c}`, size: 18, font: 'Arial' })],
                 }));
             });
         }
 
-        // ═══ SIGNATURE ═══
         const signatureTable = new Table({
             width: { size: 9360, type: WidthType.DXA },
             columnWidths: [4680, 4680],
@@ -464,11 +396,9 @@ export async function POST(req: NextRequest) {
                         ],
                     }),
                 ]
-            }),
-            ]
+            })]
         });
 
-        // ═══ BUILD DOCUMENT ═══
         const doc = new Document({
             styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
             sections: [{
@@ -481,83 +411,45 @@ export async function POST(req: NextRequest) {
                 headers: { default: header },
                 footers: { default: footer },
                 children: [
-                    emptyLine(),
-                    titleTable,
-                    emptyLine(),
-
+                    emptyLine(), titleTable, emptyLine(),
                     sectionTitle('SECTION 1 — BASIC DETAILS OF LOAN / MORTGAGE'),
-                    emptyLine(),
-                    sec1Table,
-                    emptyLine(),
-
+                    emptyLine(), sec1Table, emptyLine(),
                     sectionTitle('SECTION 2 — DESCRIPTION OF SUBJECT PROPERTY'),
-                    emptyLine(),
-                    sec2Table,
-                    emptyLine(),
-
+                    emptyLine(), sec2Table, emptyLine(),
                     sectionTitle('SECTION 3 — LIST OF DOCUMENTS RECEIVED & VERIFIED'),
-                    emptyLine(),
-                    sec3Table,
-                    emptyLine(),
-
+                    emptyLine(), sec3Table, emptyLine(),
                     sectionTitle('SECTION 4 — TITLE CHAIN (OWNERSHIP HISTORY)'),
-                    emptyLine(),
-                    ...titleChainParas,
-
+                    emptyLine(), ...titleChainParas,
                     sectionTitle('ENCUMBRANCE CERTIFICATE — 14 YEAR EC ENTRIES'),
-                    emptyLine(),
-                    ecTable,
-                    emptyLine(),
+                    emptyLine(), ecTable, emptyLine(),
                     new Paragraph({
-                        spacing: sp(60, 100), children: [
-                            new TextRun({
-                                text: `EC STATUS: ${r.ecStatus || 'CLEAR'}`, bold: true, size: 20,
-                                color: (r.ecStatus || 'CLEAR') === 'CLEAR' ? '1E7A1E' : 'C00000', font: 'Arial'
-                            }),
-                        ]
+                        spacing: sp(60, 100),
+                        children: [new TextRun({ text: `EC STATUS: ${r.ecStatus || 'CLEAR'}`, bold: true, size: 20, color: (r.ecStatus || 'CLEAR') === 'CLEAR' ? '1E7A1E' : 'C00000', font: 'Arial' })],
                     }),
                     emptyLine(),
-
                     sectionTitle('SECTION 5 — RISK ANALYSIS'),
-                    emptyLine(),
-                    ...riskParas,
-                    emptyLine(),
-
+                    emptyLine(), ...riskParas, emptyLine(),
                     sectionTitle('SECTION 6 — DOCUMENT DEMAND LIST'),
-                    emptyLine(),
-                    ...demandParas,
-
+                    emptyLine(), ...demandParas,
                     sectionTitle('SECTION 7 — LEGAL QUESTIONS & ANSWERS'),
-                    emptyLine(),
-                    qaTable,
-                    emptyLine(),
-
+                    emptyLine(), qaTable, emptyLine(),
                     sectionTitle('SECTION 8 — FINAL TITLE OPINION'),
-                    emptyLine(),
-                    opinionBox,
-                    emptyLine(),
-                    ...conditionParas,
-                    emptyLine(),
-
-                    sectionTitle('SECTION 9 — ADVOCATE\'S DECLARATION'),
+                    emptyLine(), opinionBox, emptyLine(),
+                    ...conditionParas, emptyLine(),
+                    sectionTitle("SECTION 9 — ADVOCATE'S DECLARATION"),
                     emptyLine(),
                     new Paragraph({
-                        spacing: sp(0, 120), children: [
-                            new TextRun({ text: 'I hope everything is in order and the details furnished above are true to the best of my knowledge and belief. The opinion expressed herein is based on the documents provided to me and searches conducted by me. I am not responsible for any facts or documents not disclosed to me or not submitted for examination.', size: 18, font: 'Arial', italics: true }),
-                        ]
+                        spacing: sp(0, 120),
+                        children: [new TextRun({ text: 'I hope everything is in order and the details furnished above are true to the best of my knowledge and belief. The opinion expressed herein is based on the documents provided to me and searches conducted by me. I am not responsible for any facts or documents not disclosed to me or not submitted for examination.', size: 18, font: 'Arial', italics: true })],
                     }),
-                    emptyLine(),
-                    signatureTable,
-                    emptyLine(),
+                    emptyLine(), signatureTable, emptyLine(),
                     new Paragraph({
-                        alignment: AlignmentType.CENTER, spacing: sp(80, 0), children: [
-                            new TextRun({ text: `TitleAI & Associates  |  support@titleai.in  |  +91 98765 43210  |  www.titleai.in`, size: 16, color: '888888', font: 'Arial' }),
-                        ]
+                        alignment: AlignmentType.CENTER, spacing: sp(80, 0),
+                        children: [new TextRun({ text: `TitleAI & Associates  |  support@titleai.in  |  +91 98765 43210  |  www.titleai.in`, size: 16, color: '888888', font: 'Arial' })],
                     }),
                     new Paragraph({
-                        alignment: AlignmentType.CENTER, children: [
-                            new TextRun({ text: `Ref: ${meta.refNo || ''}  |  Generated: ${meta.date || ''}  |  This report is computer generated and digitally authenticated by TitleAI & Associates.`, size: 14, color: 'AAAAAA', font: 'Arial', italics: true }),
-                        ]
+                        alignment: AlignmentType.CENTER,
+                        children: [new TextRun({ text: `Ref: ${meta.refNo || ''}  |  Generated: ${meta.date || ''}  |  This report is computer generated and digitally authenticated by TitleAI & Associates.`, size: 14, color: 'AAAAAA', font: 'Arial', italics: true })],
                     }),
                 ],
             }],
