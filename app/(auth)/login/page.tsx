@@ -43,7 +43,7 @@ export default function LoginPage() {
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <div style={{ fontSize: '32px', fontWeight: '800', color: '#fff' }}>
-                        Title<span style={{ color: '#6366f1' }}>AI</span>
+                        TITLEMATRIX.AI<span style={{ color: '#6366f1' }}>AI</span>
                     </div>
                     <div style={{ fontSize: '13px', color: '#475569', marginTop: '6px' }}>
                         Property Legal Intelligence
