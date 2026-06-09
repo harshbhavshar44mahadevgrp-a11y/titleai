@@ -58,14 +58,12 @@ export default function UploadPage() {
     const [reportData, setReportData] = useState<any>(null)
     const [step, setStep] = useState(0)
 
-    // Details sheet
     const [bankName, setBankName] = useState('')
     const [applicantNameInput, setApplicantNameInput] = useState('')
     const [coApplicantInput, setCoApplicantInput] = useState('')
     const [currentOwnerInput, setCurrentOwnerInput] = useState('')
     const [propertyDescInput, setPropertyDescInput] = useState('')
 
-    // Free limit
     const [reportsUsed, setReportsUsed] = useState(0)
     const [limitReached, setLimitReached] = useState(false)
     const [userId, setUserId] = useState<string | null>(null)
@@ -83,7 +81,6 @@ export default function UploadPage() {
 
     const selectedCase = CASE_TYPES.find(c => c.id === caseType) || CASE_TYPES[0]
 
-    // Check free limit on load
     useEffect(() => {
         const checkLimit = async () => {
             const { data: { user } } = await supabase.auth.getUser()
@@ -100,7 +97,6 @@ export default function UploadPage() {
         checkLimit()
     }, [])
 
-    // Matrix animation
     useEffect(() => {
         const canvas = canvasRef.current; if (!canvas) return
         const ctx = canvas.getContext('2d'); if (!ctx) return
@@ -163,11 +159,7 @@ export default function UploadPage() {
     }
 
     const handleGenerate = async () => {
-        // FREE LIMIT CHECK
-        if (limitReached) {
-            router.push('/payments')
-            return
-        }
+        if (limitReached) { router.push('/payments'); return }
         if (!bankName.trim()) { setErrorMsg('Bank name mandatory hai!'); return }
         if (!applicantNameInput.trim()) { setErrorMsg('Applicant name mandatory hai!'); return }
         if (!currentOwnerInput.trim()) { setErrorMsg('Current owner name mandatory hai!'); return }
@@ -197,7 +189,7 @@ export default function UploadPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: userId,
+                    userId,
                     documentText: allText,
                     images: imageFiles.map((img: any) => ({ data: img.base64, mediaType: img.mediaType, name: img.name })),
                     caseType,
@@ -226,6 +218,41 @@ export default function UploadPage() {
             setErrorMsg('Error: ' + (err.message || 'Unknown error'))
             setGenerating(false)
         }
+    }
+
+    // ✅ WORD DOWNLOAD — HTML ko .doc format mein save karo
+    const handleWordDownload = () => {
+        if (!reportData?.htmlReport) return
+        const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                  xmlns:w='urn:schemas-microsoft-com:office:word'
+                  xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>TitleMatrix Report</title>
+                <!--[if gte mso 9]>
+                <xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom></w:WordDocument></xml>
+                <![endif]-->
+                <style>
+                    body { font-family: Arial, sans-serif; font-size: 11pt; }
+                    table { border-collapse: collapse; width: 100%; }
+                    td, th { border: 1px solid #ccc; padding: 6px 10px; }
+                </style>
+            </head>
+            <body>
+                ${reportData.htmlReport}
+            </body>
+            </html>
+        `
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `TitleMatrix_${applicantNameInput || 'Report'}_${bankName || ''}.doc`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
     }
 
     const handlePrint = () => {
@@ -262,13 +289,8 @@ export default function UploadPage() {
                         <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}>UPLOAD — AI ANALYSE — LEGAL SCRUTINY REPORT</div>
                     </div>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        {/* FREE LIMIT COUNTER */}
                         {!limitReached && (
-                            <div style={{
-                                padding: '6px 16px', borderRadius: '100px',
-                                background: reportsUsed >= 4 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
-                                border: `1px solid ${reportsUsed >= 4 ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}`,
-                            }}>
+                            <div style={{ padding: '6px 16px', borderRadius: '100px', background: reportsUsed >= 4 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)', border: `1px solid ${reportsUsed >= 4 ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}` }}>
                                 <span style={{ fontSize: '11px', fontWeight: '700', color: reportsUsed >= 4 ? '#f87171' : '#10b981' }}>
                                     {5 - reportsUsed} Free Reports Left
                                 </span>
@@ -292,29 +314,20 @@ export default function UploadPage() {
 
                 <div style={{ padding: '32px' }}>
 
-                    {/* LIMIT REACHED FULL PAGE */}
                     {limitReached && !generating && !reportData && (
                         <div style={{ textAlign: 'center', padding: '80px 32px' }}>
                             <div style={{ fontSize: '60px', marginBottom: '24px' }}>🔒</div>
                             <div style={{ fontSize: '11px', color: '#f59e0b', letterSpacing: '3px', fontWeight: '700', marginBottom: '16px' }}>FREE LIMIT REACHED</div>
-                            <div style={{ fontSize: '32px', fontWeight: '900', color: '#fff', marginBottom: '12px' }}>
-                                5 Free Reports Use Ho Gaye!
-                            </div>
+                            <div style={{ fontSize: '32px', fontWeight: '900', color: '#fff', marginBottom: '12px' }}>5 Free Reports Use Ho Gaye!</div>
                             <div style={{ fontSize: '14px', color: '#475569', maxWidth: '440px', margin: '0 auto 40px', lineHeight: '1.8' }}>
                                 Aur reports generate karne ke liye plan upgrade karo. Affordable plans available hain!
                             </div>
-                            <button onClick={() => router.push('/payments')} style={{
-                                padding: '16px 48px', borderRadius: '14px', border: 'none', cursor: 'pointer',
-                                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                color: '#000', fontSize: '15px', fontWeight: '900',
-                                boxShadow: '0 12px 40px rgba(245,158,11,0.4)',
-                            }}>
+                            <button onClick={() => router.push('/payments')} style={{ padding: '16px 48px', borderRadius: '14px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', fontSize: '15px', fontWeight: '900', boxShadow: '0 12px 40px rgba(245,158,11,0.4)' }}>
                                 View Plans & Upgrade →
                             </button>
                         </div>
                     )}
 
-                    {/* CASE TYPE SELECTION */}
                     {!limitReached && !caseSelected && !generating && !reportData && (
                         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
                             <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -322,11 +335,7 @@ export default function UploadPage() {
                                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 8px #6366f1' }} />
                                     <span style={{ fontSize: '10px', color: '#6366f1', fontWeight: '700', letterSpacing: '3px' }}>SELECT CASE TYPE</span>
                                 </div>
-                                <div style={{
-                                    fontSize: '42px', fontWeight: '900', letterSpacing: '-1px', marginBottom: '20px',
-                                    background: 'linear-gradient(135deg, #ffffff 0%, #c7d2fe 40%, #818cf8 100%)',
-                                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-                                }}>
+                                <div style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-1px', marginBottom: '20px', background: 'linear-gradient(135deg, #ffffff 0%, #c7d2fe 40%, #818cf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                                     Type of Case
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
@@ -337,7 +346,6 @@ export default function UploadPage() {
                                     <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, rgba(99,102,241,0.6), transparent)' }} />
                                 </div>
                             </div>
-
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {CASE_TYPES.map(ct => (
                                     <div key={ct.id} onClick={() => handleCaseSelect(ct.id)}
@@ -345,12 +353,8 @@ export default function UploadPage() {
                                         onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = `1px solid ${ct.color}`; (e.currentTarget as HTMLDivElement).style.background = 'rgba(99,102,241,0.08)' }}
                                         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(99,102,241,0.15)'; (e.currentTarget as HTMLDivElement).style.background = 'rgba(10,10,20,0.8)' }}
                                     >
-                                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
-                                            {ct.icon}
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>{ct.label}</div>
-                                        </div>
+                                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>{ct.icon}</div>
+                                        <div style={{ flex: 1 }}><div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>{ct.label}</div></div>
                                         <div style={{ fontSize: '18px', color: '#334155' }}>→</div>
                                     </div>
                                 ))}
@@ -358,7 +362,6 @@ export default function UploadPage() {
                         </div>
                     )}
 
-                    {/* STEP 2 — DETAILS + UPLOAD */}
                     {!limitReached && caseSelected && !generating && !reportData && (
                         <>
                             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
@@ -369,7 +372,6 @@ export default function UploadPage() {
                                 </div>
                             </div>
 
-                            {/* DETAILS SHEET */}
                             <div style={{ background: 'rgba(2,2,8,0.95)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                                     <span style={{ fontSize: '16px' }}>📋</span>
@@ -378,12 +380,10 @@ export default function UploadPage() {
                                         <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>Pehle ye fill karo — AI correct path identify karega</div>
                                     </div>
                                 </div>
-
                                 <div style={{ marginBottom: '14px' }}>
                                     <label style={labelStyle}>BANK NAME *</label>
                                     <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Axis Bank Ltd., Ambawadi Branch, Ahmedabad" style={inputStyle} />
                                 </div>
-
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                                     <div>
                                         <label style={labelStyle}>APPLICANT NAME *</label>
@@ -402,7 +402,6 @@ export default function UploadPage() {
                                         <input value={propertyDescInput} onChange={e => setPropertyDescInput(e.target.value)} placeholder="e.g. Shop No 5, ABC Bldg, Vastrapur, Ahmedabad" style={inputStyle} />
                                     </div>
                                 </div>
-
                                 <div style={{ marginTop: '14px', padding: '10px 14px', background: 'rgba(99,102,241,0.06)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.15)' }}>
                                     <div style={{ fontSize: '10px', color: '#475569', lineHeight: '1.6' }}>
                                         💡 <strong style={{ color: '#6366f1' }}>Details Sheet</strong> — AI in details ko anchor ki tarah use karega. Ye mandatory hai.
@@ -416,7 +415,6 @@ export default function UploadPage() {
                                 </div>
                             )}
 
-                            {/* DOC TYPE */}
                             <div style={{ marginBottom: '24px' }}>
                                 <div style={{ fontSize: '11px', color: '#334155', letterSpacing: '2px', fontWeight: '700', marginBottom: '12px' }}>SELECT DOCUMENT TYPE</div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -429,7 +427,6 @@ export default function UploadPage() {
                                 </div>
                             </div>
 
-                            {/* DROP ZONE */}
                             <div
                                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
                                 onDragLeave={() => setDragging(false)}
@@ -450,7 +447,6 @@ export default function UploadPage() {
                                 <input ref={inputRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} style={{ display: 'none' }} />
                             </div>
 
-                            {/* FILE LIST */}
                             {files.length > 0 && (
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>
@@ -466,7 +462,6 @@ export default function UploadPage() {
                                             <div onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ fontSize: '16px', color: '#ef4444', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>✕</div>
                                         </div>
                                     ))}
-
                                     {bankName && applicantNameInput && currentOwnerInput && propertyDescInput && (
                                         <div style={{ marginTop: '16px', padding: '12px 16px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px' }}>
                                             <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '700', letterSpacing: '1px', marginBottom: '8px' }}>✓ DETAILS SHEET READY</div>
@@ -477,7 +472,6 @@ export default function UploadPage() {
                                             </div>
                                         </div>
                                     )}
-
                                     <button onClick={handleGenerate} style={{ width: '100%', marginTop: '20px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', border: 'none', borderRadius: '12px', padding: '16px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>
                                         📋 GENERATE REPORT — {selectedCase.icon} {selectedCase.label}
                                     </button>
@@ -486,7 +480,6 @@ export default function UploadPage() {
                         </>
                     )}
 
-                    {/* GENERATING */}
                     {generating && (
                         <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '20px', padding: '48px 32px', textAlign: 'center' }}>
                             <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px', letterSpacing: '2px' }}>⚡ GENERATING LEGAL SCRUTINY REPORT...</div>
@@ -507,7 +500,7 @@ export default function UploadPage() {
                         </div>
                     )}
 
-                    {/* REPORT */}
+                    {/* ✅ REPORT SECTION — WORD DOWNLOAD BUTTON */}
                     {reportData && !generating && (
                         <div>
                             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -517,8 +510,12 @@ export default function UploadPage() {
                                 <button onClick={handleOpenTab} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', color: '#6366f1' }}>
                                     🔗 OPEN IN NEW TAB
                                 </button>
-                                <button onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
-                                    ↓ DOWNLOAD PDF
+                                <button onClick={handlePrint} style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', borderRadius: '10px', padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
+                                    🖨️ PRINT / PDF
+                                </button>
+                                {/* ✅ NAYI WORD DOWNLOAD BUTTON */}
+                                <button onClick={handleWordDownload} style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 20px rgba(37,99,235,0.4)' }}>
+                                    📄 DOWNLOAD WORD
                                 </button>
                             </div>
                             <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(99,102,241,0.3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
