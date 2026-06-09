@@ -23,7 +23,7 @@ export default function RiskEngine() {
         if (!ctx) return
         canvas.width = window.innerWidth
         canvas.height = window.innerHeight
-        const words = ['TITLEAI', 'RISK', 'HIGH', 'MEDIUM', 'LOW', 'SURVEY', 'MUTATION', 'BOUNDARY', 'AREA', 'MISMATCH', 'LEGAL', 'VERIFY', 'DEED', 'EC', 'TITLE']
+        const words = ['TITLEMATRIX.AI', 'RISK', 'HIGH', 'MEDIUM', 'LOW', 'SURVEY', 'MUTATION', 'BOUNDARY', 'AREA', 'MISMATCH', 'LEGAL', 'VERIFY', 'DEED', 'EC', 'TITLE']
         const fontSize = 13
         const cols = Math.floor(canvas.width / fontSize)
         const drops: number[] = Array(cols).fill(1)

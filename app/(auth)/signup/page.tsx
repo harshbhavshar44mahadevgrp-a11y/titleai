@@ -53,7 +53,7 @@ export default function SignupPage() {
 
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '32px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#fff', margin: '0 0 6px' }}>Create Account</h2>
-                    <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 28px' }}>TitleAI pe join karo</p>
+                    <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 28px' }}>TITLEMATRIX.AI pe join karo</p>
 
                     {success ? (
                         <div style={{ textAlign: 'center', padding: '20px' }}>

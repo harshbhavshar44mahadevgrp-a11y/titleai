@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid OTP' }, { status: 401 });
         }
 
-        const password = `${email}_titleai_2026`;
+        const password = `${email}_TITLEMATRIX.AI_2026`;
 
         // Create user in Supabase
         const { data, error } = await supabase.auth.admin.createUser({

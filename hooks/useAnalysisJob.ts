@@ -48,12 +48,12 @@ export function useAnalysisJob() {
                 const fileName = `${Date.now()}_${i}_${file.name.replace(/\s/g, '_')}`
                 setJobState(prev => ({ ...prev, stage: `Uploading ${i + 1}/${files.length}...`, progress: 5 + Math.floor((i / files.length) * 10) }))
                 const { error: uploadError } = await supabase.storage
-                    .from('titleai-documents').upload(`docs/${fileName}`, file, { upsert: true })
+                    .from('TITLEMATRIX.AI-documents').upload(`docs/${fileName}`, file, { upsert: true })
                 if (uploadError && !uploadError.message.includes('already exists')) {
                     console.log('Upload note:', uploadError.message)
                 }
                 const { data: { publicUrl } } = supabase.storage
-                    .from('titleai-documents').getPublicUrl(`docs/${fileName}`)
+                    .from('TITLEMATRIX.AI-documents').getPublicUrl(`docs/${fileName}`)
                 uploadedUrls.push(publicUrl)
             }
             setJobState(prev => ({ ...prev, stage: 'Starting AI...', progress: 15, status: 'processing' }))

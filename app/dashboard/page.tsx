@@ -103,7 +103,7 @@ export default function DashboardPage() {
     if (!canvas) return
     const ctx = canvas.getContext("2d")!
     canvas.width = window.innerWidth; canvas.height = window.innerHeight
-    const ch = "01アBCDEF₹$@#TITLEAI"
+    const ch = "01アBCDEF₹$@#TITLEMATRIX.AI"
     const cols = Math.floor(canvas.width / 14)
     const dr = Array(cols).fill(1)
     const draw = () => {

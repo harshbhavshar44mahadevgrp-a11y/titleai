@@ -122,7 +122,7 @@ export default function PlansPage() {
         if (!ctx) return
         canvas.width = window.innerWidth
         canvas.height = window.innerHeight
-        const words = ['TITLEAI', 'PLAN', 'REPORT', 'LEGAL', 'BANK', 'ADVOCATE', 'TITLE', 'SEARCH', 'RISK', 'MORTGAGE']
+        const words = ['TITLEMATRIX.AI', 'PLAN', 'REPORT', 'LEGAL', 'BANK', 'ADVOCATE', 'TITLE', 'SEARCH', 'RISK', 'MORTGAGE']
         const fontSize = 13
         const cols = Math.floor(canvas.width / fontSize)
         const drops: number[] = Array(cols).fill(1)
@@ -309,7 +309,7 @@ export default function PlansPage() {
                     {/* Features Comparison */}
                     <div style={{ marginTop: '60px', background: 'rgba(10,10,20,0.8)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '20px', padding: '32px' }}>
                         <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '24px', textAlign: 'center' }}>
-                            Why Choose <span style={{ color: '#6366f1' }}>TitleAI?</span>
+                            Why Choose <span style={{ color: '#6366f1' }}>TITLEMATRIX.AI?</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
                             {[
@@ -335,7 +335,7 @@ export default function PlansPage() {
                     <div style={{ marginTop: '40px', textAlign: 'center' }}>
                         <div style={{ fontSize: '14px', color: '#475569' }}>
                             Questions? Contact us at{' '}
-                            <span style={{ color: '#6366f1', fontWeight: '600' }}>support@titleai.in</span>
+                            <span style={{ color: '#6366f1', fontWeight: '600' }}>support@TITLEMATRIX.AI.in</span>
                             {' '}or call{' '}
                             <span style={{ color: '#6366f1', fontWeight: '600' }}>+91 98765 43210</span>
                         </div>

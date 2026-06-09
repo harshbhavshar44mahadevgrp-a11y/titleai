@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const randNum = Math.floor(Math.random() * 9000 + 1000);
     const barCode = Math.floor(Math.random() * 90000000 + 10000000);
 
-    const systemPrompt = `You are TitleAI â€” Senior Property Advocate AI for Gujarat, India. You are expert in reading Gujarati and English property documents and generating complete Axis Bank Title Search Reports exactly like Adv. Santosh Thakrar format.
+    const systemPrompt = `You are TITLEMATRIX.AI â€” Senior Property Advocate AI for Gujarat, India. You are expert in reading Gujarati and English property documents and generating complete Axis Bank Title Search Reports exactly like Adv. Santosh Thakrar format.
 
 ABSOLUTE MANDATORY RULES â€” NEVER BREAK THESE:
 
@@ -146,7 +146,7 @@ Return ONLY this JSON â€” no markdown:
 
 {
   "reportMeta": {
-    "refNo": "TitleAI/${randNum}/${year}/DP",
+    "refNo": "TITLEMATRIX.AI/${randNum}/${year}/DP",
     "date": "${today}",
     "barCodeNo": "TAI${barCode}",
     "appId": "[Extract from documents or AUTO]",
@@ -462,7 +462,7 @@ Return ONLY this JSON â€” no markdown:
     }
 
     reportData.generatedAt = new Date().toISOString();
-    reportData.generatedBy = 'TitleAI Platform';
+    reportData.generatedBy = 'TITLEMATRIX.AI Platform';
 
     return NextResponse.json({ success: true, data: reportData });
 

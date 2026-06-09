@@ -34,7 +34,7 @@ export default function TitleFlow() {
         if (!ctx) return
         canvas.width = window.innerWidth
         canvas.height = window.innerHeight
-        const words = ['TITLEAI', 'OWNERSHIP', 'CHAIN', 'VERIFIED', 'DEED', '1966', '2024', 'SURVEY', 'PARTITION', 'INHERITANCE', 'NA', 'SALE', 'TITLE', 'FLOW']
+        const words = ['TITLEMATRIX.AI', 'OWNERSHIP', 'CHAIN', 'VERIFIED', 'DEED', '1966', '2024', 'SURVEY', 'PARTITION', 'INHERITANCE', 'NA', 'SALE', 'TITLE', 'FLOW']
         const fontSize = 13
         const cols = Math.floor(canvas.width / fontSize)
         const drops: number[] = Array(cols).fill(1)

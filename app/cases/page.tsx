@@ -20,7 +20,7 @@ export default function Cases() {
     if (!ctx) return
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-    const words = ['TITLEAI', 'CASES', 'LEGAL', 'PROPERTY', 'DEED', 'TITLE', 'SURVEY', 'RISK', 'ADVOCATE']
+    const words = ['TITLEMATRIX.AI', 'CASES', 'LEGAL', 'PROPERTY', 'DEED', 'TITLE', 'SURVEY', 'RISK', 'ADVOCATE']
     const fontSize = 13
     const columns = Math.floor(canvas.width / fontSize)
     const drops: number[] = Array(columns).fill(1)

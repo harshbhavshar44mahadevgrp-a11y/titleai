@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
                 border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: DARK_BLUE, space: 1 } },
                 spacing: sp(0, 80),
                 children: [
-                    new TextRun({ text: 'TitleAI', bold: true, size: 28, color: DARK_BLUE, font: 'Arial' }),
+                    new TextRun({ text: 'TITLEMATRIX.AI', bold: true, size: 28, color: DARK_BLUE, font: 'Arial' }),
                     new TextRun({ text: ' & ASSOCIATES', bold: true, size: 24, color: GOLD, font: 'Arial' }),
                     new TextRun({ text: `   |   TITLE SEARCH REPORT   |   Ref: ${meta.refNo || ''}   |   Date: ${meta.date || ''}`, size: 16, color: '666666', font: 'Arial' }),
                 ],
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
             children: [new Paragraph({
                 border: { top: { style: BorderStyle.SINGLE, size: 4, color: DARK_BLUE, space: 1 } },
                 spacing: sp(60, 0),
-                children: [new TextRun({ text: 'TitleAI & Associates  |  support@titleai.in  |  www.titleai.in  |  CONFIDENTIAL', size: 16, color: '888888', font: 'Arial' })],
+                children: [new TextRun({ text: 'TITLEMATRIX.AI & Associates  |  support@TITLEMATRIX.AI.in  |  www.TITLEMATRIX.AI.in  |  CONFIDENTIAL', size: 16, color: '888888', font: 'Arial' })],
             })],
         });
 
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
                 twoColRow('Token Amount Paid', s1.tokenAmount),
                 twoColRow('Type of Mortgage', s1.mortgageType || 'Registered Mortgage Deed (Proposed)'),
                 twoColRow('SRO Jurisdiction', s1.sroJurisdiction),
-                twoColRow('Searching Advocate', s1.searchingAdvocate || 'TitleAI & Associates'),
+                twoColRow('Searching Advocate', s1.searchingAdvocate || 'TITLEMATRIX.AI & Associates'),
             ],
         });
 
@@ -360,7 +360,7 @@ export async function POST(req: NextRequest) {
                         borders,
                         margins: { top: 120, bottom: 120, left: 160, right: 160 },
                         children: [
-                            new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'Adv. TitleAI & Associates', bold: true, size: 20, color: DARK_BLUE, font: 'Arial' })] }),
+                            new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'Adv. TITLEMATRIX.AI & Associates', bold: true, size: 20, color: DARK_BLUE, font: 'Arial' })] }),
                             new Paragraph({ alignment: AlignmentType.RIGHT, spacing: sp(0, 300), children: [new TextRun({ text: 'Empanelled Property Advocate — Gujarat', size: 18, color: GOLD, font: 'Arial' })] }),
                             new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: '(Seal & Signature)', size: 16, color: '888888', font: 'Arial', italics: true })] }),
                             new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: '__________________________', size: 18, font: 'Arial' })] }),
@@ -403,8 +403,8 @@ export async function POST(req: NextRequest) {
                     emptyLine(),
                     new Paragraph({ spacing: sp(0, 120), children: [new TextRun({ text: 'I hope everything is in order and the details furnished above are true to the best of my knowledge and belief. The opinion expressed herein is based on the documents provided to me and searches conducted by me. I am not responsible for any facts or documents not disclosed to me or not submitted for examination.', size: 18, font: 'Arial', italics: true })] }),
                     emptyLine(), signatureTable, emptyLine(),
-                    new Paragraph({ alignment: AlignmentType.CENTER, spacing: sp(80, 0), children: [new TextRun({ text: 'TitleAI & Associates  |  support@titleai.in  |  +91 98765 43210  |  www.titleai.in', size: 16, color: '888888', font: 'Arial' })] }),
-                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `Ref: ${meta.refNo || ''}  |  Generated: ${meta.date || ''}  |  This report is computer generated and digitally authenticated by TitleAI & Associates.`, size: 14, color: 'AAAAAA', font: 'Arial', italics: true })] }),
+                    new Paragraph({ alignment: AlignmentType.CENTER, spacing: sp(80, 0), children: [new TextRun({ text: 'TITLEMATRIX.AI & Associates  |  support@TITLEMATRIX.AI.in  |  +91 98765 43210  |  www.TITLEMATRIX.AI.in', size: 16, color: '888888', font: 'Arial' })] }),
+                    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `Ref: ${meta.refNo || ''}  |  Generated: ${meta.date || ''}  |  This report is computer generated and digitally authenticated by TITLEMATRIX.AI & Associates.`, size: 14, color: 'AAAAAA', font: 'Arial', italics: true })] }),
                 ],
             }],
         });
@@ -416,7 +416,7 @@ export async function POST(req: NextRequest) {
             status: 200,
             headers: {
                 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'Content-Disposition': `attachment; filename="TitleAI_Report_${(meta.refNo || 'Report').replace(/\//g, '_')}.docx"`,
+                'Content-Disposition': `attachment; filename="TITLEMATRIX.AI_Report_${(meta.refNo || 'Report').replace(/\//g, '_')}.docx"`,
             },
         });
 
