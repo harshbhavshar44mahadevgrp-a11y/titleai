@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
                 subject: 'TITLEMATRIX.AI — Your OTP Code',
                 html: `
           <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #020208; color: #fff; padding: 32px; border-radius: 12px;">
-            <h2 style="color: #6366f1;">TITLEMATRIX.AI & Associates</h2>
+            <h2 style="color: #6366f1;"TitlematrixAi.AI & Associates</h2>
             <p style="color: #aaa;">Your One-Time Password:</p>
             <div style="font-size: 40px; font-weight: 900; color: #f59e0b; letter-spacing: 8px; margin: 24px 0;">${otp}</div>
             <p style="color: #666; font-size: 13px;">Valid for 10 minutes. Do not share with anyone.</p>
