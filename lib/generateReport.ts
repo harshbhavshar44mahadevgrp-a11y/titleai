@@ -1,57 +1,77 @@
 // lib/generateReport.ts
-// Complete 2-step pipeline — Haiku extract → Sonnet analyze
 
 export async function generateReport(files: { base64: string; mediaType: string }[]) {
 
     // ═══════════════════════════════════
-    // STEP 1 — Haiku: Extract raw data
+    // STEP 1 — Extract raw data
     // ═══════════════════════════════════
-    console.log('Step 1: Extracting with Haiku...');
+    console.log('Step 1: Extracting...')
 
     const extractRes = await fetch('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ files }),
-    });
+    })
 
-    const extractData = await extractRes.json();
-
-    if (!extractData.success) {
-        throw new Error('Extraction failed: ' + extractData.error);
+    // ── Better error handling ──
+    if (!extractRes.ok) {
+        const text = await extractRes.text()
+        console.error('Extract API raw response:', text.substring(0, 500))
+        if (extractRes.status === 413) {
+            throw new Error('Files are too large. Please compress PDFs under 4MB each and try again.')
+        }
+        throw new Error(`Extraction failed (${extractRes.status}): ${text.substring(0, 200)}`)
     }
 
-    console.log('Step 1 done. Tokens used:', extractData.tokens_used);
-    // Typical: ~2000-4000 tokens with Haiku = ₹2-3
+    const extractData = await extractRes.json()
+
+    if (!extractData.success) {
+        throw new Error('Extraction failed: ' + extractData.error)
+    }
+
+    console.log('Step 1 done. Tokens used:', extractData.tokens_used)
 
     // ═══════════════════════════════════
-    // STEP 2 — Sonnet: Legal thinking
+    // STEP 2 — Legal analysis
     // ═══════════════════════════════════
-    console.log('Step 2: Legal analysis with Sonnet...');
+    console.log('Step 2: Legal analysis...')
 
     const analyzeRes = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ extracted: extractData.extracted }),
-    });
+    })
 
-    const analyzeData = await analyzeRes.json();
-
-    if (!analyzeData.success) {
-        throw new Error('Analysis failed: ' + analyzeData.error);
+    // ── Better error handling ──
+    if (!analyzeRes.ok) {
+        const text = await analyzeRes.text()
+        console.error('Analyze API raw response:', text.substring(0, 500))
+        if (analyzeRes.status === 413) {
+            throw new Error('Request too large. Please reduce document size and try again.')
+        }
+        if (analyzeRes.status === 504 || analyzeRes.status === 408) {
+            throw new Error('Analysis timed out. Please try again — large documents may take longer.')
+        }
+        throw new Error(`Analysis failed (${analyzeRes.status}): ${text.substring(0, 200)}`)
     }
 
-    console.log('Step 2 done. Tokens used:', analyzeData.tokens_used);
-    // Typical: ~3000-5000 tokens with Sonnet = ₹8-12
+    const analyzeData = await analyzeRes.json()
+
+    if (!analyzeData.success) {
+        throw new Error('Analysis failed: ' + analyzeData.error)
+    }
+
+    console.log('Step 2 done. Tokens used:', analyzeData.tokens_used)
 
     return {
         report: analyzeData.report,
         extracted: extractData.extracted,
         cost_breakdown: {
-            step1_haiku: extractData.tokens_used,
-            step2_sonnet: analyzeData.tokens_used,
-            cache_savings: analyzeData.tokens_used.cache_read || 0,
+            step1_tokens: extractData.tokens_used,
+            step2_tokens: analyzeData.tokens_used,
+            cache_savings: analyzeData.tokens_used?.cache_read || 0,
         },
-    };
+    }
 }
 
 // ═══════════════════════════════════
@@ -59,34 +79,12 @@ export async function generateReport(files: { base64: string; mediaType: string 
 // ═══════════════════════════════════
 export function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+        const reader = new FileReader()
         reader.onload = () => {
-            const result = reader.result as string;
-            resolve(result.split(',')[1]); // Remove data:...;base64, prefix
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
+            const result = reader.result as string
+            resolve(result.split(',')[1])
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+    })
 }
-
-// ═══════════════════════════════════
-// Usage in upload page:
-// ═══════════════════════════════════
-/*
-import { generateReport, fileToBase64 } from '@/lib/generateReport';
-
-const handleGenerate = async () => {
-  const files = await Promise.all(
-    uploadedFiles.map(async (file) => ({
-      base64: await fileToBase64(file),
-      mediaType: file.type, // 'application/pdf' or 'image/jpeg'
-    }))
-  );
-  
-  const result = await generateReport(files);
-  console.log('Report JSON:', result.report);
-  console.log('Cost breakdown:', result.cost_breakdown);
-  
-  // Pass result.report to Word generator (report/route.ts)
-};
-*/
