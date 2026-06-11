@@ -180,7 +180,7 @@ export default function ReportsPage() {
         <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.15)', background: 'rgba(2,2,8,0.95)', backdropFilter: 'blur(30px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Case <span style={{ color: '#6366f1' }}>Archive</span></div>
-            <div style={{ fontSize: '10px', color: '#334155', letterSpacing: '2px', fontWeight: '600', marginTop: '2px' }}TitlematrixAi.AI — LEGAL SCRUTINY REPORTS</div>
+            <div style={{ fontSize: '10px', color: '#334155', letterSpacing: '2px', fontWeight: '600', marginTop: '2px' }}>TITLEMATRIXAI — LEGAL SCRUTINY REPORTS</div>
           </div>
           <button onClick={() => router.push('/upload')} style={{ padding: '10px 24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '12px', fontWeight: '800', boxShadow: '0 4px 20px rgba(99,102,241,0.4)' }}>
             + NEW REPORT

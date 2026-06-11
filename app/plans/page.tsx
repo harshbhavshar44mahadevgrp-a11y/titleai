@@ -309,7 +309,7 @@ export default function PlansPage() {
                     {/* Features Comparison */}
                     <div style={{ marginTop: '60px', background: 'rgba(10,10,20,0.8)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '20px', padding: '32px' }}>
                         <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '24px', textAlign: 'center' }}>
-                            Why Choose <span style={{ color: '#6366f1' }}TitlematrixAi.AI?</span>
+                            Why Choose <span style={{ color: '#6366f1' }}>TITLEMATRIXAI?</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
                             {[

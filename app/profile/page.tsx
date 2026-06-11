@@ -214,7 +214,7 @@ export default function ProfilePage() {
                 <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.2)', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                         <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Operator <span style={{ color: '#6366f1' }}>Identity</span></div>
-                        <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}TitlematrixAi.AI — SECURE LEGAL PLATFORM</div>
+                        <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}>TITLEMATRIXAI — SECURE LEGAL PLATFORM</div>
                     </div>
                     <div style={{ fontFamily: 'monospace', fontSize: '12px', color: '#6366f1', letterSpacing: '3px', padding: '8px 16px', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '8px', background: 'rgba(99,102,241,0.06)' }}>
                         {operatorId}
