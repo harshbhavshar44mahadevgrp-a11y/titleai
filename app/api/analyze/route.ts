@@ -14,7 +14,8 @@
 // v5.2: RULE 4A EC Multiple Entries | RULE 17A False Declaration | Seller BT Golden Rule | Banakhat Boundary
 // v5.3: All 5 cases comprehensive | FERFAR columns | Part IV para removal | Boundaries source | Dev Agreement
 // ================================================================
-
+export const maxDuration = 300
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
