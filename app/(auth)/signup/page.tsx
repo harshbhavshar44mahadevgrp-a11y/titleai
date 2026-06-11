@@ -46,14 +46,14 @@ export default function SignupPage() {
             <div style={{ width: '100%', maxWidth: '400px', padding: '0 20px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <div style={{ fontSize: '32px', fontWeight: '800', color: '#fff' }}>
-                        Title<span style={{ color: '#6366f1' }}>AI</span>
+                        TITLEMATRIX<span style={{ color: '#6366f1' }}>AI</span>
                     </div>
                     <div style={{ fontSize: '13px', color: '#475569', marginTop: '6px' }}>Property Legal Intelligence</div>
                 </div>
 
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '32px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#fff', margin: '0 0 6px' }}>Create Account</h2>
-                    <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 28px' }}TitlematrixAi.AI pe join karo</p>
+                    <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 28px' }}>TITLEMATRIXAI pe join karo</p>
 
                     {success ? (
                         <div style={{ textAlign: 'center', padding: '20px' }}>
