@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
@@ -86,6 +86,7 @@ export default function UploadPage() {
     const [userId, setUserId] = useState<string | null>(null)
 
     const inputRef = useRef<HTMLInputElement>(null)
+    const cameraRef = useRef<HTMLInputElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
     const steps = [
@@ -97,6 +98,11 @@ export default function UploadPage() {
     ]
 
     const selectedCase = CASE_TYPES.find(c => c.id === caseType) || CASE_TYPES[0]
+
+    // ── Clear error on mount (fix: old error persisting) ──
+    useEffect(() => {
+        setErrorMsg('')
+    }, [])
 
     useEffect(() => {
         const checkLimit = async () => {
@@ -118,7 +124,7 @@ export default function UploadPage() {
         const canvas = canvasRef.current; if (!canvas) return
         const ctx = canvas.getContext('2d'); if (!ctx) return
         canvas.width = window.innerWidth; canvas.height = window.innerHeight
-        const words = ['TITLEMATRIX.AI', 'SALEDEED', 'EC', '7/12', 'NAORDER', 'RISK', 'SURVEY', 'MUTATION', 'LEGAL', 'BANK']
+        const words = ['TITLEMATRIXAI', 'SALEDEED', 'EC', '7/12', 'NAORDER', 'RISK', 'SURVEY', 'MUTATION', 'LEGAL', 'BANK']
         const fontSize = 13; const cols = Math.floor(canvas.width / fontSize)
         const drops: number[] = Array(cols).fill(1)
         const speeds: number[] = Array(cols).fill(0).map(() => Math.random() * 0.4 + 0.2)
@@ -224,6 +230,14 @@ export default function UploadPage() {
                     boundarySouth: boundarySouth || 'As per documents',
                 })
             })
+
+            if (!res.ok) {
+                const text = await res.text()
+                if (res.status === 504) throw new Error('Report generation timed out. Please try again.')
+                if (res.status === 413) throw new Error('Files too large. Please compress and try again.')
+                throw new Error(`Server error (${res.status}). Please try again.`)
+            }
+
             const data = await res.json()
             clearInterval(iv); setStep(steps.length)
             if (data.success) {
@@ -243,12 +257,12 @@ export default function UploadPage() {
 
     const handleWordDownload = () => {
         if (!reportData?.htmlReport) return
-        const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><titleTitlematrixAi Report</title><style>body{font-family:Arial,sans-serif;font-size:11pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 10px}</style></head><body>${reportData.htmlReport}</body></html>`
+        const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>TITLEMATRIXAI Report</title><style>body{font-family:Arial,sans-serif;font-size:11pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 10px}</style></head><body>${reportData.htmlReport}</body></html>`
         const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `TitleMatrix_${applicantNameInput || 'Report'}_${bankName || ''}.doc`
+        a.download = `TITLEMATRIXAI_${applicantNameInput || 'Report'}_${bankName || ''}.doc`
         document.body.appendChild(a); a.click(); document.body.removeChild(a)
         URL.revokeObjectURL(url)
     }
@@ -298,7 +312,7 @@ export default function UploadPage() {
                                 <div onClick={handleChangeCaseType} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '100px', padding: '8px 16px', cursor: 'pointer' }}>
                                     <span>{selectedCase.icon}</span>
                                     <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '700' }}>{selectedCase.label}</span>
-                                    <span style={{ fontSize: '10px', color: '#6366f1' }}>✎</span>
+                                    <span style={{ fontSize: '10px', color: '#6366f1' }}>✎ Change</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '100px', padding: '8px 18px' }}>
                                     <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
@@ -370,13 +384,11 @@ export default function UploadPage() {
                                     </div>
                                 </div>
 
-                                {/* ROW 1 — Bank */}
                                 <div style={{ marginBottom: '14px' }}>
                                     <label style={labelStyle}>BANK NAME *</label>
                                     <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Axis Bank Ltd., Ambawadi Branch, Ahmedabad" style={inputStyle} />
                                 </div>
 
-                                {/* ROW 2 — Applicant + Co-Applicant */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                                     <div>
                                         <label style={labelStyle}>APPLICANT NAME *</label>
@@ -388,7 +400,6 @@ export default function UploadPage() {
                                     </div>
                                 </div>
 
-                                {/* ROW 3 — Owner + Property */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                                     <div>
                                         <label style={labelStyle}>CURRENT OWNER NAME *</label>
@@ -400,7 +411,6 @@ export default function UploadPage() {
                                     </div>
                                 </div>
 
-                                {/* ROW 4 — BOUNDARIES (4 boxes in one line) */}
                                 <div style={{ marginBottom: '14px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                                         <span style={{ fontSize: '12px' }}>🧭</span>
@@ -416,18 +426,12 @@ export default function UploadPage() {
                                         ].map((b, i) => (
                                             <div key={i}>
                                                 <label style={boundaryLabelStyle}>{b.icon} {b.dir}</label>
-                                                <input
-                                                    value={b.value}
-                                                    onChange={e => b.set(e.target.value)}
-                                                    placeholder={b.ph}
-                                                    style={{ ...inputStyle, border: '1px solid rgba(99,102,241,0.3)' }}
-                                                />
+                                                <input value={b.value} onChange={e => b.set(e.target.value)} placeholder={b.ph} style={{ ...inputStyle, border: '1px solid rgba(99,102,241,0.3)' }} />
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
-                                {/* TIP */}
                                 <div style={{ padding: '10px 14px', background: 'rgba(99,102,241,0.06)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.15)' }}>
                                     <div style={{ fontSize: '10px', color: '#475569', lineHeight: '1.6' }}>
                                         💡 <strong style={{ color: '#6366f1' }}>Details Sheet</strong> — AI uses these as anchor points for precise report generation.
@@ -465,13 +469,27 @@ export default function UploadPage() {
                                 <div style={{ position: 'absolute', top: '12px', right: '12px', width: '20px', height: '20px', borderTop: '2px solid rgba(99,102,241,0.6)', borderRight: '2px solid rgba(99,102,241,0.6)' }} />
                                 <div style={{ position: 'absolute', bottom: '12px', left: '12px', width: '20px', height: '20px', borderBottom: '2px solid rgba(99,102,241,0.6)', borderLeft: '2px solid rgba(99,102,241,0.6)' }} />
                                 <div style={{ position: 'absolute', bottom: '12px', right: '12px', width: '20px', height: '20px', borderBottom: '2px solid rgba(99,102,241,0.6)', borderRight: '2px solid rgba(99,102,241,0.6)' }} />
+
                                 <div style={{ fontSize: '40px', marginBottom: '12px' }}>📄</div>
                                 <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>Drop property documents here</div>
-                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '20px' }}>PDF · Sale Deed, EC, 7/12, NA Order — multiple files allowed</div>
-                                <button onClick={e => { e.stopPropagation(); inputRef.current?.click() }} style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 28px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
-                                    + SELECT FILES
-                                </button>
-                                <input ref={inputRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} style={{ display: 'none' }} />
+                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '20px' }}>PDF · JPG · PNG — Sale Deed, EC, 7/12, NA Order — multiple files allowed</div>
+
+                                {/* BUTTONS ROW */}
+                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                    <button onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
+                                        style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 28px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
+                                        📁 SELECT FILES
+                                    </button>
+                                    <button onClick={e => { e.stopPropagation(); cameraRef.current?.click() }}
+                                        style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 28px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
+                                        📸 TAKE PHOTO
+                                    </button>
+                                </div>
+
+                                {/* Hidden file inputs */}
+                                <input ref={inputRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} style={{ display: 'none' }} />
+                                {/* Camera capture input — opens camera on mobile */}
+                                <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} style={{ display: 'none' }} />
                             </div>
 
                             {/* FILE LIST */}
@@ -480,7 +498,7 @@ export default function UploadPage() {
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span></div>
                                     {files.map((f, i) => (
                                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', borderRadius: '10px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', marginBottom: '8px' }}>
-                                            <div style={{ fontSize: '20px' }}>📄</div>
+                                            <div style={{ fontSize: '20px' }}>{f.name.match(/\.(jpg|jpeg|png|webp)$/i) ? '🖼️' : '📄'}</div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#e2e8f0' }}>{f.name}</div>
                                                 <div style={{ fontSize: '11px', color: '#334155' }}>{f.size} · {f.type}</div>
@@ -495,9 +513,6 @@ export default function UploadPage() {
                                                 <span style={{ color: '#6366f1' }}>Bank:</span> {bankName} &nbsp;|&nbsp;
                                                 <span style={{ color: '#6366f1' }}>Applicant:</span> {applicantNameInput} &nbsp;|&nbsp;
                                                 <span style={{ color: '#6366f1' }}>Owner:</span> {currentOwnerInput}
-                                                {(boundaryEast || boundaryWest || boundaryNorth || boundarySouth) && (
-                                                    <><br /><span style={{ color: '#6366f1' }}>Boundaries:</span> E:{boundaryEast || '—'} W:{boundaryWest || '—'} N:{boundaryNorth || '—'} S:{boundarySouth || '—'}</>
-                                                )}
                                             </div>
                                         </div>
                                     )}
