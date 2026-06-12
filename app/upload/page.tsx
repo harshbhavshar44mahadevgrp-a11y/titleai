@@ -166,16 +166,7 @@ export default function UploadPage() {
                 const textContent = await page.getTextContent()
                 const pageText = textContent.items.map((item: any) => item.str).join(' ').trim()
                 fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`
-                if (pageText.length < 80) {
-                    const baseVp = page.getViewport({ scale: 1.0 })
-                    const maxPx = 1500
-                    const scale = Math.min(2.0, maxPx / Math.max(baseVp.width, baseVp.height))
-                    const vp = page.getViewport({ scale })
-                    const cv = document.createElement('canvas')
-                    cv.width = vp.width; cv.height = vp.height
-                    await page.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
-                    imgArr.push({ base64: cv.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg', name: file.name + '_p' + pageNum })
-                }
+                
             }
             return fullText
         } catch (e) { return '' }
