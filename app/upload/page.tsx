@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
@@ -166,7 +166,7 @@ export default function UploadPage() {
                 const textContent = await page.getTextContent()
                 const pageText = textContent.items.map((item: any) => item.str).join(' ').trim()
                 fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`
-                if (false) {
+                if (pageText.length < 80) {
                     const baseVp = page.getViewport({ scale: 1.0 })
                     const maxPx = 1500
                     const scale = Math.min(2.0, maxPx / Math.max(baseVp.width, baseVp.height))
