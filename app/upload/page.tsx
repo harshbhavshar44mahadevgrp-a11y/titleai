@@ -168,20 +168,10 @@ export default function UploadPage() {
                 const textContent = await page.getTextContent()
                 const pageText = textContent.items.map((item: any) => item.str).join(' ').trim()
                 fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`
-                // text-only mode
-                
+            }
             return fullText
         } catch (e) { return '' }
     }
-
-    const handleGenerate = async () => {
-        if (limitReached) { router.push('/payments'); return }
-        if (!bankName.trim()) { setErrorMsg('Bank name mandatory hai!'); return }
-        if (!applicantNameInput.trim()) { setErrorMsg('Applicant name mandatory hai!'); return }
-        if (!currentOwnerInput.trim()) { setErrorMsg('Current owner name mandatory hai!'); return }
-        if (!propertyDescInput.trim()) { setErrorMsg('Property description mandatory hai!'); return }
-        if (files.length === 0) { setErrorMsg('Pehle documents upload karo!'); return }
-
         setGenerating(true); setReportData(null); setStep(0); setErrorMsg('')
         let s = 0
         const iv = setInterval(() => { s++; setStep(s); if (s >= steps.length) clearInterval(iv) }, 8000)
