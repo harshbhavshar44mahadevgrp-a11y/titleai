@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
@@ -153,6 +153,8 @@ export default function UploadPage() {
         setErrorMsg('')
         setReportData(null)
     }
+
+    useEffect(() => { setErrorMsg('') }, [])
 
     const extractTextFromPDF = async (file: File, imgArr: any[]): Promise<string> => {
         try {
