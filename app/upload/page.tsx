@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
@@ -189,6 +189,10 @@ export default function UploadPage() {
                 const file = f.fileRef!
                 if (file.type === 'application/pdf') {
                     allText += await extractTextFromPDF(file, imageFiles)
+                    // Add boundaries to document text so AI uses them
+                    if (boundaryEast || boundaryWest || boundaryNorth || boundarySouth) {
+                        allText += `\n\n=== PROPERTY BOUNDARIES (USE EXACTLY AS PROVIDED) ===\nEast: ${boundaryEast}\nWest: ${boundaryWest}\nNorth: ${boundaryNorth}\nSouth: ${boundarySouth}\n=== END ===\n`
+                    }
                 } else {
                     const base64 = await new Promise<string>((resolve, reject) => {
                         const reader = new FileReader()
