@@ -1,90 +1,52 @@
 // lib/generateReport.ts
+export async function generateReport(payload: any): Promise<any> {
+    const controller = new AbortController()
 
-export async function generateReport(files: { base64: string; mediaType: string }[]) {
+    // 270 second timeout (Vercel max is 300s)
+    const timeoutId = setTimeout(() => controller.abort(), 270000)
 
-    // ═══════════════════════════════════
-    // STEP 1 — Extract raw data
-    // ═══════════════════════════════════
-    console.log('Step 1: Extracting...')
+    try {
+        const res = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+        })
 
-    const extractRes = await fetch('/api/extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files }),
-    })
+        clearTimeout(timeoutId)
 
-    // ── Better error handling ──
-    if (!extractRes.ok) {
-        const text = await extractRes.text()
-        console.error('Extract API raw response:', text.substring(0, 500))
-        if (extractRes.status === 413) {
-            throw new Error('Files are too large. Please compress PDFs under 4MB each and try again.')
+        if (res.status === 413) {
+            throw new Error('Files too large. Please compress and try again.')
         }
-        throw new Error(`Extraction failed (${extractRes.status}): ${text.substring(0, 200)}`)
-    }
 
-    const extractData = await extractRes.json()
-
-    if (!extractData.success) {
-        throw new Error('Extraction failed: ' + extractData.error)
-    }
-
-    console.log('Step 1 done. Tokens used:', extractData.tokens_used)
-
-    // ═══════════════════════════════════
-    // STEP 2 — Legal analysis
-    // ═══════════════════════════════════
-    console.log('Step 2: Legal analysis...')
-
-    const analyzeRes = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ extracted: extractData.extracted }),
-    })
-
-    // ── Better error handling ──
-    if (!analyzeRes.ok) {
-        const text = await analyzeRes.text()
-        console.error('Analyze API raw response:', text.substring(0, 500))
-        if (analyzeRes.status === 413) {
-            throw new Error('Request too large. Please reduce document size and try again.')
+        if (res.status === 504 || res.status === 502) {
+            throw new Error('Server timeout. Please try with fewer or smaller documents.')
         }
-        if (analyzeRes.status === 504 || analyzeRes.status === 408) {
-            throw new Error('Analysis timed out. Please try again — large documents may take longer.')
+
+        if (!res.ok) {
+            let errMsg = `Server error (${res.status}). Please try again.`
+            try {
+                const errData = await res.json()
+                if (errData?.error) errMsg = errData.error
+            } catch { }
+            throw new Error(errMsg)
         }
-        throw new Error(`Analysis failed (${analyzeRes.status}): ${text.substring(0, 200)}`)
-    }
 
-    const analyzeData = await analyzeRes.json()
+        const data = await res.json()
 
-    if (!analyzeData.success) {
-        throw new Error('Analysis failed: ' + analyzeData.error)
-    }
-
-    console.log('Step 2 done. Tokens used:', analyzeData.tokens_used)
-
-    return {
-        report: analyzeData.report,
-        extracted: extractData.extracted,
-        cost_breakdown: {
-            step1_tokens: extractData.tokens_used,
-            step2_tokens: analyzeData.tokens_used,
-            cache_savings: analyzeData.tokens_used?.cache_read || 0,
-        },
-    }
-}
-
-// ═══════════════════════════════════
-// File to Base64 helper
-// ═══════════════════════════════════
-export function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-            const result = reader.result as string
-            resolve(result.split(',')[1])
+        if (!data.success) {
+            throw new Error(data.error || 'Report generation failed. Please try again.')
         }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-    })
+
+        return data
+
+    } catch (err: any) {
+        clearTimeout(timeoutId)
+
+        if (err.name === 'AbortError') {
+            throw new Error('Report generation timed out. Please try with fewer documents or try again.')
+        }
+
+        throw err
+    }
 }
