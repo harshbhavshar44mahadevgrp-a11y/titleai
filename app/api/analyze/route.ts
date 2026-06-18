@@ -462,89 +462,188 @@ function parseMeta(text: string) {
 
 const STEP3A_SYSTEM = `Generate HTML for PART I and PART II ONLY of a TITLEMATRIXAI Legal Scrutiny Report.
 
+⚠️ CRITICAL: OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ## NO ### NO ** NO ---.
+
 PART I — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES:
-Include: Complete property identification | Survey/Block/TP/FP details | Village/Taluka/District/SRO | All 4 boundaries | Area details | Land use
+<hr><div class="ph">PART I — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>
+<table class="mt">
+  <tr><td>Property</td><td>:</td><td>[Full property description]</td></tr>
+  <tr><td>Survey No.</td><td>:</td><td>[Survey/Block/TP/FP details]</td></tr>
+  <tr><td>Village / Taluka</td><td>:</td><td>[Village, Taluka, District, SRO]</td></tr>
+  <tr><td>Land Use</td><td>:</td><td>[Bin Kheti / Agricultural etc.]</td></tr>
+  <tr><td>Area</td><td>:</td><td>[Super Built-up / Carpet / Land / Undivided Share]</td></tr>
+  <tr><td>East (Purva)</td><td>:</td><td>[East boundary]</td></tr>
+  <tr><td>West (Pashchim)</td><td>:</td><td>[West boundary]</td></tr>
+  <tr><td>North (Uttar)</td><td>:</td><td>[North boundary]</td></tr>
+  <tr><td>South (Dakshin)</td><td>:</td><td>[South boundary]</td></tr>
+</table>
 
 PART II — LIST OF SCRUTINISED DOCUMENTS:
-List ALL submitted documents. Latest first, oldest last.
-For each document: Type | Reg. No. | Date | Executant | Claimant (2-3 sentences max)
-NEVER include Mutation Entries in Part II — they appear only in Part III narration.
-NEVER mention Stamp Paper numbers.
-EC: mention date + search period + key entries briefly.
+Latest first, oldest last. 2-3 sentences per document.
+NEVER include Mutation Entries. NEVER mention Stamp Paper numbers.
+
+FORMAT FOR EACH DOCUMENT:
+<div class="di">
+  <p><span class="dn">N. [Document Name] — Reg. No. [X] | Dated: [DD-MM-YYYY]</span><br>
+  [Executant] unto and in favour of [Claimant]. [Key observation. SRO name. Amount if relevant.]</p>
+</div>
 
 RULES:
 1. NEVER "and others" — every name individually
-2. Latest document FIRST — oldest LAST
-3. EC: "taken by Advocate [Name]" — NEVER "issued by"
-4. EC APPLICANT — CRITICAL: The person who applied for EC is an empanelled advocate/bank officer with ZERO property interest. NEVER mention EC Applicant name in Part II. NEVER describe EC Applicant as owner/party/claimant. COMPLETELY IGNORE EC Applicant. Example: "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate only = IGNORE completely.
+2. Latest FIRST — oldest LAST
+3. EC: "taken by Advocate [Name]" NEVER "issued by"
+4. EC APPLICANT: COMPLETELY IGNORE — NEVER mention EC Applicant as party/owner/claimant
 5. "Banakhat Kabja Vagar" = Agreement to Sale Without Possession — NEVER call it Sale Deed
 
-START: <hr><div class="ph">PART I — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>
-Then property details table/paragraphs.
+START WITH: <hr><div class="ph">PART I — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>
+Then PART I table.
 Then: <hr><div class="ph">PART II — LIST OF SCRUTINISED DOCUMENTS</div>
+Then document entries.
 END after last document entry.`
 
 const STEP3B_SYSTEM = `Generate HTML for PART III ONLY — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY.
 
+⚠️ CRITICAL: OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ## NO ### NO ** NO ---.
+
 RULES:
 1. OLDEST first — NEWEST last
-2. First paragraph: no "Thereafter" | Every subsequent: start with "Thereafter,"
+2. First paragraph: NO "Thereafter" | Every subsequent paragraph: MUST start with "Thereafter,"
 3. NEVER "and others" — every name individually
 4. EC-confirmed deeds (not submitted): include naturally — no remark, no flag
-5. Mutation Entry No. + Date at end of each transfer paragraph
+5. End each transfer paragraph: "Entry to that effect recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY]."
 6. Subject property ONLY — verify Unit+Block+Floor for every EC entry
-7. Last paragraph = current status of title
+7. Last paragraph = current title status
 8. For Builder Purchase: last para = Draft Sale Deed/Banakhat/Allotment between Builder and proposed purchaser
-9. Translate all Gujarati/Hindi terms to English
+9. Translate ALL Gujarati/Hindi terms to English
 
-EC GOLDEN RULE: Count EC transfer entries for subject property = N. Part III must have N paragraphs. Current Owner = buyer in LATEST EC transfer entry.
+EC GOLDEN RULE: Count EC transfer entries for subject property = N. Part III must have exactly N paragraphs. Current Owner = buyer in LATEST EC entry.
 
-START: <hr><div class="ph">PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
-END after last paragraph.`
+FORMAT — FIRST PARAGRAPH (no "Thereafter"):
+<p>[Earliest holder name/s] acquired the subject property being [property description briefly]. [How acquired — original allotment / agricultural land etc.] [Deed type, No., Date, Amount if known.] Entry to that effect recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+
+FORMAT — EVERY SUBSEQUENT PARAGRAPH:
+<p>Thereafter, [Seller full name/s] transferred the subject property to [Buyer full name/s] vide [Deed Type] No. [X] dated [DD/MM/YYYY] registered at SRO [Name] for a consideration of Rs. [X]. Entry to that effect recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+
+FORMAT — FINAL PARAGRAPH:
+<p>Thereafter, [Current Owner full name/s] holds [title/leasehold rights in] the subject property as the current owner/s. [Encumbrance status — clear / subject to existing mortgage in favour of {Bank}].</p>
+
+START WITH EXACTLY: <hr><div class="ph">PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
+END after final paragraph — NOTHING after.`
 
 const STEP3C_SYSTEM = `Generate HTML for PART IV ONLY — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS with RISK ASSESSMENT.
 
+⚠️ CRITICAL OUTPUT RULE: OUTPUT MUST BE PURE HTML ONLY.
+ZERO MARKDOWN. NO ##. NO ###. NO **bold**. NO ---. NO *. NO bullet points with -.
+ONLY valid HTML tags. If you write markdown, the report will break.
+
 RULES:
-1. HIGH first, MEDIUM next, LOW last
+1. HIGH SEVERITY first — MEDIUM next — LOW last
 2. Every issue: exact reg nos, dates, names — briefly
 3. Do NOT flag EC-confirmed deeds where copy not submitted
-4. EC APPLICANT — ABSOLUTE RULE: NEVER flag EC Applicant name as any kind of issue. EC Applicant (e.g. "Santosh Tansukh Thakrar") is an empanelled advocate who applied for EC only — has ZERO relation with the property — COMPLETELY IGNORE — never mention in Part IV.
+4. EC APPLICANT — ABSOLUTE RULE: NEVER flag EC Applicant name. EC Applicant (e.g. "Santosh Tansukh Thakrar") = empanelled advocate who applied for EC only — ZERO relation with property — COMPLETELY IGNORE.
 5. Each issue: 3-4 sentences max + specific suggestion
 
-After all issues, add Risk Assessment box:
+EXACT HTML FORMAT FOR EACH HIGH SEVERITY ISSUE:
+<div class="ib">
+  <div><span class="sh">HIGH SEVERITY</span></div>
+  <div class="it">1. [Issue Title Here]</div>
+  <p>[Finding — 3-4 sentences with exact reg nos, dates, party names. Why legally material. What bank risk.]</p>
+  <p><span class="sg">Direction:</span> [Specific actionable remedy — what document, from whom, by when.]</p>
+</div>
+
+EXACT HTML FORMAT FOR EACH MEDIUM SEVERITY ISSUE:
+<div class="ib">
+  <div><span class="sm">MEDIUM SEVERITY</span></div>
+  <div class="it">1. [Issue Title Here]</div>
+  <p>[Finding — 2-3 sentences.]</p>
+  <p><span class="sg">Direction:</span> [Specific steps.]</p>
+</div>
+
+EXACT HTML FORMAT FOR EACH LOW SEVERITY ISSUE:
+<div class="ib">
+  <div><span class="sl">LOW SEVERITY</span></div>
+  <div class="it">1. [Issue Title Here]</div>
+  <p>[Finding — 1-2 sentences.]</p>
+  <p><span class="sg">Direction:</span> [Steps.]</p>
+</div>
+
+RISK ASSESSMENT BOX — ADD AFTER ALL ISSUES:
 <div class="risk-box">
   <div class="risk-title">RISK ASSESSMENT (15-Stage Engine)</div>
-  <p><strong>Risk Score:</strong> <span class="risk-score risk-[low/mod/high]">[SCORE]/100</span></p>
+  <p><strong>Risk Score:</strong> <span class="risk-score risk-high">[SCORE]/100</span></p>
   <p><strong>Risk Classification:</strong> [LOW RISK / MODERATE RISK / HIGH RISK / UNACCEPTABLE RISK]</p>
-  <p><strong>Confidence Level:</strong> [HIGH / MEDIUM / LOW CONFIDENCE]</p>
+  <p><strong>Confidence Level:</strong> [HIGH CONFIDENCE / MEDIUM CONFIDENCE / LOW CONFIDENCE]</p>
   <p><strong>Mortgageability:</strong> [Mortgageable / Conditionally Mortgageable / Not Mortgageable]</p>
 </div>
 
-START: <hr><div class="ph">PART IV — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS</div>
-END after risk assessment box.`
+USE: risk-low (green) for score 0-25 | risk-mod (amber) for 26-75 | risk-high (red) for 76+
+
+START WITH EXACTLY: <hr><div class="ph">PART IV — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS</div>
+<p>The following issues have been identified during title verification. HIGH SEVERITY issues are conditions precedent to sanction or disbursement.</p>
+END after risk-box closing div — NOTHING AFTER.`
 
 const STEP3D_SYSTEM = `Generate HTML for PART V, Documents Required, and Final Title Status.
 
+⚠️ CRITICAL OUTPUT RULE: OUTPUT MUST BE PURE HTML ONLY.
+ZERO MARKDOWN. NO ##. NO ###. NO **bold**. NO ---. NO tables with | pipes.
+ONLY valid HTML tags.
+
 PART V — LEGAL OPINION AND FINAL RECOMMENDATION:
 Use EXACT case-specific wording from Step 2 analysis. Fill in actual names.
-DO NOT include para starting "This opinion pertains to..." — these are NOT required.
+DO NOT include para starting "This opinion pertains to..." — NOT required.
 
-DOCUMENTS REQUIRED:
-PRE-DISBURSEMENT (Mandatory Before Sanction)
-AT PAY ORDER (if applicable — Seller BT mainly)
-POST-DISBURSEMENT
+DOCUMENTS REQUIRED FORMAT:
+<hr>
+<div class="ph">DOCUMENTS REQUIRED</div>
+<div class="pph">Pre-Disbursement — Mandatory Before Sanction / Disbursement</div>
+<ol>
+  <li>[Specific document name — exact description — one line]</li>
+  <li>[Next document]</li>
+</ol>
+<div class="pph">At Pay Order Stage</div>
+<ol>
+  <li>[Document if applicable — mainly Seller BT]</li>
+</ol>
+<div class="pph">Post-Disbursement — To Be Completed Within Stipulated Timeframe</div>
+<ol>
+  <li>[Document]</li>
+</ol>
 
-FINAL TITLE STATUS — choose ONE:
-- CLEAR AND MARKETABLE TITLE
-- CLEAR TITLE SUBJECT TO CONDITIONS
-- TITLE REQUIRES RECTIFICATION
-- TITLE NOT RECOMMENDED
-- INSUFFICIENT DOCUMENTATION FOR TITLE CERTIFICATION
+PART V FORMAT:
+<hr>
+<div class="ph">PART V — LEGAL OPINION AND FINAL RECOMMENDATION</div>
+<p>[Case-specific legal opinion paragraph with exact names filled in.]</p>
+<p>The said immovable property is/will be enforceable under SARFAESI Act...</p>
+<p>The property can be accepted by the way of SECURITY...</p>
 
-Add verdict box + final title status box.
+VERDICT BOX — CHOOSE ONE:
 
-START: <hr><div class="ph">PART V — LEGAL OPINION AND FINAL RECOMMENDATION</div>
-END after final title status box.`
+If NOT CLEAR:
+<div class="vnc">
+  <div class="vt" style="color:#b91c1c;">Final Legal Opinion: TITLE NOT CLEAR — BANK SHOULD NOT PROCEED</div>
+  <p style="margin-top:8px;font-size:12px;">[N] HIGH SEVERITY issues identified. Primary concerns: [list briefly]. Bank must not proceed until resolved.</p>
+</div>
+
+If CLEAR SUBJECT TO CONDITIONS:
+<div class="vs">
+  <div class="vt" style="color:#b45309;">Final Legal Opinion: CLEAR TITLE SUBJECT TO CONDITIONS</div>
+  <p style="margin-top:8px;font-size:12px;">Title is marketable subject to: [specific conditions briefly].</p>
+</div>
+
+If CLEAR:
+<div class="vc">
+  <div class="vt" style="color:#15803d;">Final Legal Opinion: CLEAR AND MARKETABLE TITLE</div>
+  <p style="margin-top:8px;font-size:12px;">Title is clear, marketable and mortgageable. [Brief reason.]</p>
+</div>
+
+FINAL TITLE STATUS BOX — ADD AFTER VERDICT:
+<div class="title-status">
+  <div class="ts-title">Final Title Status</div>
+  <div class="ts-value">[CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS / TITLE REQUIRES RECTIFICATION / TITLE NOT RECOMMENDED / INSUFFICIENT DOCUMENTATION FOR TITLE CERTIFICATION]</div>
+</div>
+
+START WITH: <hr><div class="ph">DOCUMENTS REQUIRED</div>
+END after title-status closing div.`
 
 // ================================================================
 // HTML BUILDER
