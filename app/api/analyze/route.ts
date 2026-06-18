@@ -130,11 +130,46 @@ Skip first column "Entry Details". Extract:
 - Col 4 (after skip/Last): DO NOT CONSIDER — NEVER MENTION
 Arrange chronologically.
 
-STAGE 7 — ENCUMBRANCE CERTIFICATE ENGINE:
-For each EC entry extract: Type of Document | Property Description | Executing Party | Claimant Party | Registration Date | Registration Number
-NEVER reproduce EC last column.
-EC Columns: Col1=Type | Col2=Property | Col3=Executing Party (Aapnar/Seller) | Col4=Claimant Party (Lenar/Buyer) | Col5=Date | Col6=Reg No. | Col7=IGNORE COMPLETELY
-Always mention: EC Date + Search Period from E-Application Receipt.
+STAGE 7 — ENCUMBRANCE CERTIFICATE ENGINE — CRITICAL — READ EVERY ENTRY:
+STEP 1: Find E-Application Receipt / EC Form — extract:
+  (a) DATE OF EC — exact date EC was issued
+  (b) PERIOD OF SEARCH "શોધ અગર તપાસણી" — from date to date (e.g. 01-01-2010 to 11-06-2026)
+  (c) APPLICANT NAME ON EC FORM — this is the ADVOCATE/BANK OFFICER who applied = IGNORE completely
+
+STEP 2: COUNT total number of entries in EC for subject property — write exact count.
+
+STEP 3: For EACH entry — read ALL 7 columns carefully:
+  Col 1 (Leftmost): Type of Deed/Document — "માલિકી ફેરખત/વેચાણ"=Sale | "ગીરો/ગીરોખત"=Mortgage | "ગીરો મુક્તિ"=Release | "બાનાખત"=AoS
+  Col 2: Relevant Property Description — flat/unit/survey details
+  Col 3: Executing Party "દસ્તાવેજ કરી આપનાર" (Aapnar) = SELLER / MORTGAGOR (person who GIVES deed)
+  Col 4: Claimant Party "દસ્તાવેજ કરી લેનાર" (Lenar) = BUYER / MORTGAGEE (person who TAKES deed)
+  Col 5: Date of Registration
+  Col 6 (Second Last): Registration / Dastavej Number
+  Col 7 (Last): DO NOT READ — COMPLETELY IGNORE — NEVER MENTION
+
+STEP 4: Verify EVERY entry relates to SUBJECT PROPERTY — check Unit No. + Block + Floor exact match.
+  If any entry is for a DIFFERENT unit/flat/block — COMPLETELY SKIP that entry.
+
+STEP 5: For EVERY mortgage entry (Col1=ગીરો) — check if Release Deed / "ગીરો મુક્તિ" exists.
+  If Release Deed found in EC or submitted documents — mortgage = DISCHARGED.
+  If NO Release — mortgage = ACTIVE ENCUMBRANCE = HIGH SEVERITY flag.
+
+STEP 6: Check for entries within last 60 days — if any = RED FLAG potential double financing.
+
+EXTRACT AND REPORT FOR EACH EC ENTRY:
+Entry No. [X]: Type=[document type] | Deed No.=[registration no.] | Date=[DD/MM/YYYY] | Aapnar (Seller/Mortgagor)=[full name/s] | Lenar (Buyer/Mortgagee)=[full name/s or Bank name] | Status=[Active/Discharged]
+
+EC DOCUMENT TYPE TRANSLATION — READ EXACTLY:
+"માલિકી ફેરખત / વેચાણ" = Sale / Ownership Transfer
+"બાનાખત (કબ્જા વગર)" = Agreement to Sale WITHOUT Possession (NOT a Sale Deed!)
+"ગીરો" / "ગીરોખત" = Mortgage Deed
+"ગીરો મુક્તિ" = Release of Mortgage
+"ભાડા પટ્ટો" = Lease Deed
+"ભેટ / ભૂષણ" = Gift Deed
+
+NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer) — most critical EC reading rule.
+Always mention: EC Date + Period of Search in report.
+NEVER reproduce Col 7 content anywhere.
 
 STAGE 8 — TITLE RECONCILIATION:
 Cross-match: Revenue Records | Mutation Records | EC | Registered Documents
@@ -482,18 +517,28 @@ PART II — LIST OF SCRUTINISED DOCUMENTS:
 Latest first, oldest last. 2-3 sentences per document.
 NEVER include Mutation Entries. NEVER mention Stamp Paper numbers.
 
-FORMAT FOR EACH DOCUMENT:
+FORMAT FOR EACH REGULAR DOCUMENT:
 <div class="di">
   <p><span class="dn">N. [Document Name] — Reg. No. [X] | Dated: [DD-MM-YYYY]</span><br>
   [Executant] unto and in favour of [Claimant]. [Key observation. SRO name. Amount if relevant.]</p>
 </div>
 
+FORMAT FOR EC — MANDATORY DETAILED LISTING:
+<div class="di">
+  <p><span class="dn">N. Encumbrance Certificate (EC) — Period: [From DD/MM/YYYY] to [To DD/MM/YYYY] | Dated: [EC issue date]</span><br>
+  EC taken by Advocate [Name] bearing Search Period from [DD/MM/YYYY] to [DD/MM/YYYY] issued by the Inspector General of Registration, Revenue Department, Government of Gujarat.
+  The EC discloses [TOTAL COUNT] registered transaction/s for the subject property as under:<br>
+  <strong>Entry 1:</strong> [Type — Sale/Mortgage/Release] vide Deed No. [X] dated [DD/MM/YYYY] — Executing Party (Aapnar): [Full name/s of Seller/Mortgagor] — Claimant Party (Lenar): [Full name/s of Buyer/Bank/Mortgagee]. [Status: Active / Discharged].<br>
+  <strong>Entry 2:</strong> [If exists — same format]. [Status: Active / Discharged vide Release Deed No. X].<br>
+  [Continue for ALL entries — NEVER say "no encumbrance" without reading every EC entry]</p>
+</div>
+
 RULES:
 1. NEVER "and others" — every name individually
 2. Latest FIRST — oldest LAST
-3. EC: "taken by Advocate [Name]" NEVER "issued by"
-4. EC APPLICANT: COMPLETELY IGNORE — NEVER mention EC Applicant as party/owner/claimant
-5. "Banakhat Kabja Vagar" = Agreement to Sale Without Possession — NEVER call it Sale Deed
+3. EC APPLICANT: COMPLETELY IGNORE — person who applied for EC has ZERO property interest
+4. "Banakhat Kabja Vagar" = Agreement to Sale Without Possession — NEVER call it Sale Deed
+5. EC MUST list ALL entries with Entry numbers — if 2 entries exist, show both
 
 START WITH: <hr><div class="ph">PART I — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>
 Then PART I table.
@@ -516,7 +561,13 @@ RULES:
 8. For Builder Purchase: last para = Draft Sale Deed/Banakhat/Allotment between Builder and proposed purchaser
 9. Translate ALL Gujarati/Hindi terms to English
 
-EC GOLDEN RULE: Count EC transfer entries for subject property = N. Part III must have exactly N paragraphs. Current Owner = buyer in LATEST EC entry.
+EC GOLDEN RULE — MANDATORY:
+Count EC transfer entries for subject property = N.
+Part III must have exactly N transfer paragraphs (one per EC entry).
+EVERY "Maliki Feran" / "Vecho" / Sale entry in EC = ONE paragraph in Part III.
+EVERY Mortgage entry in EC = mention in the relevant paragraph as encumbrance.
+Current Owner = buyer in LATEST EC transfer entry.
+Chain NEVER ends at submitted deed — it ends at LATEST EC entry.
 
 FORMAT — FIRST PARAGRAPH (no "Thereafter"):
 <p>[Earliest holder name/s] acquired the subject property being [property description briefly]. [How acquired — original allotment / agricultural land etc.] [Deed type, No., Date, Amount if known.] Entry to that effect recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
@@ -524,8 +575,11 @@ FORMAT — FIRST PARAGRAPH (no "Thereafter"):
 FORMAT — EVERY SUBSEQUENT PARAGRAPH:
 <p>Thereafter, [Seller full name/s] transferred the subject property to [Buyer full name/s] vide [Deed Type] No. [X] dated [DD/MM/YYYY] registered at SRO [Name] for a consideration of Rs. [X]. Entry to that effect recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
 
+FORMAT — IF MORTGAGE IN EC:
+<p>Thereafter, [Mortgagor name] created a mortgage over the subject property in favour of [Bank/Mortgagee name] vide Registered Mortgage Deed No. [X] dated [DD/MM/YYYY] registered at SRO [Name]. [The said mortgage stands discharged vide Release Deed No. X / The said mortgage is subsisting and active as of date of this report.]</p>
+
 FORMAT — FINAL PARAGRAPH:
-<p>Thereafter, [Current Owner full name/s] holds [title/leasehold rights in] the subject property as the current owner/s. [Encumbrance status — clear / subject to existing mortgage in favour of {Bank}].</p>
+<p>Thereafter, [Current Owner full name/s] holds [title/leasehold rights in] the subject property as the current owner/s as confirmed by the Encumbrance Certificate dated [EC date] for the period [search period]. [Encumbrance status — clear / subject to existing mortgage in favour of {Bank}].</p>
 
 START WITH EXACTLY: <hr><div class="ph">PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END after final paragraph — NOTHING after.`
