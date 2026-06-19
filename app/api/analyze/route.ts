@@ -134,33 +134,59 @@ Col 3 (after skip): Relevant Survey/Block No. — SKIP if not subject property
 Col 4 (after skip / LAST): DO NOT CONSIDER — NEVER MENTION IN REPORT
 
 ═══════════════════════════════════════════════════════
-ENCUMBRANCE CERTIFICATE — STRICT COLUMN RULES:
+ENCUMBRANCE CERTIFICATE — STRICT EXTRACTION RULES:
 ═══════════════════════════════════════════════════════
-STEP 1 — Extract from E-Application Receipt:
-  (a) EC APPLICATION DATE = "Date of Print" on E-Application Receipt
-  (b) SEARCH PERIOD = "From Date" to "To Date" of "શોધ અગર તપાસણી" (Duration of Search)
-  These two are MANDATORY to mention in report.
+STEP 1 — Extract from E-Application Receipt (3 MANDATORY fields):
+  (a) EC APPLICATION NUMBER = "e-Application No." / "E-Arji Nambar" shown on E-Application Receipt
+      This is the unique EC reference number — MUST be extracted and mentioned in report.
+  (b) EC APPLICATION DATE = "Date of Print" / "Chhapavani Tarikh" on E-Application Receipt
+  (c) SEARCH PERIOD / DURATION = "From Date" to "To Date" of "શોધ અગર તપાસણી" (Duration of Search)
+      Example: "01/01/2010 to 11/06/2026"
+  ALL THREE ARE MANDATORY — mention all three in report.
 
-STEP 2 — Count ALL entries. Never miss any entry.
+STEP 2 — Count ALL entries for subject property. NEVER miss any entry.
 
-STEP 3 — For EACH entry read columns:
-  Col 1: Type of Deed — "Maliki Feran/Vecho"=Sale | "Boja/Giro/Girokhit"=Mortgage | "Giro Mukeli"=Release of Mortgage | "Banakhat"=AoS | "Banakhat Kabja Vagar"=AoS Without Possession
-  Col 2: Property Description
-  Col 3: Executing Party "Dastavej Kari Aapnar" = SELLER / MORTGAGOR (person who GIVES the deed)
-  Col 4: Claimant Party "Dastavej Kari Lenar" = BUYER / MORTGAGEE / BANK (person who TAKES the deed)
-  Col 5: Date of Registration
-  Col 6 (Second Last): Registration / Dastavej Number
-  Col 7 (LAST): NEVER READ — NEVER MENTION ANYWHERE IN REPORT
-  NEVER swap Col 3 (Aapnar) and Col 4 (Lenar)
+STEP 3 — For EACH entry read ALL columns carefully:
 
-STEP 4 — Verify EVERY entry = subject property (Unit No. + Block + Floor exact match)
-STEP 5 — For each mortgage entry: check if Release Deed / Giro Mukeli exists
+  Col 1: TYPE OF DOCUMENT (Gujarati) — MUST TRANSLATE TO ENGLISH:
+  ═══ COMPLETE GUJARATI → ENGLISH TRANSLATION TABLE ═══
+  "માલિકી ફેરખત" OR "માલિકી ફેર ખત" OR "વેચાણ" = Sale Deed / Ownership Transfer Deed
+  "ગીરો ખત" OR "ગીરોખત" OR "ગીરો" = Mortgage Deed
+  "ગીરો મુક્તિ" OR "ગીરો મુક્તિ પ્ત્ર" = Release of Mortgage Deed
+  "ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release of Mortgage & Transfer of Ownership
+  "બાનાખત" = Agreement to Sale (with Possession)
+  "બાનાખત કબ્જા વગર" = Agreement to Sale WITHOUT Possession (NOT a Sale Deed)
+  "ભેટ ખત" OR "ભૂષણ" = Gift Deed
+  "ભાડા પટ્ટો" = Lease Deed
+  "ભાગ" OR "વહેંચણી" = Partition Deed
+  "સ્થાવર મિલ્કત ખત" = Immovable Property Deed
+  "દત્તક" = Adoption Deed
+  "ઘોષણા" = Declaration Deed
+  "બ્ મૂળ ખત" = Original Document
+  "સત્તા ખત" OR "સત્તાનામુ" = Power of Attorney
+  "ઇચ્છા પત્ર" = Will / Testament
+  "ખત" = Deed (generic — read full context to determine type)
+  RULE: ALWAYS translate the Gujarati document type to English. NEVER leave it in Gujarati in the report.
+
+  Col 2: Property Description (as per EC)
+  Col 3: Executing Party "દસ્તાવેજ કરી આપનાર" (Dastavej Kari Aapnar) = SELLER / MORTGAGOR
+         (the person who GIVES / EXECUTES the deed)
+  Col 4: Claimant Party "દસ્તાવેજ કરી લેનાર" (Dastavej Kari Lenar) = BUYER / MORTGAGEE / BANK
+         (the person who TAKES / RECEIVES the deed)
+  Col 5: Date of Registration of the deed
+  Col 6 (Second Last): Registration Number / Dastavej Number of the deed
+  Col 7 (LAST): NEVER READ — NEVER MENTION ANYWHERE IN REPORT — COMPLETELY IGNORE
+  CRITICAL: NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer)
+
+STEP 4 — Verify EVERY entry relates to subject property (Unit No. + Block + Floor exact match)
+         If any entry is for a DIFFERENT property — SKIP that entry entirely.
+STEP 5 — For each mortgage entry: check if Release Deed / Giro Mukeli exists in documents or EC
 
 CRITICAL EC APPLICANT RULE:
-The "Applicant" field on the EC Form / E-Application Receipt = person who applied for EC.
-This is an empanelled advocate or bank officer with ZERO property interest.
-NEVER reproduce EC Applicant name | NEVER mention in report | COMPLETELY IGNORE.
-Example: "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate = IGNORE completely.
+The "Applicant" name on E-Application Receipt = person who applied to OBTAIN the EC (empanelled advocate / bank officer).
+This person has ZERO relation with the property and ZERO legal interest.
+NEVER reproduce EC Applicant name | NEVER mention in any report section | COMPLETELY IGNORE.
+Example: "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate who applied for EC = IGNORE completely.
 
 ═══════════════════════════════════════════════════════
 REGULATORY APPROVALS — CHECK AND REPORT EACH:
@@ -265,6 +291,7 @@ MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / Private Ltd / Public Lt
 PROPERTY_PARA: [Full paragraph format — "Opinion on title and search in respect of immovable property bearing..."]
 PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
 CURRENT_OWNER: [Builder/Developer full name/s — from title documents]
+EC_APP_NUMBER: [E-Application Number from EC Receipt]
 EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
 EC_TOTAL_ENTRIES: [Number]
@@ -304,7 +331,8 @@ MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
 PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
 PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
 CURRENT_OWNER: [First Party/Vechan Aapnar — ALL names individually — from Draft Deed/Banakhat]
-EC_DATE: [EC application/print date]
+EC_APP_NUMBER: [E-Application Number from EC Receipt]
+EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
 EC_TOTAL_ENTRIES: [Number]
 RISK_SCORE: [0-100]
@@ -340,7 +368,8 @@ MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
 PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
 PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
 CURRENT_OWNER: [Same as Applicant]
-EC_DATE: [EC application/print date]
+EC_APP_NUMBER: [E-Application Number from EC Receipt]
+EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
 EC_TOTAL_ENTRIES: [Number]
 EXISTING_BANK: [Name of existing mortgagee bank from EC]
@@ -376,7 +405,8 @@ MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
 PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
 PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
 CURRENT_OWNER: [Seller — First Party in Draft Deed/Banakhat — ALL names individually]
-EC_DATE: [EC application/print date]
+EC_APP_NUMBER: [E-Application Number from EC Receipt]
+EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
 EC_TOTAL_ENTRIES: [Number]
 EXISTING_BANK: [Name of existing mortgagee bank from EC]
@@ -413,7 +443,8 @@ MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
 PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
 PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
 CURRENT_OWNER: [Same as Applicant]
-EC_DATE: [EC application/print date]
+EC_APP_NUMBER: [E-Application Number from EC Receipt]
+EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
 EC_TOTAL_ENTRIES: [Number]
 RISK_SCORE: [0-100]
@@ -450,6 +481,7 @@ function parseMeta(text: string) {
     mortgagor: g('MORTGAGOR'), mortgagorConstitution: g('MORTGAGOR_CONSTITUTION'),
     propertyPara: g('PROPERTY_PARA'), propertyBoundaries: g('PROPERTY_BOUNDARIES'),
     currentOwner: g('CURRENT_OWNER'),
+    ecAppNumber: g('EC_APP_NUMBER'),
     ecDate: g('EC_DATE'), ecSearchPeriod: g('EC_SEARCH_PERIOD'), ecTotalEntries: g('EC_TOTAL_ENTRIES'),
     existingBank: g('EXISTING_BANK'),
     riskScore: g('RISK_SCORE'), riskClass: g('RISK_CLASS'),
@@ -548,28 +580,55 @@ const L4B = `You are the Legal Report Generator — Layer 4. Generate HTML for P
 ═══ PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY ═══
 <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 
+CRITICAL RULE — TRACE FROM THE VERY BEGINNING:
+Start from the EARLIEST available record in ALL submitted documents + FERFAR + EC.
+This means going back to:
+- The original agricultural landowner/s (from 7/12 and FERFAR oldest entries)
+- OR the original government allotment/scheme creation
+- OR the original revenue survey owner/s
+- Whichever is the EARLIEST traceable event
+DO NOT start from the builder or the recent sale deed. Go to the ORIGIN of the title.
+
+COMPLETE CHRONOLOGICAL SEQUENCE — MUST COVER ALL:
+1. ORIGINAL AGRICULTURAL / SURVEY LAND OWNERSHIP (from earliest FERFAR entry or 7/12)
+2. NON-AGRICULTURAL CONVERSION (NA Order — if available from FERFAR/documents)
+3. DEVELOPMENT AGREEMENT / TP SCHEME / GOVERNMENT ACQUISITION (if applicable)
+4. BUILDER / DEVELOPER ACQUISITION of the land/scheme
+5. CONSTRUCTION / SCHEME DEVELOPMENT
+6. INDIVIDUAL UNIT CREATION and allotment to current/earlier owners
+7. ALL SUBSEQUENT TRANSFERS (Sale Deeds, Gift Deeds, etc.) in chronological order
+8. ALL MORTGAGE CREATIONS and RELEASES in chronological order
+9. CURRENT STATUS as confirmed by EC
+
 RULES:
-1. Oldest to newest — always
-2. FIRST paragraph: NO "Thereafter" — begin with earliest title holder
+1. OLDEST event FIRST — NEWEST LAST — always strictly chronological
+2. FIRST paragraph: NO "Thereafter" — begin with the absolute earliest traceable event
 3. EVERY subsequent paragraph: MUST start with "Thereafter,"
-4. NEVER "and others" — every person individually
+4. NEVER "and others" — every person individually — always
 5. EC-confirmed deeds (copy not submitted): include naturally — no remark, no flag
 6. End each transfer paragraph: mention Mutation Entry No. + date if available
 7. For Builder Purchase: last paragraph = Draft Sale Deed/Banakhat/Allotment between Builder and purchaser
 8. Mortgage entries: separate paragraph with discharge status
 9. Translate ALL Gujarati terms to English
+10. If earliest record not traceable: state "The history of the subject land prior to [earliest available date] could not be traced from the documents produced. The earliest available record is as under:"
 
-FIRST PARAGRAPH FORMAT:
-<p>[Earliest holder name/s] [acquired/held] the subject property [how acquired — original allotment / agricultural landowner / government allotment etc.]. [Deed type, No., Date if applicable. Amount if known.] Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+FIRST PARAGRAPH — EARLIEST ORIGIN:
+<p>As per the revenue records produced, the subject land bearing [Survey/Block No.], Village [Name], Taluka [Name], District [Name] was originally held by [Original Landowner full name/s] as [tenure type — e.g. agricultural/occupancy holder] as evidenced by [Village Form 7/12 / earliest Ferfar entry / earliest available record]. [Any relevant details about original holding.] Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY] [— OR — as per the earliest available revenue record].</p>
 
-SUBSEQUENT PARAGRAPHS:
-<p>Thereafter, [Seller full name/s] transferred the subject property to [Buyer full name/s] vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO Name] for a consideration of Rs. [Amount]. Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+NA CONVERSION PARAGRAPH (if applicable):
+<p>Thereafter, the aforesaid land was converted from agricultural to non-agricultural use vide [NA Order No., if available] dated [Date] issued by [Authority]. Entry to that effect was recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+
+BUILDER/DEVELOPER ACQUISITION PARAGRAPH:
+<p>Thereafter, [Builder/Developer full name] acquired the subject land / scheme through [Development Agreement / Purchase / Government Allotment] vide [Deed Type] No. [X] dated [DD/MM/YYYY]. [Brief details.] Entry recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+
+INDIVIDUAL UNIT TRANSFER PARAGRAPH:
+<p>Thereafter, [Seller full name/s] transferred the subject property being [Unit/Flat/Shop No.] to [Buyer full name/s] vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO Name] for a consideration of Rs. [Amount]. Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
 
 MORTGAGE PARAGRAPH:
 <p>Thereafter, [Mortgagor full name/s] created a mortgage over the subject property in favour of [Bank/Mortgagee full name] vide Registered Mortgage Deed bearing Registration No. [X] dated [DD/MM/YYYY] registered at SRO [Name]. [The said mortgage stands discharged vide Registered Release Deed No. [X] dated [DD/MM/YYYY] / The said mortgage is subsisting and active as on the date of this report — no Release Deed produced.]</p>
 
-FINAL PARAGRAPH:
-<p>Thereafter, [Current Owner full name/s] holds the right, title and interest in the subject property as the present registered owner/s as confirmed by the Encumbrance Certificate dated [EC Date] covering search period from [From] to [To] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [Encumbrance status — no subsisting charge / subject to existing charge of {Bank}.]</p>
+FINAL CURRENT STATUS PARAGRAPH:
+<p>Thereafter, [Current Owner full name/s] holds the right, title and interest in the subject property as the present registered owner/s as confirmed by the Encumbrance Certificate bearing E-Application No. [EC App Number] dated [EC Date] covering search period from [From] to [To] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [Encumbrance status — no subsisting charge / subject to existing charge of {Bank}.]</p>
 
 ═══ PART V — REVENUE RECORD ANALYSIS ═══
 <hr><div class="ph">PART V — REVENUE RECORD ANALYSIS</div>
@@ -610,7 +669,7 @@ For each 7/12 / Village Form / Property Card submitted:
 ═══ PART VII — ENCUMBRANCE ANALYSIS ═══
 <hr><div class="ph">PART VII — ENCUMBRANCE ANALYSIS</div>
 
-<p>Encumbrance Certificate (EC) obtained bearing Application Date [EC Date] for search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [TOTAL COUNT] registered transaction/s for the subject property as under:</p>
+<p>Encumbrance Certificate (EC) obtained bearing E-Application No. [EC Application Number] dated [EC Date] for search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [TOTAL COUNT] registered transaction/s for the subject property as under:</p>
 
 <table class="ec-tbl">
   <tr>
