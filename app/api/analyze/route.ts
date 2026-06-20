@@ -262,9 +262,40 @@ LENDING SUITABILITY: Suitable | Conditionally Suitable | Not Suitable
 SECURITY COVERAGE: Adequate | Conditional | Inadequate
 
 ═══════════════════════════════════════════════════════
-EC CRITICAL RULES:
+EC CRITICAL RULES — SONNET MUST DO THIS ANALYSIS:
 ═══════════════════════════════════════════════════════
-Col 3 "Aapnar" = SELLER/MORTGAGOR | Col 4 "Lenar" = BUYER/BANK | Col 7 = IGNORE ALWAYS
+EC APPLICATION DETAILS — Extract from E-Application Receipt:
+  (a) EC APPLICATION NUMBER = "e-Application No." / "IGR-NIC(G)..." number on the receipt
+  (b) EC APPLICATION DATE = "Date of Print" on E-Application Receipt
+  (c) SEARCH PERIOD = "From Date" to "To Date" of "શોધ અગર તપાસણી"
+
+EC ENTRY READING — FOR EVERY SINGLE ENTRY IN EC TABLE:
+EC has 7 columns — read each column carefully:
+  Col 1 (LEFTMOST): Type of Deed — ALWAYS IN GUJARATI — TRANSLATE TO ENGLISH using this table:
+    "માલિકી ફેરખત" OR "માલિકી ફેર ખત" OR "વેચાણ" = Sale Deed / Ownership Transfer
+    "ગીરો ખત" OR "ગીરોખત" OR "ગીરો" = Mortgage Deed
+    "ગીરો મુક્તિ" OR "ગીરો મુક્તિ પ્ત્ર" = Release of Mortgage Deed
+    "ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release of Mortgage & Transfer of Ownership
+    "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Release of Mortgage Deed with Re-Transfer of Ownership
+    "બાનાખત" = Agreement to Sale (with Possession)
+    "બાનાખત કબ્જા વગર" = Agreement to Sale WITHOUT Possession (NOT a Sale Deed)
+    "ભેટ ખત" OR "ભૂષણ" = Gift Deed
+    "ભાડા પટ્ટો" = Lease Deed
+    "ભાગ" OR "વહેંચણી" = Partition Deed
+    "સ્થાવર મિલ્કત ખત" = Immovable Property Deed
+    "સત્તા ખત" OR "સત્તાનામુ" = Power of Attorney
+    "45-એ મુજબનું મુખત્યારનામું" OR "45-A મુજબ" = Power of Attorney under Section 45-A
+    "ઇચ્છા પત્ર" = Will / Testament
+    "ઘોષણા" = Declaration Deed
+    "ખત" = Deed (check context for exact type)
+  Col 2: Property Description (as mentioned in EC)
+  Col 3: "દસ્તાવેજ કરી આપનાર" (Aapnar) = SELLER / MORTGAGOR — person who GIVES the deed
+  Col 4: "દસ્તાવેજ કરી લેનાર" (Lenar) = BUYER / MORTGAGEE / BANK — person who TAKES the deed
+  Col 5: Date of Registration of deed
+  Col 6 (Second Last): Registration / Dastavej Number
+  Col 7 (LAST): COMPLETELY IGNORE — NEVER MENTION IN REPORT
+
+CRITICAL: NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer)
 EC Applicant = empanelled advocate = COMPLETELY IGNORE — ZERO property interest
 "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate = IGNORE in ALL report sections
 EC-confirmed deeds (copy not submitted) = include in chain naturally — NEVER flag as missing
@@ -986,11 +1017,20 @@ ${extractedFacts}
 
 FILL META BLOCK COMPLETELY:
 1. PROPERTY_PARA = exact paragraph format ("Opinion on title and search in respect of immovable property bearing...")
-2. EC_DATE = exact EC application/print date
-3. EC_SEARCH_PERIOD = exact from-to search period
-4. RISK_SCORE = sum of all applicable weighted scores (be precise, not generic)
-5. CONFIDENCE = based on how many independent records support ownership claim
-6. All names individually — NEVER "and others"`
+2. EC_APP_NUMBER = exact E-Application Number from EC receipt
+3. EC_DATE = exact EC application/print date
+4. EC_SEARCH_PERIOD = exact from-to search period
+5. EC_TOTAL_ENTRIES = total count of entries in EC for subject property
+6. RISK_SCORE = sum of all applicable weighted scores (be precise, not generic)
+7. CONFIDENCE = based on how many independent records support ownership claim
+8. All names individually — NEVER "and others"
+
+EC EXTRACTION — MANDATORY — DO THIS NOW:
+Read the EC from the extracted facts. For EVERY entry in the EC table:
+- Translate the Gujarati document type to English using the translation table in your system prompt
+- Extract: Entry No. | Type (English) | Deed Registration No. | Date | Aapnar (Col 3 = Seller/Mortgagor) | Lenar (Col 4 = Buyer/Bank) | Active or Discharged
+List ALL entries clearly — do not miss any entry.
+Col 7 of EC = IGNORE | EC Applicant name = IGNORE`
       }]
     })
     const analysis = l23Msg.content[0].type === 'text' ? l23Msg.content[0].text : ''
@@ -1037,6 +1077,7 @@ CASE TYPE: ${caseType}
 SUBJECT PROPERTY: ${meta.propertyPara || meta.propertyPara || propertyAddress}
 CURRENT OWNER: ${meta.currentOwner || currentOwner}
 APPLICANT: ${meta.applicant || applicantName}
+EC APPLICATION NUMBER: ${meta.ecAppNumber || 'As per documents'}
 EC DATE: ${meta.ecDate || 'As per documents'}
 EC SEARCH PERIOD: ${meta.ecSearchPeriod || 'As per documents'}
 EC TOTAL ENTRIES: ${meta.ecTotalEntries || 'As per documents'}
@@ -1045,9 +1086,9 @@ ANALYSIS FROM LAYERS 1-3:
 ${analysis}
 
 CRITICAL RULES:
-- Part IV: First para NO "Thereafter". Every subsequent MUST start "Thereafter,". EC-confirmed deeds naturally in chain.
+- Part IV: Start from EARLIEST available record. First para NO "Thereafter". Every subsequent MUST start "Thereafter,". EC-confirmed deeds naturally in chain. Final para must include EC Application No. + date + search period.
 - Part VI: Use table format for mutation entries. Col4(Last) of FERFAR = IGNORE.
-- Part VII: Use table format for EC entries. Col 7 of EC = NEVER mention. EC Applicant = IGNORE.
+- Part VII: Use table format for ALL EC entries. Show E-Application No. + date + search period at top. For each entry: translate Gujarati deed type to English. Col 7 = NEVER mention. EC Applicant = IGNORE.
 - Santosh Tansukh Thakrar = EC Applicant = COMPLETELY IGNORE.`
         }]
       }),
