@@ -154,6 +154,7 @@ STEP 3 — For EACH entry read ALL columns carefully:
   "ગીરો ખત" OR "ગીરોખત" OR "ગીરો" = Mortgage Deed
   "ગીરો મુક્તિ" OR "ગીરો મુક્તિ પ્ત્ર" = Release of Mortgage Deed
   "ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release of Mortgage & Transfer of Ownership
+  "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Release of Mortgage Deed with Re-Transfer of Ownership of Property
   "બાનાખત" = Agreement to Sale (with Possession)
   "બાનાખત કબ્જા વગર" = Agreement to Sale WITHOUT Possession (NOT a Sale Deed)
   "ભેટ ખત" OR "ભૂષણ" = Gift Deed
@@ -164,6 +165,7 @@ STEP 3 — For EACH entry read ALL columns carefully:
   "ઘોષણા" = Declaration Deed
   "બ્ મૂળ ખત" = Original Document
   "સત્તા ખત" OR "સત્તાનામુ" = Power of Attorney
+  "45-એ મુજબનું મુખત્યારનામું" OR "45-A મુજબ મુખ્ત્યારનામું" = Power of Attorney under Section 45-A of the Registration Act
   "ઇચ્છા પત્ર" = Will / Testament
   "ખત" = Deed (generic — read full context to determine type)
   RULE: ALWAYS translate the Gujarati document type to English. NEVER leave it in Gujarati in the report.
