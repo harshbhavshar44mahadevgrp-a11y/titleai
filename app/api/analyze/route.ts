@@ -184,6 +184,30 @@ STEP 4 — Verify EVERY entry relates to subject property (Unit No. + Block + Fl
          If any entry is for a DIFFERENT property — SKIP that entry entirely.
 STEP 5 — For each mortgage entry: check if Release Deed / Giro Mukeli exists in documents or EC
 
+RULE 17 — MORTGAGE RELEASE VERIFICATION (CRITICAL — FROM OLD WORKING CODE):
+Before marking ANY mortgage as ACTIVE, ALWAYS check ALL of the following:
+1. Is there a "ગીરો મુક્તિ" / "Giro Mukeli" entry in EC AFTER the mortgage entry? → DISCHARGED
+2. Is there a "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" entry in EC? → DISCHARGED
+3. Is a Release of Mortgage Deed / Giro Mukeli Milkatnu Fer Maliki Ferkhat submitted as a document? → DISCHARGED
+4. Is an Index-II copy of Release Deed submitted? → DISCHARGED
+5. Is a NOC / No-Dues Certificate from the mortgagee bank submitted? → DISCHARGED
+
+GUJARATI RELEASE DEED — RECOGNITION (MANDATORY):
+"ગીરો મુક્તિ" = Mortgage Released = DISCHARGED
+"ગીરો મુક્તિ પ્ત્ર" = Mortgage Release Letter = DISCHARGED
+"ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release + Ownership Transfer = DISCHARGED
+"ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Full Release + Re-Transfer = DISCHARGED
+If ANY of the above appears in EC OR submitted documents → Mortgage = FULLY DISCHARGED
+
+EC RELEASE ENTRY LOGIC — HOW TO READ:
+If EC shows: Entry 2 = Mortgage (Owner → Bank) AND Entry 3 = Giro Mukeli (Bank → Owner)
+→ Entry 3 DISCHARGES Entry 2 → Mortgage = DISCHARGED → NEVER report as active
+
+CORRECT REPORTING:
+Write: "The mortgage created vide Deed No. [X] stands DISCHARGED vide Release Deed / Giro Mukeli No. [Y] dated [DD/MM/YYYY]. No subsisting charge remains on the subject property."
+NEVER write "no release deed found" if Giro Mukeli entry exists in EC
+NEVER write "mortgage is active" if EC shows a subsequent Giro Mukeli entry
+
 RULE 4A — EC MULTIPLE ENTRIES — NEVER MISS SECOND OR SUBSEQUENT ENTRY (CRITICAL):
 Gujarat EC always shows ALL registered transactions for subject property — there may be MULTIPLE entries.
 MOST COMMON CRITICAL MISTAKE: Reading only FIRST entry (Sale Deed) and IGNORING SECOND entry (Mortgage/Charge).
@@ -329,10 +353,18 @@ MANDATORY EC PROCESS — NEVER SKIP — EVERY CASE:
 1. COUNT total entries in EC for subject property — this number goes in META as EC_TOTAL_ENTRIES
 2. Read EVERY entry from oldest to newest — NEVER stop at Entry 1
 3. For EVERY entry: identify Col 1 type (translate Gujarati→English), Col 3 Aapnar, Col 4 Lenar, Col 5 date, Col 6 deed number
-4. If Col 4 (Lenar) shows ANY Bank name = MORTGAGE ENTRY — identify bank name, deed number, date and include in analysis
-5. NEVER write "no mortgage exists" or "no subsisting encumbrance" without verifying EVERY entry
-6. Self-check: count entries you documented = must equal EC_TOTAL_ENTRIES in META
-7. If ANY bank appears as Lenar in any entry = active/past mortgage must be reported
+4. If Col 4 (Lenar) shows ANY Bank name = MORTGAGE ENTRY — identify bank name, deed number, date
+5. IMMEDIATELY CHECK: Is there a LATER EC entry of type "ગીરો મુક્તિ" / Giro Mukeli / Release for this mortgage?
+   → If YES = Mortgage DISCHARGED → Status = "Discharged vide Release Deed No.[X] dated [DD/MM/YYYY]"
+   → If NO = Mortgage ACTIVE → flag as active encumbrance
+6. NEVER write "mortgage active" if a Giro Mukeli / Release entry exists ANYWHERE in EC
+7. Self-check: count entries you documented = must equal EC_TOTAL_ENTRIES in META
+
+RELEASE DEED IN EC — HOW TO READ (CRITICAL):
+"ગીરો મુક્તિ" entry = the PREVIOUS mortgage IS NOW DISCHARGED — always pair with prior mortgage
+"ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = mortgage released + ownership re-transferred = DISCHARGED
+In release entry: Col 3 (Aapnar) = BANK releasing the mortgage | Col 4 (Lenar) = OWNER getting property back
+This is OPPOSITE of mortgage entry — which is: Owner → Bank. Release is: Bank → Owner. Both are CORRECT.
 
 FERFAR: Skip first column. Col1=Entry No+Date+Status | Col2=Nature | Col3=Survey(if relevant) | Col4(Last)=IGNORE
 
