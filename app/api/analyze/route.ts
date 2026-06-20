@@ -184,6 +184,31 @@ STEP 4 — Verify EVERY entry relates to subject property (Unit No. + Block + Fl
          If any entry is for a DIFFERENT property — SKIP that entry entirely.
 STEP 5 — For each mortgage entry: check if Release Deed / Giro Mukeli exists in documents or EC
 
+RULE 4A — EC MULTIPLE ENTRIES — NEVER MISS SECOND OR SUBSEQUENT ENTRY (CRITICAL):
+Gujarat EC always shows ALL registered transactions for subject property — there may be MULTIPLE entries.
+MOST COMMON CRITICAL MISTAKE: Reading only FIRST entry (Sale Deed) and IGNORING SECOND entry (Mortgage/Charge).
+
+MANDATORY PROCESS — EVERY EC — NO EXCEPTIONS:
+1. COUNT total number of entries in EC for subject property — write down the exact count
+2. Read Entry 1 — usually Sale / Ownership Transfer (Maliki Feran/Vecho) — document completely
+3. Read Entry 2 onwards — may be Mortgage / Boja / Charge / Release — MUST read and extract every single one
+4. LEFT column "Aapnar" = Mortgagor / Seller | RIGHT column "Lenar" = Mortgagee / Bank / Buyer
+5. If RIGHT column (Lenar) shows ANY Bank name (Bank of India / Axis Bank / SBI / HDFC / ICICI etc.) = MORTGAGE ENTRY — MUST extract and report
+6. NEVER write "EC discloses no mortgage/charge" unless you have verified EVERY SINGLE EC entry
+7. NEVER write "no subsisting encumbrance" if any Mortgage / Boja / Charge entry exists without confirmed Release Deed
+
+CONCRETE EXAMPLE — TWO ENTRY EC (MUST FOLLOW THIS APPROACH):
+EC Entry 1: [Builder Name] → [Buyer Family] (Sale Deed No. 23388 dated 29-12-2018) — READ AND INCLUDE
+EC Entry 2: [Buyer Family] → [Bank of India] (Mortgage Deed No. 3858 dated 15-02-2022) — MUST READ AND REPORT
+WRONG APPROACH: "EC confirms one entry — Sale Deed — no mortgage found" (MISSED Entry 2 — CRITICAL ERROR)
+CORRECT APPROACH: "EC confirms two entries — (1) Sale Deed No. 23388 dated 29-12-2018 and (2) Mortgage Deed No. 3858 dated 15-02-2022 in favour of Bank of India — mortgage is active"
+
+SELF-CHECK BEFORE FINISHING EC EXTRACTION:
+→ Have I counted ALL entries in EC? 
+→ Have I read Entry 2 and beyond?
+→ Does any entry show a Bank in the right column (Lenar)?
+If ANY bank appears as Lenar = active mortgage = MUST extract fully.
+
 CRITICAL EC APPLICANT RULE:
 The "Applicant" name on E-Application Receipt = person who applied to OBTAIN the EC (empanelled advocate / bank officer).
 This person has ZERO relation with the property and ZERO legal interest.
@@ -299,6 +324,15 @@ CRITICAL: NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer)
 EC Applicant = empanelled advocate = COMPLETELY IGNORE — ZERO property interest
 "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate = IGNORE in ALL report sections
 EC-confirmed deeds (copy not submitted) = include in chain naturally — NEVER flag as missing
+
+MANDATORY EC PROCESS — NEVER SKIP — EVERY CASE:
+1. COUNT total entries in EC for subject property — this number goes in META as EC_TOTAL_ENTRIES
+2. Read EVERY entry from oldest to newest — NEVER stop at Entry 1
+3. For EVERY entry: identify Col 1 type (translate Gujarati→English), Col 3 Aapnar, Col 4 Lenar, Col 5 date, Col 6 deed number
+4. If Col 4 (Lenar) shows ANY Bank name = MORTGAGE ENTRY — identify bank name, deed number, date and include in analysis
+5. NEVER write "no mortgage exists" or "no subsisting encumbrance" without verifying EVERY entry
+6. Self-check: count entries you documented = must equal EC_TOTAL_ENTRIES in META
+7. If ANY bank appears as Lenar in any entry = active/past mortgage must be reported
 
 FERFAR: Skip first column. Col1=Entry No+Date+Status | Col2=Nature | Col3=Survey(if relevant) | Col4(Last)=IGNORE
 
@@ -1020,17 +1054,18 @@ FILL META BLOCK COMPLETELY:
 2. EC_APP_NUMBER = exact E-Application Number from EC receipt
 3. EC_DATE = exact EC application/print date
 4. EC_SEARCH_PERIOD = exact from-to search period
-5. EC_TOTAL_ENTRIES = total count of entries in EC for subject property
+5. EC_TOTAL_ENTRIES = total count of ALL entries in EC for subject property
 6. RISK_SCORE = sum of all applicable weighted scores (be precise, not generic)
 7. CONFIDENCE = based on how many independent records support ownership claim
 8. All names individually — NEVER "and others"
 
-EC EXTRACTION — MANDATORY — DO THIS NOW:
-Read the EC from the extracted facts. For EVERY entry in the EC table:
-- Translate the Gujarati document type to English using the translation table in your system prompt
-- Extract: Entry No. | Type (English) | Deed Registration No. | Date | Aapnar (Col 3 = Seller/Mortgagor) | Lenar (Col 4 = Buyer/Bank) | Active or Discharged
-List ALL entries clearly — do not miss any entry.
-Col 7 of EC = IGNORE | EC Applicant name = IGNORE`
+EC EXTRACTION — MANDATORY — SONNET MUST DO THIS:
+Read EVERY EC entry from the extracted facts. For EACH entry:
+Step 1: Count total entries — write number in EC_TOTAL_ENTRIES
+Step 2: For each entry — identify Type (Col 1, translate Gujarati→English) | Deed No (Col 6) | Date (Col 5) | Aapnar/Seller (Col 3) | Lenar/Buyer or Bank (Col 4)
+Step 3: If ANY entry's Col 4 (Lenar) shows a Bank name = MORTGAGE — extract bank name + deed no + date + active/discharged status
+Step 4: NEVER say "no mortgage" without reading ALL entries
+Self-check: entries documented = EC_TOTAL_ENTRIES value`
       }]
     })
     const analysis = l23Msg.content[0].type === 'text' ? l23Msg.content[0].text : ''
