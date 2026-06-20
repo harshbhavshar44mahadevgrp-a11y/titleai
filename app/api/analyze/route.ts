@@ -145,27 +145,128 @@ STEP 2 — Count ALL entries for subject property. NEVER miss any entry.
 
 STEP 3 — For EACH entry read ALL columns carefully:
 
-  Col 1: TYPE OF DOCUMENT (Gujarati) — MUST TRANSLATE TO ENGLISH:
-  ═══ COMPLETE GUJARATI → ENGLISH TRANSLATION TABLE ═══
-  "માલિકી ફેરખત" OR "માલિકી ફેર ખત" OR "વેચાણ" = Sale Deed / Ownership Transfer Deed
-  "ગીરો ખત" OR "ગીરોખત" OR "ગીરો" = Mortgage Deed
-  "ગીરો મુક્તિ" OR "ગીરો મુક્તિ પ્ત્ર" = Release of Mortgage Deed
-  "ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release of Mortgage & Transfer of Ownership
-  "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Release of Mortgage Deed with Re-Transfer of Ownership of Property
-  "બાનાખત" = Agreement to Sale (with Possession)
-  "બાનાખત કબ્જા વગર" = Agreement to Sale WITHOUT Possession (NOT a Sale Deed)
-  "ભેટ ખત" OR "ભૂષણ" = Gift Deed
-  "ભાડા પટ્ટો" = Lease Deed
-  "ભાગ" OR "વહેંચણી" = Partition Deed
-  "સ્થાવર મિલ્કત ખત" = Immovable Property Deed
-  "દત્તક" = Adoption Deed
-  "ઘોષણા" = Declaration Deed
-  "બ્ મૂળ ખત" = Original Document
-  "સત્તા ખત" OR "સત્તાનામુ" = Power of Attorney
-  "45-એ મુજબનું મુખત્યારનામું" OR "45-A મુજબ મુખ્ત્યારનામું" = Power of Attorney under Section 45-A of the Registration Act
-  "ઇચ્છા પત્ર" = Will / Testament
-  "ખત" = Deed (generic — read full context to determine type)
-  RULE: ALWAYS translate the Gujarati document type to English. NEVER leave it in Gujarati in the report.
+  Col 1: TYPE OF DOCUMENT — EC DOCUMENT TYPE INTELLIGENCE ENGINE:
+
+  ═══════════════════════════════════════════════════════════════
+  STEP A — READ THE EXACT TEXT in Col 1 of EC table
+  STEP B — MATCH to classification table below (exact + partial match)
+  STEP C — IF NO MATCH: translate the Gujarati word-by-word to English, then classify
+  STEP D — OUTPUT the English classification — NEVER output Gujarati in report
+  ═══════════════════════════════════════════════════════════════
+
+  ═══ CATEGORY 1: SALE / OWNERSHIP TRANSFER ═══
+  Gujarati variants → English = "Sale Deed / Ownership Transfer Deed"
+  "માલિકી ફેરખત" | "માલિકી ફેર ખત" | "માલ ફેરખત" | "વેચાણ" | "વેચાણ ખત"
+  "ફેર માલ ખત" | "ખરીદ વેચાણ" | "ખત" (when context = sale)
+  "Maliki Ferkhat" | "Vecho" | "Sale" | "Transfer of Ownership"
+
+  ═══ CATEGORY 2: MORTGAGE / CHARGE ═══
+  Gujarati variants → English = "Mortgage Deed"
+  "ગીરો" | "ગીરો ખત" | "ગીરોખત" | "ગીરો/ગીરોખત" | "ગીરો/ખત"
+  "બોજો ખત" | "બોજ" | "ચાર્જ" | "Giro" | "Girokhit" | "Boja"
+  "Mortgage" | "Charge" | "Hypothecation" | "Pledge"
+
+  ═══ CATEGORY 3: RELEASE OF MORTGAGE ═══
+  Gujarati variants → English = "Release of Mortgage Deed"
+  "ગીરો મુક્તિ" | "ગીરો મુક્તિ પ્ત્ર" | "ગીરો મુક્ત" | "ગીરો-મુક્તિ"
+  "ગીરો મુક્તિ પ્ત્ર" | "Giro Mukti" | "Giro Mukeli"
+  "Release of Mortgage" | "Mortgage Satisfaction" | "Discharge of Mortgage"
+
+  ═══ CATEGORY 4: RELEASE OF MORTGAGE WITH OWNERSHIP RE-TRANSFER ═══
+  Gujarati variants → English = "Release of Mortgage Deed with Re-Transfer of Ownership"
+  "ગીરો મુક્તિ મિલ્કત ફેર માલ" | "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત"
+  "ગીરો મુક્ત ફેર ખત" | "ફેર માલ + ગીરો મુક્તિ"
+  Any entry where BOTH "ગીરો મુક્ત/Giro Mukti" AND "ફેર ખત/Ferkhat" appear together
+
+  ═══ CATEGORY 5: AGREEMENT TO SELL (WITH POSSESSION) ═══
+  Gujarati variants → English = "Agreement to Sale (with Possession)"
+  "બાનાખત" | "Banakhat" | "AoS" | "Agreement for Sale"
+  NOTE: Only when "કબ્જા વગર" / "Kabja Vagar" / "without possession" does NOT appear
+
+  ═══ CATEGORY 6: AGREEMENT TO SELL WITHOUT POSSESSION ═══
+  Gujarati variants → English = "Agreement to Sale WITHOUT Possession"
+  "બાનાખત કબ્જા વગર" | "Banakhat Kabja Vagar" | "AoS Without Possession"
+  "AoS (કબ્જા વગર)" | "Agreement Without Possession"
+  ⚠️ CRITICAL: This is NOT a Sale Deed — NEVER classify as Sale Deed
+
+  ═══ CATEGORY 7: GIFT DEED ═══
+  Gujarati variants → English = "Gift Deed"
+  "ભેટ ખત" | "ભૂષણ" | "ભેટ" | "Bhet Khat" | "Gift" | "Donation"
+
+  ═══ CATEGORY 8: LEASE DEED ═══
+  Gujarati variants → English = "Lease Deed"
+  "ભાડા પટ્ટો" | "ભાડા-પટ્ટો" | "Bhada Patto" | "Lease" | "Tenancy"
+
+  ═══ CATEGORY 9: PARTITION DEED ═══
+  Gujarati variants → English = "Partition Deed"
+  "ભાગ" | "વહેંચણી" | "ભાગ/વહેંચણી" | "Bhag" | "Vahenchai" | "Partition"
+  "Family Settlement" | "Division"
+
+  ═══ CATEGORY 10: POWER OF ATTORNEY (GENERAL) ═══
+  Gujarati variants → English = "Power of Attorney"
+  "સત્તા ખત" | "સત્તાનામુ" | "સત્તા-ખત" | "Satta Khat" | "POA"
+  "General Power of Attorney" | "GPA"
+
+  ═══ CATEGORY 11: POWER OF ATTORNEY UNDER SECTION 45-A ═══
+  Gujarati variants → English = "Power of Attorney under Section 45-A of the Registration Act"
+  "45-એ મુજબનું મુખત્યારનામું" | "45-A મુજબ મુખ્ત્યારનામું"
+  "45-A મુજબ" | "45A" | "Section 45-A POA" | "Registered POA 45-A"
+  "45-A Mukhtyarnamun" | "POA u/s 45-A"
+  ⚠️ NOTE: This is a Registered POA under Registration Act — different from General POA
+
+  ═══ CATEGORY 12: WILL / TESTAMENT ═══
+  Gujarati variants → English = "Will / Testament"
+  "ઇચ્છા પત્ર" | "Ichha Patr" | "Will" | "Testament" | "Vasiyatnama"
+
+  ═══ CATEGORY 13: DEVELOPMENT AGREEMENT ═══
+  Gujarati variants → English = "Development Agreement"
+  "ડેવલોપમેન્ટ" | "Development" | "વિકાસ કરાર" | "JDA" | "Builder Agreement"
+
+  ═══ CATEGORY 14: RECTIFICATION DEED ═══
+  Gujarati variants → English = "Rectification Deed"
+  "સુધારા ખત" | "ભૂલ સુધારો" | "Rectification" | "Correction Deed"
+
+  ═══ CATEGORY 15: COURT ATTACHMENT / LITIGATION ═══
+  Gujarati variants → English = "Court Attachment / Lis Pendens"
+  "જપ્તી" | "Court Order" | "Attachment" | "Stay Order" | "Lis Pendens"
+  "Collector Order" | "Revenue Recovery" | "સરકારી હક્ક"
+
+  ═══ CATEGORY 16: CANCELLATION DEED ═══
+  Gujarati variants → English = "Cancellation Deed"
+  "રદ ખત" | "Rad Khat" | "Cancellation" | "Revocation"
+
+  ═══ CATEGORY 17: ADOPTION DEED ═══
+  Gujarati variants → English = "Adoption Deed"
+  "દત્તક" | "Dattak" | "Adoption"
+
+  ═══ CATEGORY 18: DECLARATION DEED ═══
+  Gujarati variants → English = "Declaration Deed"
+  "ઘોષણા" | "Ghoshna" | "Declaration" | "Affidavit-cum-Declaration"
+
+  ═══ IF TYPE IS UNKNOWN / UNCLEAR ═══
+  STEP 1: Read the EXACT Gujarati/Hindi/English text in Col 1
+  STEP 2: Translate each word to English (e.g., "ખત" = Deed, "ભૂ" = Land, "ફેર" = Transfer)
+  STEP 3: Combine translated words to form English description
+  STEP 4: CONTEXT-BASED CLASSIFICATION — use Col 3 (Aapnar) and Col 4 (Lenar) to determine type:
+           IF Col 4 (Lenar) = Bank/NBFC/Financial Institution name → MORTGAGE DEED
+           IF Col 3 (Aapnar) = Bank/NBFC/Financial Institution name → RELEASE OF MORTGAGE DEED
+           IF Col 3 (Aapnar) = Government/Authority AND property description shows land → LEASE DEED or DEVELOPMENT AGREEMENT
+           IF both parties are individuals, no bank → SALE DEED / GIFT DEED / PARTITION DEED (check context)
+           IF parties include "Trust" / "Society" → likely GIFT DEED or DECLARATION
+           IF deed number matches a prior mortgage deed number → RELEASE DEED / MORTGAGE SATISFACTION
+  STEP 5: Output as ONE OF these standard English classifications:
+           Sale Deed | Mortgage Deed | Release of Mortgage Deed
+           Release of Mortgage Deed with Re-Transfer of Ownership
+           Agreement to Sell (with Possession) | Agreement to Sell (Without Possession)
+           Gift Deed | Lease Deed | Partition Deed
+           Power of Attorney | Power of Attorney (Section 45-A) | POA Cancellation
+           Will / Testament | Will Probate | Declaration Deed
+           Rectification / Correction Deed | Cancellation Deed
+           Development Agreement | Court Attachment / Lis Pendens | Court Order
+           Adoption Deed | Trust Deed
+           Other: [your English translation of the Gujarati text]
+  STEP 6: If STILL cannot determine → "Unknown Deed Type ([word-by-word English translation])"
+  NEVER leave the type in Gujarati script in the report — ALWAYS output English
 
   Col 2: Property Description (as per EC)
   Col 3: Executing Party "દસ્તાવેજ કરી આપનાર" (Dastavej Kari Aapnar) = SELLER / MORTGAGOR
