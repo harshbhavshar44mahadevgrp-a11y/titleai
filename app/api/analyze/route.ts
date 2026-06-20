@@ -3,7 +3,7 @@
 // 4-LAYER ARCHITECTURE × 16-PART REPORT
 // Based on Master System Prompt — All Rules Implemented
 // ================================================================
-export const maxDuration = 300
+export const maxDuration = 800
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -134,15 +134,12 @@ Col 3 (after skip): Relevant Survey/Block No. — SKIP if not subject property
 Col 4 (after skip / LAST): DO NOT CONSIDER — NEVER MENTION IN REPORT
 
 ═══════════════════════════════════════════════════════
-ENCUMBRANCE CERTIFICATE — STRICT EXTRACTION RULES:
+ENCUMBRANCE CERTIFICATE — STRICT COLUMN RULES:
 ═══════════════════════════════════════════════════════
-STEP 1 — Extract from E-Application Receipt (3 MANDATORY fields):
-  (a) EC APPLICATION NUMBER = "e-Application No." / "E-Arji Nambar" shown on E-Application Receipt
-      This is the unique EC reference number — MUST be extracted and mentioned in report.
-  (b) EC APPLICATION DATE = "Date of Print" / "Chhapavani Tarikh" on E-Application Receipt
-  (c) SEARCH PERIOD / DURATION = "From Date" to "To Date" of "શોધ અગર તપાસણી" (Duration of Search)
-      Example: "01/01/2010 to 11/06/2026"
-  ALL THREE ARE MANDATORY — mention all three in report.
+STEP 1 — Extract from E-Application Receipt:
+  (a) EC APPLICATION DATE = "Date of Print" on E-Application Receipt
+  (b) SEARCH PERIOD = "From Date" to "To Date" of "શોધ અગર તપાસણી" (Duration of Search)
+  These two are MANDATORY to mention in report.
 
 STEP 2 — Count ALL entries for subject property. NEVER miss any entry.
 
@@ -172,72 +169,50 @@ STEP 3 — For EACH entry read ALL columns carefully:
 
   Col 2: Property Description (as per EC)
   Col 3: Executing Party "દસ્તાવેજ કરી આપનાર" (Dastavej Kari Aapnar) = SELLER / MORTGAGOR
-         (the person who GIVES / EXECUTES the deed)
   Col 4: Claimant Party "દસ્તાવેજ કરી લેનાર" (Dastavej Kari Lenar) = BUYER / MORTGAGEE / BANK
-         (the person who TAKES / RECEIVES the deed)
   Col 5: Date of Registration of the deed
   Col 6 (Second Last): Registration Number / Dastavej Number of the deed
   Col 7 (LAST): NEVER READ — NEVER MENTION ANYWHERE IN REPORT — COMPLETELY IGNORE
   CRITICAL: NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer)
 
 STEP 4 — Verify EVERY entry relates to subject property (Unit No. + Block + Floor exact match)
-         If any entry is for a DIFFERENT property — SKIP that entry entirely.
 STEP 5 — For each mortgage entry: check if Release Deed / Giro Mukeli exists in documents or EC
 
-RULE 17 — MORTGAGE RELEASE VERIFICATION (CRITICAL — FROM OLD WORKING CODE):
+RULE 17 — MORTGAGE RELEASE VERIFICATION (CRITICAL):
 Before marking ANY mortgage as ACTIVE, ALWAYS check ALL of the following:
 1. Is there a "ગીરો મુક્તિ" / "Giro Mukeli" entry in EC AFTER the mortgage entry? → DISCHARGED
 2. Is there a "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" entry in EC? → DISCHARGED
-3. Is a Release of Mortgage Deed / Giro Mukeli Milkatnu Fer Maliki Ferkhat submitted as a document? → DISCHARGED
+3. Is a Release of Mortgage Deed / Giro Mukeli submitted as a document? → DISCHARGED
 4. Is an Index-II copy of Release Deed submitted? → DISCHARGED
 5. Is a NOC / No-Dues Certificate from the mortgagee bank submitted? → DISCHARGED
 
-GUJARATI RELEASE DEED — RECOGNITION (MANDATORY):
+GUJARATI RELEASE DEED — RECOGNITION:
 "ગીરો મુક્તિ" = Mortgage Released = DISCHARGED
 "ગીરો મુક્તિ પ્ત્ર" = Mortgage Release Letter = DISCHARGED
 "ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release + Ownership Transfer = DISCHARGED
 "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Full Release + Re-Transfer = DISCHARGED
 If ANY of the above appears in EC OR submitted documents → Mortgage = FULLY DISCHARGED
 
-EC RELEASE ENTRY LOGIC — HOW TO READ:
+EC RELEASE ENTRY LOGIC:
 If EC shows: Entry 2 = Mortgage (Owner → Bank) AND Entry 3 = Giro Mukeli (Bank → Owner)
 → Entry 3 DISCHARGES Entry 2 → Mortgage = DISCHARGED → NEVER report as active
-
-CORRECT REPORTING:
-Write: "The mortgage created vide Deed No. [X] stands DISCHARGED vide Release Deed / Giro Mukeli No. [Y] dated [DD/MM/YYYY]. No subsisting charge remains on the subject property."
 NEVER write "no release deed found" if Giro Mukeli entry exists in EC
-NEVER write "mortgage is active" if EC shows a subsequent Giro Mukeli entry
 
 RULE 4A — EC MULTIPLE ENTRIES — NEVER MISS SECOND OR SUBSEQUENT ENTRY (CRITICAL):
-Gujarat EC always shows ALL registered transactions for subject property — there may be MULTIPLE entries.
-MOST COMMON CRITICAL MISTAKE: Reading only FIRST entry (Sale Deed) and IGNORING SECOND entry (Mortgage/Charge).
-
 MANDATORY PROCESS — EVERY EC — NO EXCEPTIONS:
 1. COUNT total number of entries in EC for subject property — write down the exact count
-2. Read Entry 1 — usually Sale / Ownership Transfer (Maliki Feran/Vecho) — document completely
-3. Read Entry 2 onwards — may be Mortgage / Boja / Charge / Release — MUST read and extract every single one
-4. LEFT column "Aapnar" = Mortgagor / Seller | RIGHT column "Lenar" = Mortgagee / Bank / Buyer
-5. If RIGHT column (Lenar) shows ANY Bank name (Bank of India / Axis Bank / SBI / HDFC / ICICI etc.) = MORTGAGE ENTRY — MUST extract and report
-6. NEVER write "EC discloses no mortgage/charge" unless you have verified EVERY SINGLE EC entry
-7. NEVER write "no subsisting encumbrance" if any Mortgage / Boja / Charge entry exists without confirmed Release Deed
-
-CONCRETE EXAMPLE — TWO ENTRY EC (MUST FOLLOW THIS APPROACH):
-EC Entry 1: [Builder Name] → [Buyer Family] (Sale Deed No. 23388 dated 29-12-2018) — READ AND INCLUDE
-EC Entry 2: [Buyer Family] → [Bank of India] (Mortgage Deed No. 3858 dated 15-02-2022) — MUST READ AND REPORT
-WRONG APPROACH: "EC confirms one entry — Sale Deed — no mortgage found" (MISSED Entry 2 — CRITICAL ERROR)
-CORRECT APPROACH: "EC confirms two entries — (1) Sale Deed No. 23388 dated 29-12-2018 and (2) Mortgage Deed No. 3858 dated 15-02-2022 in favour of Bank of India — mortgage is active"
-
-SELF-CHECK BEFORE FINISHING EC EXTRACTION:
-→ Have I counted ALL entries in EC? 
-→ Have I read Entry 2 and beyond?
-→ Does any entry show a Bank in the right column (Lenar)?
-If ANY bank appears as Lenar = active mortgage = MUST extract fully.
+2. Read Entry 1 — usually Sale / Ownership Transfer — document completely
+3. Read Entry 2 onwards — may be Mortgage / Boja / Release — MUST read every single one
+4. LEFT column "Aapnar" = Seller/Mortgagor | RIGHT column "Lenar" = Buyer/Bank
+5. If RIGHT column shows ANY Bank name = MORTGAGE ENTRY — MUST extract and report
+6. NEVER write "EC discloses no mortgage" unless verified EVERY SINGLE EC entry
+7. NEVER write "no subsisting encumbrance" if Mortgage entry exists without confirmed Release
 
 CRITICAL EC APPLICANT RULE:
-The "Applicant" name on E-Application Receipt = person who applied to OBTAIN the EC (empanelled advocate / bank officer).
-This person has ZERO relation with the property and ZERO legal interest.
-NEVER reproduce EC Applicant name | NEVER mention in any report section | COMPLETELY IGNORE.
-Example: "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate who applied for EC = IGNORE completely.
+The "Applicant" field on the EC Form / E-Application Receipt = person who applied for EC.
+This is an empanelled advocate or bank officer with ZERO property interest.
+NEVER reproduce EC Applicant name | NEVER mention in report | COMPLETELY IGNORE.
+Example: "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate = IGNORE completely.
 
 ═══════════════════════════════════════════════════════
 REGULATORY APPROVALS — CHECK AND REPORT EACH:
@@ -319,29 +294,20 @@ EC APPLICATION DETAILS — Extract from E-Application Receipt:
   (c) SEARCH PERIOD = "From Date" to "To Date" of "શોધ અગર તપાસણી"
 
 EC ENTRY READING — FOR EVERY SINGLE ENTRY IN EC TABLE:
-EC has 7 columns — read each column carefully:
-  Col 1 (LEFTMOST): Type of Deed — ALWAYS IN GUJARATI — TRANSLATE TO ENGLISH using this table:
-    "માલિકી ફેરખત" OR "માલિકી ફેર ખત" OR "વેચાણ" = Sale Deed / Ownership Transfer
-    "ગીરો ખત" OR "ગીરોખત" OR "ગીરો" = Mortgage Deed
-    "ગીરો મુક્તિ" OR "ગીરો મુક્તિ પ્ત્ર" = Release of Mortgage Deed
+EC has 7 columns:
+  Col 1 (LEFTMOST): Type of Deed — ALWAYS TRANSLATE GUJARATI TO ENGLISH:
+    "માલિકી ફેરખત" / "વેચાણ" = Sale Deed
+    "ગીરો ખત" / "ગીરોખત" = Mortgage Deed
+    "ગીરો મુક્તિ" / "ગીરો મુક્તિ પ્ત્ર" = Release of Mortgage Deed
     "ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release of Mortgage & Transfer of Ownership
-    "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Release of Mortgage Deed with Re-Transfer of Ownership
-    "બાનાખત" = Agreement to Sale (with Possession)
-    "બાનાખત કબ્જા વગર" = Agreement to Sale WITHOUT Possession (NOT a Sale Deed)
-    "ભેટ ખત" OR "ભૂષણ" = Gift Deed
-    "ભાડા પટ્ટો" = Lease Deed
-    "ભાગ" OR "વહેંચણી" = Partition Deed
-    "સ્થાવર મિલ્કત ખત" = Immovable Property Deed
-    "સત્તા ખત" OR "સત્તાનામુ" = Power of Attorney
-    "45-એ મુજબનું મુખત્યારનામું" OR "45-A મુજબ" = Power of Attorney under Section 45-A
-    "ઇચ્છા પત્ર" = Will / Testament
-    "ઘોષણા" = Declaration Deed
-    "ખત" = Deed (check context for exact type)
-  Col 2: Property Description (as mentioned in EC)
-  Col 3: "દસ્તાવેજ કરી આપનાર" (Aapnar) = SELLER / MORTGAGOR — person who GIVES the deed
-  Col 4: "દસ્તાવેજ કરી લેનાર" (Lenar) = BUYER / MORTGAGEE / BANK — person who TAKES the deed
-  Col 5: Date of Registration of deed
-  Col 6 (Second Last): Registration / Dastavej Number
+    "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Release of Mortgage with Re-Transfer of Ownership
+    "બાનાખત" = Agreement to Sale | "બાનાખત કબ્જા વગર" = AoS WITHOUT Possession
+    "ભેટ ખત" = Gift Deed | "ભાડા પટ્ટો" = Lease Deed | "ભાગ"/"વહેંચણી" = Partition
+    "સત્તા ખત"/"સત્તાનામુ" = Power of Attorney
+    "45-એ મુજબનું મુખત્યારનામું" = Power of Attorney under Section 45-A
+    "ઘોષણા" = Declaration | "ઇચ્છા પત્ર" = Will
+  Col 2: Property Description | Col 3: Aapnar (Seller/Mortgagor) | Col 4: Lenar (Buyer/Bank)
+  Col 5: Date of Registration | Col 6: Registration/Dastavej Number
   Col 7 (LAST): COMPLETELY IGNORE — NEVER MENTION IN REPORT
 
 CRITICAL: NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer)
@@ -350,21 +316,19 @@ EC Applicant = empanelled advocate = COMPLETELY IGNORE — ZERO property interes
 EC-confirmed deeds (copy not submitted) = include in chain naturally — NEVER flag as missing
 
 MANDATORY EC PROCESS — NEVER SKIP — EVERY CASE:
-1. COUNT total entries in EC for subject property — this number goes in META as EC_TOTAL_ENTRIES
+1. COUNT total entries in EC for subject property — write in META as EC_TOTAL_ENTRIES
 2. Read EVERY entry from oldest to newest — NEVER stop at Entry 1
-3. For EVERY entry: identify Col 1 type (translate Gujarati→English), Col 3 Aapnar, Col 4 Lenar, Col 5 date, Col 6 deed number
-4. If Col 4 (Lenar) shows ANY Bank name = MORTGAGE ENTRY — identify bank name, deed number, date
-5. IMMEDIATELY CHECK: Is there a LATER EC entry of type "ગીરો મુક્તિ" / Giro Mukeli / Release for this mortgage?
+3. For EVERY entry: identify type (Gujarati→English), Col 3 Aapnar, Col 4 Lenar, Col 5 date, Col 6 deed no.
+4. If Col 4 (Lenar) shows ANY Bank name = MORTGAGE ENTRY — identify bank, deed no., date
+5. IMMEDIATELY CHECK: Is there a LATER EC entry of type "ગીરો મુક્તિ"/Giro Mukeli/Release?
    → If YES = Mortgage DISCHARGED → Status = "Discharged vide Release Deed No.[X] dated [DD/MM/YYYY]"
    → If NO = Mortgage ACTIVE → flag as active encumbrance
 6. NEVER write "mortgage active" if a Giro Mukeli / Release entry exists ANYWHERE in EC
-7. Self-check: count entries you documented = must equal EC_TOTAL_ENTRIES in META
+7. Self-check: count entries documented = must equal EC_TOTAL_ENTRIES value
 
-RELEASE DEED IN EC — HOW TO READ (CRITICAL):
-"ગીરો મુક્તિ" entry = the PREVIOUS mortgage IS NOW DISCHARGED — always pair with prior mortgage
-"ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = mortgage released + ownership re-transferred = DISCHARGED
-In release entry: Col 3 (Aapnar) = BANK releasing the mortgage | Col 4 (Lenar) = OWNER getting property back
-This is OPPOSITE of mortgage entry — which is: Owner → Bank. Release is: Bank → Owner. Both are CORRECT.
+RELEASE DEED IN EC — HOW TO READ:
+"ગીરો મુક્તિ" entry = the PREVIOUS mortgage IS NOW DISCHARGED — pair with prior mortgage
+In release entry: Col 3 (Aapnar) = BANK releasing | Col 4 (Lenar) = OWNER getting back (OPPOSITE of mortgage — CORRECT)
 
 FERFAR: Skip first column. Col1=Entry No+Date+Status | Col2=Nature | Col3=Survey(if relevant) | Col4(Last)=IGNORE
 
@@ -679,55 +643,28 @@ const L4B = `You are the Legal Report Generator — Layer 4. Generate HTML for P
 ═══ PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY ═══
 <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 
-CRITICAL RULE — TRACE FROM THE VERY BEGINNING:
-Start from the EARLIEST available record in ALL submitted documents + FERFAR + EC.
-This means going back to:
-- The original agricultural landowner/s (from 7/12 and FERFAR oldest entries)
-- OR the original government allotment/scheme creation
-- OR the original revenue survey owner/s
-- Whichever is the EARLIEST traceable event
-DO NOT start from the builder or the recent sale deed. Go to the ORIGIN of the title.
-
-COMPLETE CHRONOLOGICAL SEQUENCE — MUST COVER ALL:
-1. ORIGINAL AGRICULTURAL / SURVEY LAND OWNERSHIP (from earliest FERFAR entry or 7/12)
-2. NON-AGRICULTURAL CONVERSION (NA Order — if available from FERFAR/documents)
-3. DEVELOPMENT AGREEMENT / TP SCHEME / GOVERNMENT ACQUISITION (if applicable)
-4. BUILDER / DEVELOPER ACQUISITION of the land/scheme
-5. CONSTRUCTION / SCHEME DEVELOPMENT
-6. INDIVIDUAL UNIT CREATION and allotment to current/earlier owners
-7. ALL SUBSEQUENT TRANSFERS (Sale Deeds, Gift Deeds, etc.) in chronological order
-8. ALL MORTGAGE CREATIONS and RELEASES in chronological order
-9. CURRENT STATUS as confirmed by EC
-
 RULES:
-1. OLDEST event FIRST — NEWEST LAST — always strictly chronological
-2. FIRST paragraph: NO "Thereafter" — begin with the absolute earliest traceable event
+1. Oldest to newest — always
+2. FIRST paragraph: NO "Thereafter" — begin with earliest title holder
 3. EVERY subsequent paragraph: MUST start with "Thereafter,"
-4. NEVER "and others" — every person individually — always
+4. NEVER "and others" — every person individually
 5. EC-confirmed deeds (copy not submitted): include naturally — no remark, no flag
 6. End each transfer paragraph: mention Mutation Entry No. + date if available
 7. For Builder Purchase: last paragraph = Draft Sale Deed/Banakhat/Allotment between Builder and purchaser
 8. Mortgage entries: separate paragraph with discharge status
 9. Translate ALL Gujarati terms to English
-10. If earliest record not traceable: state "The history of the subject land prior to [earliest available date] could not be traced from the documents produced. The earliest available record is as under:"
 
-FIRST PARAGRAPH — EARLIEST ORIGIN:
-<p>As per the revenue records produced, the subject land bearing [Survey/Block No.], Village [Name], Taluka [Name], District [Name] was originally held by [Original Landowner full name/s] as [tenure type — e.g. agricultural/occupancy holder] as evidenced by [Village Form 7/12 / earliest Ferfar entry / earliest available record]. [Any relevant details about original holding.] Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY] [— OR — as per the earliest available revenue record].</p>
+FIRST PARAGRAPH FORMAT:
+<p>[Earliest holder name/s] [acquired/held] the subject property [how acquired — original allotment / agricultural landowner / government allotment etc.]. [Deed type, No., Date if applicable. Amount if known.] Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
 
-NA CONVERSION PARAGRAPH (if applicable):
-<p>Thereafter, the aforesaid land was converted from agricultural to non-agricultural use vide [NA Order No., if available] dated [Date] issued by [Authority]. Entry to that effect was recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
-
-BUILDER/DEVELOPER ACQUISITION PARAGRAPH:
-<p>Thereafter, [Builder/Developer full name] acquired the subject land / scheme through [Development Agreement / Purchase / Government Allotment] vide [Deed Type] No. [X] dated [DD/MM/YYYY]. [Brief details.] Entry recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
-
-INDIVIDUAL UNIT TRANSFER PARAGRAPH:
-<p>Thereafter, [Seller full name/s] transferred the subject property being [Unit/Flat/Shop No.] to [Buyer full name/s] vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO Name] for a consideration of Rs. [Amount]. Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+SUBSEQUENT PARAGRAPHS:
+<p>Thereafter, [Seller full name/s] transferred the subject property to [Buyer full name/s] vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO Name] for a consideration of Rs. [Amount]. Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
 
 MORTGAGE PARAGRAPH:
 <p>Thereafter, [Mortgagor full name/s] created a mortgage over the subject property in favour of [Bank/Mortgagee full name] vide Registered Mortgage Deed bearing Registration No. [X] dated [DD/MM/YYYY] registered at SRO [Name]. [The said mortgage stands discharged vide Registered Release Deed No. [X] dated [DD/MM/YYYY] / The said mortgage is subsisting and active as on the date of this report — no Release Deed produced.]</p>
 
-FINAL CURRENT STATUS PARAGRAPH:
-<p>Thereafter, [Current Owner full name/s] holds the right, title and interest in the subject property as the present registered owner/s as confirmed by the Encumbrance Certificate bearing E-Application No. [EC App Number] dated [EC Date] covering search period from [From] to [To] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [Encumbrance status — no subsisting charge / subject to existing charge of {Bank}.]</p>
+FINAL PARAGRAPH:
+<p>Thereafter, [Current Owner full name/s] holds the right, title and interest in the subject property as the present registered owner/s as confirmed by the Encumbrance Certificate dated [EC Date] covering search period from [From] to [To] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [Encumbrance status — no subsisting charge / subject to existing charge of {Bank}.]</p>
 
 ═══ PART V — REVENUE RECORD ANALYSIS ═══
 <hr><div class="ph">PART V — REVENUE RECORD ANALYSIS</div>
@@ -768,7 +705,7 @@ For each 7/12 / Village Form / Property Card submitted:
 ═══ PART VII — ENCUMBRANCE ANALYSIS ═══
 <hr><div class="ph">PART VII — ENCUMBRANCE ANALYSIS</div>
 
-<p>Encumbrance Certificate (EC) obtained bearing E-Application No. [EC Application Number] dated [EC Date] for search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [TOTAL COUNT] registered transaction/s for the subject property as under:</p>
+<p>Encumbrance Certificate (EC) obtained bearing Application Date [EC Date] for search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [TOTAL COUNT] registered transaction/s for the subject property as under:</p>
 
 <table class="ec-tbl">
   <tr>
@@ -1055,7 +992,7 @@ EXTRACTION PRIORITIES:
 
     const l1Msg = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 6000,
+      max_tokens: 4000,
       system: LAYER1_SYSTEM,
       messages: [{ role: 'user', content: l1Content }]
     })
@@ -1064,7 +1001,7 @@ EXTRACTION PRIORITIES:
     // ── LAYER 2+3: SONNET — TITLE + RISK ANALYSIS ─────────────
     const l23Msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
+      max_tokens: 6000,
       system: getLayer23(caseType),
       messages: [{
         role: 'user',
@@ -1087,17 +1024,17 @@ FILL META BLOCK COMPLETELY:
 3. EC_DATE = exact EC application/print date
 4. EC_SEARCH_PERIOD = exact from-to search period
 5. EC_TOTAL_ENTRIES = total count of ALL entries in EC for subject property
-6. RISK_SCORE = sum of all applicable weighted scores (be precise, not generic)
-7. CONFIDENCE = based on how many independent records support ownership claim
+6. RISK_SCORE = sum of all applicable weighted scores (be precise)
+7. CONFIDENCE = based on independent records supporting ownership claim
 8. All names individually — NEVER "and others"
 
 EC EXTRACTION — MANDATORY — SONNET MUST DO THIS:
 Read EVERY EC entry from the extracted facts. For EACH entry:
-Step 1: Count total entries — write number in EC_TOTAL_ENTRIES
-Step 2: For each entry — identify Type (Col 1, translate Gujarati→English) | Deed No (Col 6) | Date (Col 5) | Aapnar/Seller (Col 3) | Lenar/Buyer or Bank (Col 4)
-Step 3: If ANY entry's Col 4 (Lenar) shows a Bank name = MORTGAGE — extract bank name + deed no + date + active/discharged status
+Step 1: Count total entries → write in EC_TOTAL_ENTRIES
+Step 2: Type (Col 1 translate Gujarati→English) | Deed No (Col 6) | Date (Col 5) | Aapnar/Seller (Col 3) | Lenar/Buyer or Bank (Col 4)
+Step 3: If Col 4 (Lenar) = Bank name → MORTGAGE → check if later Giro Mukeli entry exists → YES=DISCHARGED, NO=ACTIVE
 Step 4: NEVER say "no mortgage" without reading ALL entries
-Self-check: entries documented = EC_TOTAL_ENTRIES value`
+Col 7 of EC = IGNORE | EC Applicant name = IGNORE`
       }]
     })
     const analysis = l23Msg.content[0].type === 'text' ? l23Msg.content[0].text : ''
@@ -1135,7 +1072,7 @@ CRITICAL PART III RULE: List ALL submitted documents (even illegible/blank ones)
 
       // Part IV + V + VI + VII
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 5000, system: L4B,
+        model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4B,
         messages: [{
           role: 'user',
           content: `Generate Part IV (Title Chain) + Part V (Revenue Records) + Part VI (Mutation Entries) + Part VII (EC Analysis).
@@ -1153,16 +1090,16 @@ ANALYSIS FROM LAYERS 1-3:
 ${analysis}
 
 CRITICAL RULES:
-- Part IV: Start from EARLIEST available record. First para NO "Thereafter". Every subsequent MUST start "Thereafter,". EC-confirmed deeds naturally in chain. Final para must include EC Application No. + date + search period.
+- Part IV: Start from EARLIEST available record (original agricultural landowner from 7/12/FERFAR). First para NO "Thereafter". Every subsequent MUST start "Thereafter,". Final para includes EC Application No. + date + search period.
 - Part VI: Use table format for mutation entries. Col4(Last) of FERFAR = IGNORE.
-- Part VII: Use table format for ALL EC entries. Show E-Application No. + date + search period at top. For each entry: translate Gujarati deed type to English. Col 7 = NEVER mention. EC Applicant = IGNORE.
+- Part VII: Table for ALL EC entries. E-Application No. + date + search period at top. Gujarati type → English. Col 7 = NEVER mention. EC Applicant = IGNORE. Giro Mukeli entry = DISCHARGED status.
 - Santosh Tansukh Thakrar = EC Applicant = COMPLETELY IGNORE.`
         }]
       }),
 
       // Part VIII + IX + X + XI + XII
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 5000, system: L4C,
+        model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4C,
         messages: [{
           role: 'user',
           content: `Generate Part VIII (Approvals) + Part IX (Issues) + Part X (Deficiency) + Part XI (Mortgageability) + Part XII (Risk).
