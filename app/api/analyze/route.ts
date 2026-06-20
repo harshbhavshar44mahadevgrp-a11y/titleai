@@ -200,13 +200,32 @@ NEVER write "no release deed found" if Giro Mukeli entry exists in EC
 
 RULE 4A — EC MULTIPLE ENTRIES — NEVER MISS SECOND OR SUBSEQUENT ENTRY (CRITICAL):
 MANDATORY PROCESS — EVERY EC — NO EXCEPTIONS:
-1. COUNT total number of entries in EC for subject property — write down the exact count
-2. Read Entry 1 — usually Sale / Ownership Transfer — document completely
-3. Read Entry 2 onwards — may be Mortgage / Boja / Release — MUST read every single one
-4. LEFT column "Aapnar" = Seller/Mortgagor | RIGHT column "Lenar" = Buyer/Bank
-5. If RIGHT column shows ANY Bank name = MORTGAGE ENTRY — MUST extract and report
-6. NEVER write "EC discloses no mortgage" unless verified EVERY SINGLE EC entry
+
+⚠️ WARNING — NEVER TRUST THE EC HEADER COUNT:
+EC header often says "X (Number) registered transaction/s" — THIS COUNT IS OFTEN WRONG.
+You MUST COUNT THE ACTUAL ROWS in the EC table yourself — DO NOT rely on the header number.
+Example: Header says "1 (One) registered transaction" but EC table may actually have 2, 3, or more rows.
+ALWAYS read EVERY ACTUAL ROW in the table — ignore what the header says.
+
+1. SCAN THE ENTIRE EC TABLE row by row — do not stop at Row 1 even if header says "1 transaction"
+2. Read EVERY ROW: Left=Aapnar (Seller/Mortgagor) | Right=Lenar (Buyer/Bank)
+3. If Lenar column shows ANY Bank name = MORTGAGE ENTRY — extract and report
+4. After finding a MORTGAGE entry — CONTINUE reading ALL REMAINING ROWS for ગીરો મુક્તિ / Release
+5. If Lenar column shows "45-A" / Power of Attorney entry — extract and include
+6. NEVER write "no release found" unless you read EVERY SINGLE ROW AFTER the mortgage entry
 7. NEVER write "no subsisting encumbrance" if Mortgage entry exists without confirmed Release
+
+CONCRETE EXAMPLE — EC HEADER SAYS "1" BUT HAS 2 ROWS:
+Header text: "The EC discloses 1 (One) registered transaction" ← IGNORE THIS - READ ALL ROWS ANYWAY
+Row 1 in Table: Mortgage Deed — Deed No. 11290 dated 22/04/2025 — Aapnar: ARPAN DEVELOPERS — Lenar: BAJAJ HOUSING FINANCE ← READ
+Row 2 in Table: ગીરો મુક્તિ (Release) — Deed No. XXXXX dated DD/MM/YYYY — Aapnar: BAJAJ HOUSING FINANCE — Lenar: OWNER ← ALSO READ — THIS DISCHARGES ROW 1
+WRONG: "EC has 1 entry — mortgage active — no release" (MISSED Row 2 — CRITICAL ERROR)
+CORRECT: "EC actually has 2 rows — Row 1 = Mortgage, Row 2 = Giro Mukeli = mortgage DISCHARGED"
+
+SELF-CHECK:
+→ Did I read ALL ACTUAL ROWS in EC table (NOT just the header count)?
+→ Does any row show ગીરો મુક્તિ / Giro Mukeli after a mortgage? → DISCHARGED
+→ Does any row show "45-એ મુજબનું મુખત્યારનામું" = Power of Attorney under Section 45-A? → include
 
 CRITICAL EC APPLICANT RULE:
 The "Applicant" field on the EC Form / E-Application Receipt = person who applied for EC.
@@ -316,15 +335,18 @@ EC Applicant = empanelled advocate = COMPLETELY IGNORE — ZERO property interes
 EC-confirmed deeds (copy not submitted) = include in chain naturally — NEVER flag as missing
 
 MANDATORY EC PROCESS — NEVER SKIP — EVERY CASE:
-1. COUNT total entries in EC for subject property — write in META as EC_TOTAL_ENTRIES
-2. Read EVERY entry from oldest to newest — NEVER stop at Entry 1
-3. For EVERY entry: identify type (Gujarati→English), Col 3 Aapnar, Col 4 Lenar, Col 5 date, Col 6 deed no.
-4. If Col 4 (Lenar) shows ANY Bank name = MORTGAGE ENTRY — identify bank, deed no., date
-5. IMMEDIATELY CHECK: Is there a LATER EC entry of type "ગીરો મુક્તિ"/Giro Mukeli/Release?
-   → If YES = Mortgage DISCHARGED → Status = "Discharged vide Release Deed No.[X] dated [DD/MM/YYYY]"
-   → If NO = Mortgage ACTIVE → flag as active encumbrance
-6. NEVER write "mortgage active" if a Giro Mukeli / Release entry exists ANYWHERE in EC
-7. Self-check: count entries documented = must equal EC_TOTAL_ENTRIES value
+⚠️ DO NOT TRUST EC HEADER COUNT: The text "EC discloses X (Number) registered transaction/s" is often WRONG.
+You MUST read EVERY ACTUAL ROW in the EC table — the header count is unreliable.
+
+1. READ every row in the EC table — Row 1, Row 2, Row 3... until no more rows exist
+2. For every row: Col 1 type (Gujarati→English) | Col 3 Aapnar | Col 4 Lenar | Col 5 date | Col 6 deed no.
+3. If Col 4 (Lenar) = Bank name → MORTGAGE found → continue reading ALL remaining rows for release
+4. IMMEDIATELY after finding mortgage: check ALL subsequent rows for ગીરો મુક્તિ / Giro Mukeli
+   → If release row found = Mortgage DISCHARGED → "Discharged vide Release Deed No.[X] dated [DD/MM/YYYY]"
+   → If NO release row = Mortgage ACTIVE → flag as active encumbrance
+5. If any row shows "45-A" / Power of Attorney → translate and include as EC entry
+6. EC_TOTAL_ENTRIES = number of ACTUAL ROWS you found (not the header count)
+7. NEVER say "mortgage active" if Giro Mukeli row exists anywhere in EC table after the mortgage
 
 RELEASE DEED IN EC — HOW TO READ:
 "ગીરો મુક્તિ" entry = the PREVIOUS mortgage IS NOW DISCHARGED — pair with prior mortgage
@@ -1029,12 +1051,14 @@ FILL META BLOCK COMPLETELY:
 8. All names individually — NEVER "and others"
 
 EC EXTRACTION — MANDATORY — SONNET MUST DO THIS:
-Read EVERY EC entry from the extracted facts. For EACH entry:
-Step 1: Count total entries → write in EC_TOTAL_ENTRIES
-Step 2: Type (Col 1 translate Gujarati→English) | Deed No (Col 6) | Date (Col 5) | Aapnar/Seller (Col 3) | Lenar/Buyer or Bank (Col 4)
-Step 3: If Col 4 (Lenar) = Bank name → MORTGAGE → check if later Giro Mukeli entry exists → YES=DISCHARGED, NO=ACTIVE
-Step 4: NEVER say "no mortgage" without reading ALL entries
-Col 7 of EC = IGNORE | EC Applicant name = IGNORE`
+⚠️ IGNORE EC HEADER COUNT: "EC discloses X transactions" is UNRELIABLE. Read ALL actual table rows.
+Read EVERY actual ROW in EC table from the extracted facts:
+Step 1: Count ACTUAL ROWS yourself (not header count) → write in EC_TOTAL_ENTRIES
+Step 2: For each row: Type (Col 1 Gujarati→English) | Deed No (Col 6) | Date (Col 5) | Aapnar (Col 3) | Lenar (Col 4)
+Step 3: If Col 4 (Lenar) = Bank name → MORTGAGE → IMMEDIATELY scan ALL remaining rows for ગીરો મુક્તિ / Release → YES=DISCHARGED, NO=ACTIVE
+Step 4: If any row = "45-A" Power of Attorney → translate as "Power of Attorney under Section 45-A" and include
+Step 5: NEVER say "no mortgage/no release" without reading every actual row
+Col 7 = IGNORE | EC Applicant name = IGNORE`
       }]
     })
     const analysis = l23Msg.content[0].type === 'text' ? l23Msg.content[0].text : ''
