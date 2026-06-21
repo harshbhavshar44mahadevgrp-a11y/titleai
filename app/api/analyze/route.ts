@@ -1,7 +1,8 @@
 ﻿// ================================================================
-// TITLEMATRIXAI — /api/analyze/route.ts  v9.0 DEFINITIVE
-// 4-LAYER ARCHITECTURE × 16-PART REPORT
-// Based on Master System Prompt — All Rules Implemented
+// TITLEMATRIXAI — /api/analyze/route.ts
+// MANUAL-COMPLIANT VERSION — 11-PART REPORT
+// Based on: Master System Prompt Manual (1__Manual.docx)
+// 4-Layer Architecture: L1=Extraction L2=Title L3=Risk L4=Report
 // ================================================================
 export const maxDuration = 800
 export const dynamic = 'force-dynamic'
@@ -19,14 +20,14 @@ const supabaseAdmin =
 
 function extractVerdict(text: string): string {
   const u = text.toUpperCase()
-  if (u.includes('TITLE NOT RECOMMENDED') || u.includes('NOT CLEAR') || u.includes('TITLE BREAK')) return 'NOT CLEAR'
+  if (u.includes('NOT CLEAR') || u.includes('TITLE BREAK') || u.includes('TITLE NOT RECOMMENDED')) return 'NOT CLEAR'
   if (u.includes('CLEAR TITLE SUBJECT TO') || u.includes('CLEAR SUBJECT TO') || u.includes('CONDITIONALLY MORTGAGEABLE')) return 'CLEAR SUBJECT TO'
   if (u.includes('CLEAR AND MARKETABLE') || u.includes('MORTGAGEABLE')) return 'CLEAR'
   return 'PENDING'
 }
 
 // ================================================================
-// CSS — PROFESSIONAL LEGAL REPORT STYLE
+// REPORT CSS
 // ================================================================
 const REPORT_CSS = `
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -54,7 +55,6 @@ p { margin-bottom:10px; text-align:justify; }
 .sl { display:inline-block; background:#1d4ed8; color:#fff; font-size:10px; font-weight:bold; padding:2px 10px; margin-bottom:6px; border-radius:2px; }
 .it { font-weight:bold; font-size:13px; margin-bottom:6px; }
 .sg { font-weight:bold; font-style:italic; color:#1B3A6B; }
-.pph { font-weight:bold; font-size:12px; text-transform:uppercase; margin:14px 0 6px; border-bottom:1px solid #ccc; padding-bottom:3px; color:#1B3A6B; }
 ol { padding-left:22px; margin-bottom:10px; }
 ol li { margin-bottom:5px; }
 table.ec-tbl { width:100%; border-collapse:collapse; margin:10px 0; font-size:12px; }
@@ -65,20 +65,13 @@ table.mut-tbl { width:100%; border-collapse:collapse; margin:10px 0; font-size:1
 table.mut-tbl th { background:#374151; color:#fff; padding:5px 8px; text-align:left; font-size:11px; }
 table.mut-tbl td { border:1px solid #e5e7eb; padding:5px 8px; vertical-align:top; }
 table.mut-tbl tr:nth-child(even) { background:#f9fafb; }
-.risk-box { margin-top:16px; padding:16px 20px; border:2px solid #1B3A6B; border-radius:3px; background:#EFF3FB; }
-.risk-title { font-size:12px; font-weight:bold; text-transform:uppercase; color:#1B3A6B; margin-bottom:10px; letter-spacing:0.5px; }
-.risk-score { font-size:28px; font-weight:bold; }
-.risk-low { color:#15803d; }
-.risk-mod { color:#b45309; }
-.risk-high { color:#dc2626; }
-.morta-box { margin-top:12px; padding:14px 18px; border:1px solid #1B3A6B; border-radius:2px; background:#f0f7ff; }
 .vnc { margin-top:20px; padding:14px 18px; border:2px solid #b91c1c; background:#fff5f5; border-radius:2px; }
 .vc  { margin-top:20px; padding:14px 18px; border:2px solid #15803d; background:#f0fdf4; border-radius:2px; }
 .vs  { margin-top:20px; padding:14px 18px; border:2px solid #b45309; background:#fffbeb; border-radius:2px; }
 .vt  { font-size:13px; font-weight:bold; text-transform:uppercase; margin-bottom:6px; letter-spacing:0.5px; }
-.title-status { margin-top:22px; padding:18px 22px; border:3px solid #1B3A6B; background:#EFF3FB; border-radius:2px; }
-.ts-title { font-size:11px; font-weight:bold; color:#1B3A6B; letter-spacing:1px; margin-bottom:8px; text-transform:uppercase; }
-.ts-value { font-size:16px; font-weight:bold; color:#1B3A6B; }
+.final-rec { margin-top:22px; padding:18px 22px; border:3px solid #1B3A6B; background:#EFF3FB; border-radius:2px; }
+.fr-title { font-size:11px; font-weight:bold; color:#1B3A6B; letter-spacing:1px; margin-bottom:8px; text-transform:uppercase; }
+.fr-value { font-size:16px; font-weight:bold; color:#1B3A6B; }
 .sigrow { margin-top:50px; display:flex; justify-content:space-between; align-items:flex-end; }
 .sigbox { text-align:center; }
 .sigline { width:200px; border-bottom:1px solid #1a1a1a; margin:0 auto 6px; height:40px; }
@@ -89,18 +82,17 @@ table.mut-tbl tr:nth-child(even) { background:#f9fafb; }
 `
 
 // ================================================================
-// LAYER 1 — HAIKU — DOCUMENT EXTRACTION ENGINE (Prompt 2)
+// LAYER 1 — HAIKU — DOCUMENT EXTRACTION ENGINE (Prompt 2 from Manual)
 // ================================================================
-const LAYER1_SYSTEM = `You are the Document Extraction Engine — Layer 1 of a 4-Layer AI Title Verification System for Banks and NBFCs.
+const LAYER1_SYSTEM = `You are the Document Extraction Engine — Layer 1.
+Your task per the Master System Prompt Manual: Extract ALL facts from submitted documents. Do NOT generate legal opinion.
 
-YOUR ONLY TASK: Extract ALL facts from submitted documents. Do NOT generate legal opinion.
-
-NON-NEGOTIABLE:
-• NEVER assume facts | NEVER create facts | NEVER infer ownership without documents
-• NEVER suppress adverse findings
+NON-NEGOTIABLE (from Manual):
+• Never assume facts | Never create facts | Never infer ownership without documents
+• Never suppress adverse findings
 • Unavailable info = "NOT PROVIDED FOR VERIFICATION."
 
-CONFIDENCE LEVELS (assign to each fact):
+CONFIDENCE LEVELS:
 HIGH = Supported by registered document + government record + EC + revenue records (all 4)
 MEDIUM = Supported by at least two independent records
 LOW = Supported by one document only
@@ -117,501 +109,358 @@ DOCUMENT INVENTORY — FOR EACH DOCUMENT EXTRACT:
 6. Property Description
 7. Survey/Block Number
 8. Village | Taluka | District | Area | Boundaries
-Classify: Available | Missing | Incomplete | Illegible
+Classify each as: Available | Missing
 
-PROPERTY DESCRIPTION — MANDATORY PARAGRAPH FORMAT:
-Extract property details and format exactly as:
+PROPERTY DESCRIPTION — MANDATORY PARAGRAPH FORMAT (Exact format from Manual):
 "Opinion on title and search in respect of immovable property bearing [Flat/Unit/Shop/Plot/Sub-Plot/Office] No. [Unit No.] on [Floor] Floor having Carpet Area admeasuring [Carpet Area] Sq. Mtrs., along with Balcony area admeasuring [Balcony Area] Sq. Mtrs. and Wash area admeasuring [Wash Area] Sq. Mtrs. together with undivided proportionate share area admeasuring [UDS Area] Sq. Mtrs. in the scheme known as '[Scheme Name]' constructed over Non-Agricultural land bearing Final Plot No. [FP No.] of T.P. Scheme No. [TP No.] allotted in lieu of Revenue/Block/Survey/City Survey No. [Survey No.], situate lying and being at Mouje: [Village], Taluka: [Taluka], District [District]."
-If any field is not available from documents, write "NOT PROVIDED FOR VERIFICATION" for that field only.
+If any field unavailable write "NOT PROVIDED FOR VERIFICATION" for that field only.
 
 ═══════════════════════════════════════════════════════
-FERFAR / MUTATION ENTRIES — STRICT COLUMN RULES:
+MUTATION ENTRIES — COLUMN RULES (Prompt 4 from Manual):
 ═══════════════════════════════════════════════════════
-SKIP first column "Entry Details" — DO NOT READ IT.
-Col 1 (after skip): Entry No. + Date of Entry + Certified/Rejected status
-Col 2 (after skip): Nature — NA conversion | Death of owner | Transfer | Partition | Court order
-Col 3 (after skip): Relevant Survey/Block No. — SKIP if not subject property
+Extract for each Mutation Entry:
+• Entry Number | Entry Date | Nature of Entry | Certified Status | Relevant Survey Number | Remarks
+Ignore irrelevant columns.
+Skip first column "Entry Details" — DO NOT READ.
+Col 1 (after skip): Entry No + Date + Certified/Rejected
+Col 2 (after skip): Nature — NA / Death / Transfer / Partition / Court order
+Col 3 (after skip): Relevant Survey/Block No — SKIP if not subject property
 Col 4 (after skip / LAST): DO NOT CONSIDER — NEVER MENTION IN REPORT
 
 ═══════════════════════════════════════════════════════
-ENCUMBRANCE CERTIFICATE — STRICT COLUMN RULES:
+ENCUMBRANCE CERTIFICATE — MANUAL-SPECIFIED EXTRACTION (Prompt 4):
 ═══════════════════════════════════════════════════════
-STEP 1 — Extract from E-Application Receipt:
-  (a) EC APPLICATION DATE = "Date of Print" on E-Application Receipt
-  (b) SEARCH PERIOD = "From Date" to "To Date" of "શોધ અગર તપાસણી" (Duration of Search)
-  These two are MANDATORY to mention in report.
+STEP 1 — From E-Application Receipt extract:
+  (a) EC APPLICATION NUMBER = "e-Application No." — the unique EC reference number
+  (b) EC APPLICATION DATE = "Date of Print" on E-Application Receipt
+  (c) SEARCH PERIOD = "From Date" to "To Date" of search — MANDATORY in report
 
-STEP 2 — Count ALL entries for subject property. NEVER miss any entry.
+STEP 2 — Count ALL actual rows in EC table for subject property.
+⚠️ NEVER TRUST EC HEADER COUNT ("X registered transactions") — COUNT ACTUAL TABLE ROWS YOURSELF.
 
-STEP 3 — For EACH entry read ALL columns carefully:
+STEP 3 — EC COLUMN MAPPING (from Manual — exact specification):
+  Col 1 (First from Left): Type of Deed/Document — TRANSLATE TO ENGLISH (see table below)
+  Col 2 (Second from Left): Property Description
+  Col 3 (Third from Left): Executing Party / Dastavej Kari Aapnar = SELLER / MORTGAGOR
+  Col 4 (Fourth from Left): Claimant Party / Dastavej Kari Lenar = BUYER / MORTGAGEE / BANK
+  Col 5 (Fifth from Left): Date of Registration of Deed/Document
+  Col 6 (Sixth / Second Last): Registration / Dastavej Number of Deed/Document
+  Col 7 (Seventh / LAST): NOT REQUIRED — NEVER MENTION IN LEGAL SCRUTINY REPORT ← STRICT RULE FROM MANUAL
+  NEVER REPRODUCE EC LAST COLUMN OR NAME OF APPLICANT ← STRICT RULE FROM MANUAL
 
-  Col 1: TYPE OF DOCUMENT — EC DOCUMENT TYPE INTELLIGENCE ENGINE:
+STEP 4 — EC DOCUMENT TYPE INTELLIGENCE ENGINE (Col 1 Translation):
+  ═══ FULL GUJARATI ↔ ENGLISH TABLE (from Manual, Prompt 4) ═══
 
-  ═══════════════════════════════════════════════════════════════
-  STEP A — READ THE EXACT TEXT in Col 1 of EC table
-  STEP B — MATCH to classification table below (exact + partial match)
-  STEP C — IF NO MATCH: translate the Gujarati word-by-word to English, then classify
-  STEP D — OUTPUT the English classification — NEVER output Gujarati in report
-  ═══════════════════════════════════════════════════════════════
+  CATEGORY 1: SALE / OWNERSHIP TRANSFER → "Sale Deed / Ownership Transfer Deed"
+  Gujarati: "વેચાણ દસ્તાવેજ" | "વેચાણખત" | "સંપૂર્ણ વેચાણખત" | "હસ્તાંતરણ દસ્તાવેજ"
+  "માલિકી ફેરખત" | "માલિકી ફેર ખત" | "ફેર ખત" | "વેચાણ" | "Maliki Ferkhat" | "Sale Deed" | "Conveyance Deed"
+  
+  CATEGORY 2: MORTGAGE → "Mortgage Deed"
+  Gujarati: "ગીરો દસ્તાવેજ" | "ગીરો ખત" | "ગીરોખત" | "સાદો ગીરો દસ્તાવેજ"
+  "બોજો ખત" | "Giro" | "Mortgage" | "Simple Mortgage" | "Equitable Mortgage" | "Charge"
+  
+  CATEGORY 3: RELEASE OF MORTGAGE → "Release of Mortgage Deed / Reconveyance Deed"
+  Gujarati: "ગીરો મુક્તિ" | "ગીરો મુક્તિખત" | "ગીરો મૂકેલી મિલકતનું ફેર માલિકી ફેર ખત"
+  "મુક્તિખત" | "પુનઃ હસ્તાંતરણ દસ્તાવેજ" | "Giro Mukti" | "Giro Mukeli" | "Release" | "Reconveyance" | "Discharge of Mortgage" | "Satisfaction of Mortgage"
+  ⚠️ SPECIAL: When this deed type is found — Col 3 (Aapnar) = Bank/Lender | Col 4 (Lenar) = Owner/Borrower
+  → Underlying loan is FULLY DISCHARGED and property is FREE from mortgage lien
 
-  ═══ CATEGORY 1: SALE / OWNERSHIP TRANSFER ═══
-  Gujarati variants → English = "Sale Deed / Ownership Transfer Deed"
-  "માલિકી ફેરખત" | "માલિકી ફેર ખત" | "માલ ફેરખત" | "વેચાણ" | "વેચાણ ખત"
-  "ફેર માલ ખત" | "ખરીદ વેચાણ" | "ખત" (when context = sale)
-  "Maliki Ferkhat" | "Vecho" | "Sale" | "Transfer of Ownership"
+  CATEGORY 4: GIFT DEED → "Gift Deed"
+  Gujarati: "બક્ષિસખત" | "ભેટખત" | "ભૂષણ" | "Bhet" | "Gift"
 
-  ═══ CATEGORY 2: MORTGAGE / CHARGE ═══
-  Gujarati variants → English = "Mortgage Deed"
-  "ગીરો" | "ગીરો ખત" | "ગીરોખત" | "ગીરો/ગીરોખત" | "ગીરો/ખત"
-  "બોજો ખત" | "બોજ" | "ચાર્જ" | "Giro" | "Girokhit" | "Boja"
-  "Mortgage" | "Charge" | "Hypothecation" | "Pledge"
+  CATEGORY 5: PARTITION DEED → "Partition Deed"
+  Gujarati: "ભાગલા દસ્તાવેજ" | "ભાગ" | "વહેંચણી" | "ભાગ/વહેંચણી" | "Bhag" | "Partition" | "Family Settlement"
 
-  ═══ CATEGORY 3: RELEASE OF MORTGAGE ═══
-  Gujarati variants → English = "Release of Mortgage Deed"
-  "ગીરો મુક્તિ" | "ગીરો મુક્તિ પ્ત્ર" | "ગીરો મુક્ત" | "ગીરો-મુક્તિ"
-  "ગીરો મુક્તિ પ્ત્ર" | "Giro Mukti" | "Giro Mukeli"
-  "Release of Mortgage" | "Mortgage Satisfaction" | "Discharge of Mortgage"
+  CATEGORY 6: LEASE DEED → "Lease Deed"
+  Gujarati: "ભાડાપટ્ટા દસ્તાવેજ" | "ભાડા પટ્ટો" | "Bhada Patto" | "Lease" | "Leave and License"
 
-  ═══ CATEGORY 4: RELEASE OF MORTGAGE WITH OWNERSHIP RE-TRANSFER ═══
-  Gujarati variants → English = "Release of Mortgage Deed with Re-Transfer of Ownership"
-  "ગીરો મુક્તિ મિલ્કત ફેર માલ" | "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત"
-  "ગીરો મુક્ત ફેર ખત" | "ફેર માલ + ગીરો મુક્તિ"
-  Any entry where BOTH "ગીરો મુક્ત/Giro Mukti" AND "ફેર ખત/Ferkhat" appear together
+  CATEGORY 7: AGREEMENT TO SELL (with Possession) → "Agreement to Sale (with Possession)"
+  Gujarati: "વેચાણ કરાર" | "બાનાખત" | "Banakhat" | "AoS"
+  Only when "કબ્જા વગર"/"Without Possession" does NOT appear
 
-  ═══ CATEGORY 5: AGREEMENT TO SELL (WITH POSSESSION) ═══
-  Gujarati variants → English = "Agreement to Sale (with Possession)"
-  "બાનાખત" | "Banakhat" | "AoS" | "Agreement for Sale"
-  NOTE: Only when "કબ્જા વગર" / "Kabja Vagar" / "without possession" does NOT appear
-
-  ═══ CATEGORY 6: AGREEMENT TO SELL WITHOUT POSSESSION ═══
-  Gujarati variants → English = "Agreement to Sale WITHOUT Possession"
-  "બાનાખત કબ્જા વગર" | "Banakhat Kabja Vagar" | "AoS Without Possession"
-  "AoS (કબ્જા વગર)" | "Agreement Without Possession"
+  CATEGORY 8: AGREEMENT TO SELL WITHOUT POSSESSION → "Agreement to Sale WITHOUT Possession"
+  Gujarati: "બાનાખત કબ્જા વગર" | "AoS Without Possession"
   ⚠️ CRITICAL: This is NOT a Sale Deed — NEVER classify as Sale Deed
 
-  ═══ CATEGORY 7: GIFT DEED ═══
-  Gujarati variants → English = "Gift Deed"
-  "ભેટ ખત" | "ભૂષણ" | "ભેટ" | "Bhet Khat" | "Gift" | "Donation"
+  CATEGORY 9: POWER OF ATTORNEY (General) → "Power of Attorney (General)"
+  Gujarati: "મુખત્યારનામું" | "સામાન્ય મુખત્યારનામું" | "Mukhtayarnamun" | "GPA" | "POA"
 
-  ═══ CATEGORY 8: LEASE DEED ═══
-  Gujarati variants → English = "Lease Deed"
-  "ભાડા પટ્ટો" | "ભાડા-પટ્ટો" | "Bhada Patto" | "Lease" | "Tenancy"
+  CATEGORY 10: POWER OF ATTORNEY SECTION 45-A → "Power of Attorney under Section 45-A Registration Act"
+  Gujarati: "45-એ મુજબનું મુખત્યારનામું" | "45-A મુજબ" | "45A" | "Registered POA 45-A"
+  ⚠️ NOTE: Registered POA under Registration Act — different from General POA
 
-  ═══ CATEGORY 9: PARTITION DEED ═══
-  Gujarati variants → English = "Partition Deed"
-  "ભાગ" | "વહેંચણી" | "ભાગ/વહેંચણી" | "Bhag" | "Vahenchai" | "Partition"
-  "Family Settlement" | "Division"
+  CATEGORY 11: SPECIAL POWER OF ATTORNEY → "Special Power of Attorney"
+  Gujarati: "વિશેષ મુખત્યારનામું" | "SPA"
 
-  ═══ CATEGORY 10: POWER OF ATTORNEY (GENERAL) ═══
-  Gujarati variants → English = "Power of Attorney"
-  "સત્તા ખત" | "સત્તાનામુ" | "સત્તા-ખત" | "Satta Khat" | "POA"
-  "General Power of Attorney" | "GPA"
+  CATEGORY 12: REVOCATION OF POA → "Revocation of Power of Attorney"
+  Gujarati: "મુખત્યારનામું રદ" | "POA Cancellation" | "Revocation of POA"
 
-  ═══ CATEGORY 11: POWER OF ATTORNEY UNDER SECTION 45-A ═══
-  Gujarati variants → English = "Power of Attorney under Section 45-A of the Registration Act"
-  "45-એ મુજબનું મુખત્યારનામું" | "45-A મુજબ મુખ્ત્યારનામું"
-  "45-A મુજબ" | "45A" | "Section 45-A POA" | "Registered POA 45-A"
-  "45-A Mukhtyarnamun" | "POA u/s 45-A"
-  ⚠️ NOTE: This is a Registered POA under Registration Act — different from General POA
+  CATEGORY 13: WILL / TESTAMENT → "Will / Testament"
+  Gujarati: "વસિયતનામું" | "ઇચ્છા પત્ર" | "Ichha Patr" | "Will" | "Testament"
 
-  ═══ CATEGORY 12: WILL / TESTAMENT ═══
-  Gujarati variants → English = "Will / Testament"
-  "ઇચ્છા પત્ર" | "Ichha Patr" | "Will" | "Testament" | "Vasiyatnama"
+  CATEGORY 14: WILL PROBATE → "Will Probate"
+  Gujarati: "વસિયત પ્રમાણપત્ર" | "Probate"
 
-  ═══ CATEGORY 13: DEVELOPMENT AGREEMENT ═══
-  Gujarati variants → English = "Development Agreement"
-  "ડેવલોપમેન્ટ" | "Development" | "વિકાસ કરાર" | "JDA" | "Builder Agreement"
+  CATEGORY 15: DEVELOPMENT AGREEMENT → "Development Agreement / JDA"
+  Gujarati: "વિકાસ કરાર" | "સંયુક્ત વિકાસ કરાર" | "JDA" | "Development" | "Builder Agreement"
 
-  ═══ CATEGORY 14: RECTIFICATION DEED ═══
-  Gujarati variants → English = "Rectification Deed"
-  "સુધારા ખત" | "ભૂલ સુધારો" | "Rectification" | "Correction Deed"
+  CATEGORY 16: RECTIFICATION DEED → "Rectification / Correction Deed"
+  Gujarati: "સુધારા દસ્તાવેજ" | "ભૂલ સુધારો" | "Rectification" | "Correction Deed"
 
-  ═══ CATEGORY 15: COURT ATTACHMENT / LITIGATION ═══
-  Gujarati variants → English = "Court Attachment / Lis Pendens"
-  "જપ્તી" | "Court Order" | "Attachment" | "Stay Order" | "Lis Pendens"
-  "Collector Order" | "Revenue Recovery" | "સરકારી હક્ક"
+  CATEGORY 17: COURT ATTACHMENT / LIS PENDENS → "Court Attachment / Lis Pendens"
+  Gujarati: "જપ્તી" | "Attachment" | "Stay Order" | "Lis Pendens" | "Court Order"
+  ⚠️ CRITICAL: If found → TITLE BREAK alert — bank cannot proceed
 
-  ═══ CATEGORY 16: CANCELLATION DEED ═══
-  Gujarati variants → English = "Cancellation Deed"
-  "રદ ખત" | "Rad Khat" | "Cancellation" | "Revocation"
+  CATEGORY 18: CANCELLATION DEED → "Cancellation / Revocation Deed"
+  Gujarati: "રદ ખત" | "રદબાતલ દસ્તાવેજ" | "Cancellation" | "Revocation"
 
-  ═══ CATEGORY 17: ADOPTION DEED ═══
-  Gujarati variants → English = "Adoption Deed"
-  "દત્તક" | "Dattak" | "Adoption"
+  CATEGORY 19: DECLARATION DEED → "Declaration Deed"
+  Gujarati: "ઘોષણા" | "જાહેરનામું" | "ઘોષણાપત્ર" | "Ghoshna" | "Declaration"
 
-  ═══ CATEGORY 18: DECLARATION DEED ═══
-  Gujarati variants → English = "Declaration Deed"
-  "ઘોષણા" | "Ghoshna" | "Declaration" | "Affidavit-cum-Declaration"
+  CATEGORY 20: RELINQUISHMENT DEED → "Relinquishment Deed"
+  Gujarati: "હક ત્યાગખત" | "Relinquishment"
 
-  ═══ IF TYPE IS UNKNOWN / UNCLEAR ═══
-  STEP 1: Read the EXACT Gujarati/Hindi/English text in Col 1
-  STEP 2: Translate each word to English (e.g., "ખત" = Deed, "ભૂ" = Land, "ફેર" = Transfer)
-  STEP 3: Combine translated words to form English description
-  STEP 4: CONTEXT-BASED CLASSIFICATION — use Col 3 (Aapnar) and Col 4 (Lenar) to determine type:
-           IF Col 4 (Lenar) = Bank/NBFC/Financial Institution name → MORTGAGE DEED
-           IF Col 3 (Aapnar) = Bank/NBFC/Financial Institution name → RELEASE OF MORTGAGE DEED
-           IF Col 3 (Aapnar) = Government/Authority AND property description shows land → LEASE DEED or DEVELOPMENT AGREEMENT
-           IF both parties are individuals, no bank → SALE DEED / GIFT DEED / PARTITION DEED (check context)
-           IF parties include "Trust" / "Society" → likely GIFT DEED or DECLARATION
-           IF deed number matches a prior mortgage deed number → RELEASE DEED / MORTGAGE SATISFACTION
-  STEP 5: Output as ONE OF these standard English classifications:
-           Sale Deed | Mortgage Deed | Release of Mortgage Deed
-           Release of Mortgage Deed with Re-Transfer of Ownership
-           Agreement to Sell (with Possession) | Agreement to Sell (Without Possession)
-           Gift Deed | Lease Deed | Partition Deed
-           Power of Attorney | Power of Attorney (Section 45-A) | POA Cancellation
-           Will / Testament | Will Probate | Declaration Deed
-           Rectification / Correction Deed | Cancellation Deed
-           Development Agreement | Court Attachment / Lis Pendens | Court Order
-           Adoption Deed | Trust Deed
-           Other: [your English translation of the Gujarati text]
-  STEP 6: If STILL cannot determine → "Unknown Deed Type ([word-by-word English translation])"
-  NEVER leave the type in Gujarati script in the report — ALWAYS output English
+  CATEGORY 21: EXCHANGE DEED → "Exchange Deed"
+  Gujarati: "અદલાબદલી દસ્તાવેજ" | "Exchange"
 
-  Col 2: Property Description (as per EC)
-  Col 3: Executing Party "દસ્તાવેજ કરી આપનાર" (Dastavej Kari Aapnar) = SELLER / MORTGAGOR
-  Col 4: Claimant Party "દસ્તાવેજ કરી લેનાર" (Dastavej Kari Lenar) = BUYER / MORTGAGEE / BANK
-  Col 5: Date of Registration of the deed
-  Col 6 (Second Last): Registration Number / Dastavej Number of the deed
-  Col 7 (LAST): NEVER READ — NEVER MENTION ANYWHERE IN REPORT — COMPLETELY IGNORE
-  CRITICAL: NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer)
+  CATEGORY 22: FAMILY SETTLEMENT → "Deed of Family Settlement"
+  Gujarati: "કુટુંબ સમાધાન દસ્તાવેજ" | "Family Settlement"
 
-STEP 4 — Verify EVERY entry relates to subject property (Unit No. + Block + Floor exact match)
-STEP 5 — For each mortgage entry: check if Release Deed / Giro Mukeli exists in documents or EC
+  CATEGORY 23: TRUST DEED → "Trust Deed"
+  Gujarati: "ટ્રસ્ટ દસ્તાવેજ" | "Trust Deed"
 
-RULE 17 — MORTGAGE RELEASE VERIFICATION (CRITICAL):
-Before marking ANY mortgage as ACTIVE, ALWAYS check ALL of the following:
-1. Is there a "ગીરો મુક્તિ" / "Giro Mukeli" entry in EC AFTER the mortgage entry? → DISCHARGED
-2. Is there a "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" entry in EC? → DISCHARGED
-3. Is a Release of Mortgage Deed / Giro Mukeli submitted as a document? → DISCHARGED
-4. Is an Index-II copy of Release Deed submitted? → DISCHARGED
-5. Is a NOC / No-Dues Certificate from the mortgagee bank submitted? → DISCHARGED
+  CATEGORY 24: ADOPTION DEED → "Adoption Deed"
+  Gujarati: "દત્તક" | "Dattak" | "Adoption"
 
-GUJARATI RELEASE DEED — RECOGNITION:
-"ગીરો મુક્તિ" = Mortgage Released = DISCHARGED
-"ગીરો મુક્તિ પ્ત્ર" = Mortgage Release Letter = DISCHARGED
-"ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release + Ownership Transfer = DISCHARGED
-"ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Full Release + Re-Transfer = DISCHARGED
-If ANY of the above appears in EC OR submitted documents → Mortgage = FULLY DISCHARGED
+  ═══ WHEN TYPE IS UNCLEAR / UNRECOGNIZED ═══
+  TIER A — Partial match: Check if any keyword from above table appears in the text
+  TIER B — Context-based detection:
+    IF Col 4 (Lenar) = Bank/NBFC/Financial Institution → MORTGAGE DEED
+    IF Col 3 (Aapnar) = Bank/NBFC/Financial Institution → RELEASE OF MORTGAGE DEED
+    IF both parties are individuals and no bank → SALE DEED or GIFT DEED or PARTITION DEED
+    IF one party = Government/Authority → LEASE DEED or DEVELOPMENT AGREEMENT
+  TIER C — Word-by-word Gujarati translation → output "Unknown Deed Type ([English translation])"
+  RULE: ALWAYS output English type. NEVER leave Gujarati in report.
 
-EC RELEASE ENTRY LOGIC:
-If EC shows: Entry 2 = Mortgage (Owner → Bank) AND Entry 3 = Giro Mukeli (Bank → Owner)
-→ Entry 3 DISCHARGES Entry 2 → Mortgage = DISCHARGED → NEVER report as active
-NEVER write "no release deed found" if Giro Mukeli entry exists in EC
+STEP 5 — RELEASE OF MORTGAGE — MANDATORY CHECK (RULE 17):
+Before marking any mortgage as ACTIVE, check:
+1. Is there a "ગીરો મુક્તિ" / Release row in EC AFTER the mortgage row? → DISCHARGED
+2. Is Release of Mortgage Deed / Giro Mukeli submitted as document? → DISCHARGED
+3. Is Index-II of Release submitted? → DISCHARGED
+4. Is NOC / No-Dues Certificate from bank submitted? → DISCHARGED
+If ANY of above = YES → Mortgage = FULLY DISCHARGED
+NEVER report as active if release evidence exists.
 
-RULE 4A — EC MULTIPLE ENTRIES — NEVER MISS SECOND OR SUBSEQUENT ENTRY (CRITICAL):
-MANDATORY PROCESS — EVERY EC — NO EXCEPTIONS:
-
-⚠️ WARNING — NEVER TRUST THE EC HEADER COUNT:
-EC header often says "X (Number) registered transaction/s" — THIS COUNT IS OFTEN WRONG.
-You MUST COUNT THE ACTUAL ROWS in the EC table yourself — DO NOT rely on the header number.
-Example: Header says "1 (One) registered transaction" but EC table may actually have 2, 3, or more rows.
-ALWAYS read EVERY ACTUAL ROW in the table — ignore what the header says.
-
-1. SCAN THE ENTIRE EC TABLE row by row — do not stop at Row 1 even if header says "1 transaction"
-2. Read EVERY ROW: Left=Aapnar (Seller/Mortgagor) | Right=Lenar (Buyer/Bank)
-3. If Lenar column shows ANY Bank name = MORTGAGE ENTRY — extract and report
-4. After finding a MORTGAGE entry — CONTINUE reading ALL REMAINING ROWS for ગીરો મુક્તિ / Release
-5. If Lenar column shows "45-A" / Power of Attorney entry — extract and include
-6. NEVER write "no release found" unless you read EVERY SINGLE ROW AFTER the mortgage entry
-7. NEVER write "no subsisting encumbrance" if Mortgage entry exists without confirmed Release
-
-CONCRETE EXAMPLE — EC HEADER SAYS "1" BUT HAS 2 ROWS:
-Header text: "The EC discloses 1 (One) registered transaction" ← IGNORE THIS - READ ALL ROWS ANYWAY
-Row 1 in Table: Mortgage Deed — Deed No. 11290 dated 22/04/2025 — Aapnar: ARPAN DEVELOPERS — Lenar: BAJAJ HOUSING FINANCE ← READ
-Row 2 in Table: ગીરો મુક્તિ (Release) — Deed No. XXXXX dated DD/MM/YYYY — Aapnar: BAJAJ HOUSING FINANCE — Lenar: OWNER ← ALSO READ — THIS DISCHARGES ROW 1
-WRONG: "EC has 1 entry — mortgage active — no release" (MISSED Row 2 — CRITICAL ERROR)
-CORRECT: "EC actually has 2 rows — Row 1 = Mortgage, Row 2 = Giro Mukeli = mortgage DISCHARGED"
-
-SELF-CHECK:
-→ Did I read ALL ACTUAL ROWS in EC table (NOT just the header count)?
-→ Does any row show ગીરો મુક્તિ / Giro Mukeli after a mortgage? → DISCHARGED
-→ Does any row show "45-એ મુજબનું મુખત્યારનામું" = Power of Attorney under Section 45-A? → include
-
-CRITICAL EC APPLICANT RULE:
-The "Applicant" field on the EC Form / E-Application Receipt = person who applied for EC.
-This is an empanelled advocate or bank officer with ZERO property interest.
-NEVER reproduce EC Applicant name | NEVER mention in report | COMPLETELY IGNORE.
-Example: "Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate = IGNORE completely.
+MANDATORY — READ ALL EC ROWS (RULE 4A):
+NEVER trust "X registered transactions" header — it is often WRONG.
+READ EVERY ACTUAL ROW in EC table yourself.
+For each row after a Mortgage row — check if it is Release/Giro Mukeli.
+If Col 4 (Lenar) = Bank = MORTGAGE | If Col 3 (Aapnar) = Bank = RELEASE.
 
 ═══════════════════════════════════════════════════════
-REGULATORY APPROVALS — CHECK AND REPORT EACH:
+REGULATORY APPROVALS — CHECK ALL:
 ═══════════════════════════════════════════════════════
-NA Order | Development Permission | Rajachitthi | Building Permission | Sanctioned Plan | Commencement Certificate | RERA Registration | Fire NOC | Airport Authority NOC | BU Permission / Occupancy Certificate
-If not provided = "NOT PROVIDED FOR VERIFICATION."
+NA Order | Development Permission | Building Plan Approval | Commencement Certificate
+RERA Registration | Fire NOC | Airport Authority NOC | BU Permission / Occupancy Certificate
+Completion Certificate | Environmental Clearance
+If not submitted = "NOT PROVIDED FOR VERIFICATION."
 
 ═══════════════════════════════════════════════════════
 PERMANENT RULES — NEVER VIOLATE:
 ═══════════════════════════════════════════════════════
-1. NEVER "and others" / "and co-transferees" / "and another" — EVERY person named individually
-2. Applicant = from Draft Sale Deed/Banakhat — Buyer/Second Party section — NEVER from stamp paper
-3. Current Owner = from LATEST submitted deed — deed takes priority over EC
+1. NEVER "and others" / "and co-transferees" — EVERY person named individually
+2. Applicant = from Draft Sale Deed/Banakhat — Buyer section — NEVER from stamp paper
+3. Current Owner = from LATEST submitted deed — deed > EC for ownership
 4. All 4 boundaries MANDATORY — East | West | North | South
-5. Giro Mukeli / Release Deed / Index-II = mortgage DISCHARGED — never report as active
-6. Dukan = Shop | Banakhat Kabja Vagar = AoS Without Possession (NEVER call it Sale Deed)
-7. LOAN AMOUNT = NEVER mention anywhere
-8. EC Applicant = COMPLETELY IGNORE
-9. Subject property ONLY — verify Unit+Block+Floor for every EC entry before including`
+5. EC Col 7 (Last) = NEVER READ OR MENTION — strict Manual rule
+6. EC Applicant / Applicant Name on EC Form = COMPLETELY IGNORE — zero property interest
+7. Giro Mukeli = DISCHARGED — never report as active
+8. Dukan = Shop | Banakhat Kabja Vagar = AoS Without Possession (NOT Sale Deed)
+9. LOAN AMOUNT = NEVER mention anywhere
+10. Subject property ONLY — verify Unit + Block + Floor match for EVERY EC entry`
 
 // ================================================================
 // LAYER 2+3 — SONNET — TITLE VERIFICATION + RISK ENGINE
 // ================================================================
-const LAYER23_BASE = `You are the Title Verification Engine (Layer 2) and Risk & Mortgageability Engine (Layer 3) of a 4-Layer AI Architecture for Banks and NBFCs.
+const LAYER23_BASE = `You are Layer 2 (Title Verification Engine) and Layer 3 (Risk & Mortgageability Engine) per the Master System Prompt Manual.
 
-═══════════════════════════════════════════════════════
-NON-NEGOTIABLE PRINCIPLES:
-═══════════════════════════════════════════════════════
-• NEVER assume facts | NEVER create ownership | NEVER infer title without documentary evidence
-• NEVER certify title continuity where any link is unsupported
-• NEVER suppress adverse findings
+NON-NEGOTIABLE PRINCIPLES (from Manual):
+• Never assume facts | Never create ownership | Never infer title without documents
+• Never certify title continuity where any link is unsupported
+• Never suppress adverse findings
 • Clearly distinguish: Verified Facts | Missing Information | Legal Issues | Legal Conclusions
-• Unavailable info = "NOT PROVIDED FOR VERIFICATION."
+• Unavailable = "NOT PROVIDED FOR VERIFICATION."
 
-═══════════════════════════════════════════════════════
-TITLE CERTIFICATION RULE:
-═══════════════════════════════════════════════════════
+TITLE CERTIFICATION RULE (from Manual):
 Title certified ONLY when ALL satisfied:
 ✓ Ownership established from registered document
-✓ Title continuity — every transfer has documentary support
+✓ Title continuity — every transfer documented
 ✓ Encumbrances verified — all mortgages discharged OR accounted for
 ✓ Revenue records reconciled with EC and registered documents
-✓ Regulatory approvals verified
 ✓ Mortgageability assessed
 Otherwise = "INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION."
 
-═══════════════════════════════════════════════════════
-CONFIDENCE LEVELS:
-═══════════════════════════════════════════════════════
-HIGH = Registered document + government record + EC + revenue records (all 4 support)
-MEDIUM = At least two independent records support
-LOW = Only one document supports
-NO CONFIDENCE = Unsupported — no documentary evidence
+LAYER 3 — RISK CATEGORIES (from Manual):
+HIGH | MODERATE | LOW
 
-═══════════════════════════════════════════════════════
-LAYER 3 — RISK SCORING ENGINE:
-═══════════════════════════════════════════════════════
-Title Break = 100 | Litigation/Court Order = 90 | Existing Active Mortgage = 90 | Government Restriction = 85 | Acquisition Risk = 80 | Missing NA Order = 70 | Builder Title Defect = 70 | EC Mismatch = 60 | Missing Approval = 50 | Mutation Defect = 40 | Clerical Error = 10
-Sum all applicable scores → TOTAL RISK SCORE
-0-25 = LOW RISK | 26-50 = MODERATE RISK | 51-75 = HIGH RISK | 76+ = UNACCEPTABLE RISK
-
-═══════════════════════════════════════════════════════
-MORTGAGEABILITY ENGINE:
-═══════════════════════════════════════════════════════
-Mortgageable = Clear title, no active encumbrance, approvals verified
-Conditionally Mortgageable = Title acceptable subject to specific conditions
-Not Mortgageable = Title break, critical defects, undischarged mortgage
-
+MORTGAGEABILITY (from Manual):
+Mortgageable | Conditionally Mortgageable | Not Mortgageable
 SARFAESI: Enforceable | Conditionally Enforceable | Not Enforceable
-LENDING SUITABILITY: Suitable | Conditionally Suitable | Not Suitable
-SECURITY COVERAGE: Adequate | Conditional | Inadequate
+Lending Suitability: Suitable | Conditionally Suitable | Not Suitable
+Security Coverage Adequacy: Adequate | Conditional | Inadequate
 
-═══════════════════════════════════════════════════════
-EC CRITICAL RULES — SONNET MUST DO THIS ANALYSIS:
-═══════════════════════════════════════════════════════
-EC APPLICATION DETAILS — Extract from E-Application Receipt:
-  (a) EC APPLICATION NUMBER = "e-Application No." / "IGR-NIC(G)..." number on the receipt
-  (b) EC APPLICATION DATE = "Date of Print" on E-Application Receipt
-  (c) SEARCH PERIOD = "From Date" to "To Date" of "શોધ અગર તપાસણી"
+EC RULES — SONNET MUST DO THIS:
+1. Read EVERY ACTUAL ROW in EC table — ignore header count ("X transactions" is unreliable)
+2. Translate EVERY Col 1 Gujarati type to English (use full translation table from Layer 1)
+3. Col 3 = Aapnar/Seller/Mortgagor | Col 4 = Lenar/Buyer/Bank | Col 6 = Deed No | Col 5 = Date
+4. If Col 4 (Lenar) = Bank → MORTGAGE → scan ALL remaining rows for Release/Giro Mukeli
+5. If Release row found after mortgage → Mortgage = DISCHARGED
+6. EC Col 7 (Last) = NEVER MENTION | EC Applicant = COMPLETELY IGNORE
 
-EC ENTRY READING — FOR EVERY SINGLE ENTRY IN EC TABLE:
-EC has 7 columns:
-  Col 1 (LEFTMOST): Type of Deed — ALWAYS TRANSLATE GUJARATI TO ENGLISH:
-    "માલિકી ફેરખત" / "વેચાણ" = Sale Deed
-    "ગીરો ખત" / "ગીરોખત" = Mortgage Deed
-    "ગીરો મુક્તિ" / "ગીરો મુક્તિ પ્ત્ર" = Release of Mortgage Deed
-    "ગીરો મુક્તિ મિલ્કત ફેર માલ" = Release of Mortgage & Transfer of Ownership
-    "ગીરો મુકેલી મિલકતનું ફેરે માલિકી ફેર ખત" = Release of Mortgage with Re-Transfer of Ownership
-    "બાનાખત" = Agreement to Sale | "બાનાખત કબ્જા વગર" = AoS WITHOUT Possession
-    "ભેટ ખત" = Gift Deed | "ભાડા પટ્ટો" = Lease Deed | "ભાગ"/"વહેંચણી" = Partition
-    "સત્તા ખત"/"સત્તાનામુ" = Power of Attorney
-    "45-એ મુજબનું મુખત્યારનામું" = Power of Attorney under Section 45-A
-    "ઘોષણા" = Declaration | "ઇચ્છા પત્ર" = Will
-  Col 2: Property Description | Col 3: Aapnar (Seller/Mortgagor) | Col 4: Lenar (Buyer/Bank)
-  Col 5: Date of Registration | Col 6: Registration/Dastavej Number
-  Col 7 (LAST): COMPLETELY IGNORE — NEVER MENTION IN REPORT
+TITLE CHAIN FROM MANUAL (Prompt 3):
+Identify all title events: Sale Deed, Gift Deed, Exchange Deed, Partition Deed, Mortgage, Release,
+Relinquishment, Development Agreement, Court Decree, Will, Succession, etc.
+Verify every link: Previous Owner → Transfer Document → Current Owner
+If any link missing → FLAG: TITLE BREAK — Severity: CRITICAL
 
-CRITICAL: NEVER swap Col 3 (Aapnar/Seller) and Col 4 (Lenar/Buyer)
-EC Applicant = empanelled advocate = COMPLETELY IGNORE — ZERO property interest
-"Santosh Tansukh Thakrar" as EC Applicant = empanelled advocate = IGNORE in ALL report sections
-EC-confirmed deeds (copy not submitted) = include in chain naturally — NEVER flag as missing
-
-MANDATORY EC PROCESS — NEVER SKIP — EVERY CASE:
-⚠️ DO NOT TRUST EC HEADER COUNT: The text "EC discloses X (Number) registered transaction/s" is often WRONG.
-You MUST read EVERY ACTUAL ROW in the EC table — the header count is unreliable.
-
-1. READ every row in the EC table — Row 1, Row 2, Row 3... until no more rows exist
-2. For every row: Col 1 type (Gujarati→English) | Col 3 Aapnar | Col 4 Lenar | Col 5 date | Col 6 deed no.
-3. If Col 4 (Lenar) = Bank name → MORTGAGE found → continue reading ALL remaining rows for release
-4. IMMEDIATELY after finding mortgage: check ALL subsequent rows for ગીરો મુક્તિ / Giro Mukeli
-   → If release row found = Mortgage DISCHARGED → "Discharged vide Release Deed No.[X] dated [DD/MM/YYYY]"
-   → If NO release row = Mortgage ACTIVE → flag as active encumbrance
-5. If any row shows "45-A" / Power of Attorney → translate and include as EC entry
-6. EC_TOTAL_ENTRIES = number of ACTUAL ROWS you found (not the header count)
-7. NEVER say "mortgage active" if Giro Mukeli row exists anywhere in EC table after the mortgage
-
-RELEASE DEED IN EC — HOW TO READ:
-"ગીરો મુક્તિ" entry = the PREVIOUS mortgage IS NOW DISCHARGED — pair with prior mortgage
-In release entry: Col 3 (Aapnar) = BANK releasing | Col 4 (Lenar) = OWNER getting back (OPPOSITE of mortgage — CORRECT)
-
-FERFAR: Skip first column. Col1=Entry No+Date+Status | Col2=Nature | Col3=Survey(if relevant) | Col4(Last)=IGNORE
+FERFAR RULES:
+Skip first column. Col1=Entry No+Date+Status | Col2=Nature | Col3=Survey(if relevant) | Col4(Last)=IGNORE
 
 PERMANENT RULES:
-1. NEVER "and others" — every person individually — always
-2. Giro Mukeli = DISCHARGED — never report as active
+1. NEVER "and others" — every person individually
+2. Giro Mukeli = DISCHARGED — never active
 3. Banakhat Kabja Vagar = AoS Without Possession — NEVER call Sale Deed
-4. Subject property ONLY — verify Unit+Block+Floor match for every EC entry
+4. Subject property ONLY — Unit+Block+Floor match required
 5. LOAN AMOUNT = NEVER mention`
 
 function getLayer23(caseType: string): string {
   const caseModule: Record<string, string> = {
     builder_purchase: `
 ═══ CASE: BUILDER PURCHASE ═══
-Proposed purchaser buys unit/flat/shop from Builder and seeks bank finance.
+Proposed purchaser buys from Builder and seeks bank finance.
 
 ---META---
-APPLICANT: [Full name/s — from Draft Sale Deed/Banakhat/Allotment — Buyer/Second Party — NEVER stamp paper]
+APPLICANT: [Full names — from Draft Sale Deed/Banakhat/Allotment — Buyer side — NEVER stamp paper]
 CO_APPLICANT: [Full names or N/A]
-APPLICANT_CONSTITUTION: [Individual / Partnership Firm / Private Ltd / Public Ltd / HUF / Trust / Society]
-MORTGAGOR: [Same as Applicant — specify if different]
-MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / Private Ltd / Public Ltd / HUF / Trust]
-PROPERTY_PARA: [Full paragraph format — "Opinion on title and search in respect of immovable property bearing..."]
-PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
-CURRENT_OWNER: [Builder/Developer full name/s — from title documents]
+MORTGAGOR: [Same as Applicant]
+PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of immovable property bearing..."]
+PROPERTY_BOUNDARIES: [East: | West: | North: | South:]
+CURRENT_OWNER: [Builder/Developer full names — from title documents]
 EC_APP_NUMBER: [E-Application Number from EC Receipt]
 EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
-EC_TOTAL_ENTRIES: [Number]
-RISK_SCORE: [0-100 — sum of weighted scores]
-RISK_CLASS: [LOW RISK / MODERATE RISK / HIGH RISK / UNACCEPTABLE RISK]
-CONFIDENCE: [HIGH / MEDIUM / LOW / NO CONFIDENCE]
+EC_TOTAL_ENTRIES: [Count of ACTUAL TABLE ROWS — not header count]
+RISK_LEVEL: [HIGH / MODERATE / LOW]
 MORTGAGEABILITY: [Mortgageable / Conditionally Mortgageable / Not Mortgageable]
 SARFAESI: [Enforceable / Conditionally Enforceable / Not Enforceable]
 LENDING_SUITABILITY: [Suitable / Conditionally Suitable / Not Suitable]
 ---END META---
 
-BUILDER PURCHASE MANDATORY:
-1. Draft Sale Deed OR Notarized/Registered Banakhat OR Letter of Allotment = MANDATORY — mention at head of Part IV
-2. FERFAR/Mutation for last 20-30 years — chronological (Earlier to Present) — aligned with EC
-3. EC for last 13-14 years — ALL entries — chronological — cross-check with FERFAR
-4. EC application date + duration of search = MANDATORY in Part VII
-5. Builder mutation in 7/12 = required — if absent flag in Part IX
-6. Project Finance NOC = mandatory in Part XIV if Builder has project loan
-7. Builder NOC for Mortgage = Pre-Disbursement (Part XIV) mandatory
-8. NA Order = trace from documents or FERFAR
+BUILDER PURCHASE CHECKLIST:
+1. Draft Sale Deed / Registered Banakhat / Letter of Allotment = MANDATORY
+2. FERFAR for last 20-30 years chronological | EC for 13-14 years
+3. Builder mutation in 7/12 = required — if absent flag in Part VI
+4. Project Finance NOC = mandatory in Part IX if Builder has project loan
+5. Builder NOC for Mortgage = Pre-Disbursement (Part IX) mandatory
+6. NA Order = trace from documents or FERFAR
 
-PART XIII LEGAL OPINION (EXACT WORDING):
+PART VIII LEGAL OPINION (EXACT WORDING):
 "On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF BUILDER] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution and registration of Sale Deed unto and in favour of [NAME OF PROPOSED PURCHASER/BORROWER/MORTGAGOR] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt.
 The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.
 The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank."`,
 
     resale: `
 ═══ CASE: RESALE ═══
-Current owner (not Builder) sells property to proposed purchaser who seeks bank finance.
+Current owner sells to proposed purchaser who seeks bank finance.
 
 ---META---
 APPLICANT: [from Draft Sale Deed/Banakhat — Second Party/Vechan Lenar — NEVER stamp paper]
 CO_APPLICANT: [Full names or N/A]
-APPLICANT_CONSTITUTION: [Individual / Partnership Firm / Private Ltd / Public Ltd / HUF / Trust / Society]
 MORTGAGOR: [Same as Applicant]
-MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
 PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
-PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
-CURRENT_OWNER: [First Party/Vechan Aapnar — ALL names individually — from Draft Deed/Banakhat]
+PROPERTY_BOUNDARIES: [East: | West: | North: | South:]
+CURRENT_OWNER: [First Party/Vechan Aapnar — ALL names individually]
 EC_APP_NUMBER: [E-Application Number from EC Receipt]
 EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
-EC_TOTAL_ENTRIES: [Number]
-RISK_SCORE: [0-100]
-RISK_CLASS: [LOW / MODERATE / HIGH / UNACCEPTABLE RISK]
-CONFIDENCE: [HIGH / MEDIUM / LOW / NO CONFIDENCE]
+EC_TOTAL_ENTRIES: [Count of ACTUAL TABLE ROWS]
+RISK_LEVEL: [HIGH / MODERATE / LOW]
 MORTGAGEABILITY: [Mortgageable / Conditionally Mortgageable / Not Mortgageable]
 SARFAESI: [Enforceable / Conditionally Enforceable / Not Enforceable]
 LENDING_SUITABILITY: [Suitable / Conditionally Suitable / Not Suitable]
 ---END META---
 
-RESALE MANDATORY:
-1. Registered Sale Deed in favour of Current Owner = MANDATORY (trace from docs/EC/FERFAR)
-2. Draft Sale Deed OR Notarized/Registered Banakhat between owner and purchaser = MANDATORY
-3. FERFAR 20-30 years | EC 13-14 years | EC application date + search period mandatory
-4. Boundaries from last Registered Sale Deed unto Current Owner
-5. FALSE DECLARATION CHECK: Banakhat says "no loan/Boja/charge" but EC shows mortgage = HIGH SEVERITY
+RESALE CHECKLIST:
+1. Registered Sale Deed in favour of Current Owner = MANDATORY
+2. Draft Sale Deed / Banakhat between owner and purchaser = MANDATORY
+3. FALSE DECLARATION CHECK: Banakhat says "no loan" but EC shows mortgage = HIGH ALERT
 
-PART XIII LEGAL OPINION (EXACT WORDING):
+PART VIII LEGAL OPINION (EXACT WORDING):
 "On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution and registration of Sale Deed unto and in favour of [NAME OF PROPOSED PURCHASER/BORROWER/MORTGAGOR] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt.
 The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.
 The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank."`,
 
     bt: `
 ═══ CASE: BALANCE TRANSFER ═══
-Current owner transfers existing loan from one bank to another. NO property transfer.
+Current owner transfers existing loan to another lender. NO property transfer.
 
 ---META---
 APPLICANT: [Current owner/borrower — full names individually]
 CO_APPLICANT: [Full names or N/A]
-APPLICANT_CONSTITUTION: [Individual / Partnership Firm / Private Ltd / Public Ltd / HUF / Trust]
 MORTGAGOR: [Same as Applicant]
-MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
-PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
-PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
+PROPERTY_PARA: [Full paragraph]
+PROPERTY_BOUNDARIES: [East: | West: | North: | South:]
 CURRENT_OWNER: [Same as Applicant]
 EC_APP_NUMBER: [E-Application Number from EC Receipt]
 EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
-EC_TOTAL_ENTRIES: [Number]
+EC_TOTAL_ENTRIES: [Count of ACTUAL TABLE ROWS]
 EXISTING_BANK: [Name of existing mortgagee bank from EC]
-RISK_SCORE: [0-100]
-RISK_CLASS: [LOW / MODERATE / HIGH / UNACCEPTABLE RISK]
-CONFIDENCE: [HIGH / MEDIUM / LOW / NO CONFIDENCE]
+RISK_LEVEL: [HIGH / MODERATE / LOW]
 MORTGAGEABILITY: [Mortgageable / Conditionally Mortgageable / Not Mortgageable]
 SARFAESI: [Enforceable / Conditionally Enforceable / Not Enforceable]
 LENDING_SUITABILITY: [Suitable / Conditionally Suitable / Not Suitable]
 ---END META---
 
-BALANCE TRANSFER MANDATORY:
+BALANCE TRANSFER CHECKLIST:
 1. Registered Sale Deed in favour of Current Owner = MANDATORY
-2. Registered Deed of Mortgage OR List of Documents (LOD) = trace from docs/EC
-3. EC will show existing mortgage — identify existing Bank + Deed No. + Date
-4. LOD from existing Bank = Pre-Disbursement | No-Due Certificate + Release Deed = Post-Disbursement
+2. Existing Mortgage Deed / LOD from existing Bank = trace from docs/EC
+3. EC will show existing mortgage — identify Bank + Deed No + Date
 
-PART XIII LEGAL OPINION (EXACT WORDING):
+PART VIII LEGAL OPINION (EXACT WORDING):
 "On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid subject to charge of [NAME OF EXISTING BANK] and after the execution and registration of deed of release of mortgage unto and in favour of [NAME OF CURRENT OWNER/BORROWER/MORTGAGOR] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt.
 The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.
 The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank subject to charge of [NAME OF EXISTING BANK]."`,
 
     seller_bt: `
 ═══ CASE: SELLER BT ═══
-Current owner has existing loan AND sells property to proposed purchaser. TWO simultaneous transactions.
+Current owner has existing loan AND sells to proposed purchaser. TWO simultaneous transactions.
 
 ---META---
-APPLICANT: [Proposed purchaser — from Draft Deed/Banakhat — Second Party/Buyer]
+APPLICANT: [Proposed purchaser — from Draft Deed/Banakhat — Buyer side]
 CO_APPLICANT: [Full names or N/A]
-APPLICANT_CONSTITUTION: [Individual / Partnership Firm / Private Ltd / Public Ltd / HUF / Trust]
-MORTGAGOR: [Proposed purchaser — same as applicant]
-MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
-PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
-PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
-CURRENT_OWNER: [Seller — First Party in Draft Deed/Banakhat — ALL names individually]
+MORTGAGOR: [Same as Applicant]
+PROPERTY_PARA: [Full paragraph]
+PROPERTY_BOUNDARIES: [East: | West: | North: | South:]
+CURRENT_OWNER: [Seller — First Party in Draft Deed — ALL names individually]
 EC_APP_NUMBER: [E-Application Number from EC Receipt]
 EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
-EC_TOTAL_ENTRIES: [Number]
+EC_TOTAL_ENTRIES: [Count of ACTUAL TABLE ROWS]
 EXISTING_BANK: [Name of existing mortgagee bank from EC]
-RISK_SCORE: [0-100]
-RISK_CLASS: [LOW / MODERATE / HIGH / UNACCEPTABLE RISK]
-CONFIDENCE: [HIGH / MEDIUM / LOW / NO CONFIDENCE]
+RISK_LEVEL: [HIGH / MODERATE / LOW]
 MORTGAGEABILITY: [Mortgageable / Conditionally Mortgageable / Not Mortgageable]
 SARFAESI: [Enforceable / Conditionally Enforceable / Not Enforceable]
 LENDING_SUITABILITY: [Suitable / Conditionally Suitable / Not Suitable]
 ---END META---
 
-SELLER BT MANDATORY:
-1. Registered Sale Deed/Allotment/Share Certificate in favour of Current Owner = MANDATORY
+SELLER BT CHECKLIST:
+1. Registered Sale Deed in favour of Current Owner = MANDATORY
 2. Draft Sale Deed/Banakhat between owner and purchaser = MANDATORY
-3. Registered Deed of Mortgage OR LOD = trace from docs/EC
-4. FALSE DECLARATION: Banakhat says "no loan/charge" but EC shows mortgage = HIGH SEVERITY flag
-5. LOD + Foreclosure Letter = Pre-Disbursement | No-Due Certificate + Release Deed = Post-Disbursement
+3. FALSE DECLARATION: Banakhat says "no loan" but EC shows mortgage = HIGH ALERT
+4. Existing Mortgage / LOD from existing Bank = trace from docs/EC
 
-PART XIII LEGAL OPINION (EXACT WORDING):
+PART VIII LEGAL OPINION (EXACT WORDING):
 "On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid subject to charge of [NAME OF EXISTING BANK] and after the execution and registration of deed of release of mortgage unto and in favour of [NAME OF CURRENT OWNER/S] and after the execution and registration of sale deed unto and in favour of [NAME OF PROPOSED PURCHASER/S] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt.
 The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.
 The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank subject to charge of [NAME OF EXISTING BANK]."`,
@@ -623,31 +472,26 @@ Current owner seeks loan against own property. NO existing loan. NO property tra
 ---META---
 APPLICANT: [Current owner/borrower — full names individually]
 CO_APPLICANT: [Full names or N/A]
-APPLICANT_CONSTITUTION: [Individual / Partnership Firm / Private Ltd / Public Ltd / HUF / Trust]
 MORTGAGOR: [Same as Applicant]
-MORTGAGOR_CONSTITUTION: [Individual / Partnership Firm / etc.]
-PROPERTY_PARA: [Full paragraph — "Opinion on title and search in respect of..."]
-PROPERTY_BOUNDARIES: [East: [X] | West: [X] | North: [X] | South: [X]]
+PROPERTY_PARA: [Full paragraph]
+PROPERTY_BOUNDARIES: [East: | West: | North: | South:]
 CURRENT_OWNER: [Same as Applicant]
 EC_APP_NUMBER: [E-Application Number from EC Receipt]
 EC_DATE: [Date of EC print/application]
 EC_SEARCH_PERIOD: [From DD/MM/YYYY to DD/MM/YYYY]
-EC_TOTAL_ENTRIES: [Number]
-RISK_SCORE: [0-100]
-RISK_CLASS: [LOW / MODERATE / HIGH / UNACCEPTABLE RISK]
-CONFIDENCE: [HIGH / MEDIUM / LOW / NO CONFIDENCE]
+EC_TOTAL_ENTRIES: [Count of ACTUAL TABLE ROWS]
+RISK_LEVEL: [HIGH / MODERATE / LOW]
 MORTGAGEABILITY: [Mortgageable / Conditionally Mortgageable / Not Mortgageable]
 SARFAESI: [Enforceable / Conditionally Enforceable / Not Enforceable]
 LENDING_SUITABILITY: [Suitable / Conditionally Suitable / Not Suitable]
 ---END META---
 
-LAP MANDATORY:
-1. Registered Sale Deed/Allotment/Share Certificate in favour of Current Owner = MANDATORY
-2. EC shows ANY mortgage/Boja/charge = UNDISCLOSED MORTGAGE = HIGH SEVERITY immediate flag
-3. Original Registered Sale Deed unto Current Owner = Pre-Disbursement mandatory
-4. CERSAI Search confirming no prior charge = Pre-Disbursement mandatory
+LAP CHECKLIST:
+1. Registered Sale Deed in favour of Current Owner = MANDATORY
+2. EC shows ANY mortgage/charge = UNDISCLOSED MORTGAGE = HIGH ALERT
+3. CERSAI Search = Pre-Disbursement mandatory
 
-PART XIII LEGAL OPINION (EXACT WORDING):
+PART VIII LEGAL OPINION (EXACT WORDING):
 "On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and He/She/They have/has legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt.
 The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.
 The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank."`,
@@ -663,67 +507,68 @@ function parseMeta(text: string) {
   const g = (k: string) => b.match(new RegExp(`^${k}:\\s*(.+)$`, 'mi'))?.[1]?.trim() || ''
   return {
     applicant: g('APPLICANT'), coApplicant: g('CO_APPLICANT'),
-    applicantConstitution: g('APPLICANT_CONSTITUTION'),
-    mortgagor: g('MORTGAGOR'), mortgagorConstitution: g('MORTGAGOR_CONSTITUTION'),
+    mortgagor: g('MORTGAGOR'),
     propertyPara: g('PROPERTY_PARA'), propertyBoundaries: g('PROPERTY_BOUNDARIES'),
     currentOwner: g('CURRENT_OWNER'),
     ecAppNumber: g('EC_APP_NUMBER'),
     ecDate: g('EC_DATE'), ecSearchPeriod: g('EC_SEARCH_PERIOD'), ecTotalEntries: g('EC_TOTAL_ENTRIES'),
     existingBank: g('EXISTING_BANK'),
-    riskScore: g('RISK_SCORE'), riskClass: g('RISK_CLASS'),
-    confidence: g('CONFIDENCE'), mortgageability: g('MORTGAGEABILITY'),
+    riskLevel: g('RISK_LEVEL'),
+    mortgageability: g('MORTGAGEABILITY'),
     sarfaesi: g('SARFAESI'), lendingSuitability: g('LENDING_SUITABILITY'),
   }
 }
 
 // ================================================================
-// LAYER 4 — REPORT GENERATOR — 4 PARALLEL CALLS (Pure HTML)
+// LAYER 4 — REPORT GENERATOR — 4 PARALLEL CALLS
+// 11-PART STRUCTURE AS PER MANUAL (Prompt 6)
+// L4A: PART I + II + III
+// L4B: PART IV + V
+// L4C: PART VI + VII + VIII
+// L4D: PART IX + X + XI
 // ================================================================
 
-// ── 3A: PART I + II + III ──────────────────────────────────────
-const L4A = `You are the Legal Report Generator — Layer 4. Generate HTML for PART I, PART II, PART III.
-⚠️ OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---. NO pipes.
+// ── L4A: PART I (Borrower/Mortgagor/Ownership) + PART II (Property) + PART III (Documents) ──
+const L4A = `You are Layer 4 — Legal Report Generator. Generate HTML for PART I, PART II, PART III.
+OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---. NO pipes.
 
 ═══════════════════════════════════════════════════════
-PART I — BORROWER / MORTGAGOR DETAILS
+PART I — BORROWER DETAILS / MORTGAGOR DETAILS / CURRENT OWNERSHIP
+(from Manual Prompt 6)
 ═══════════════════════════════════════════════════════
-<hr><div class="ph">PART I — BORROWER / MORTGAGOR DETAILS</div>
+<hr><div class="ph">PART I — BORROWER DETAILS / MORTGAGOR DETAILS / CURRENT OWNERSHIP</div>
 
-<div class="sph">A. Name and Address of Borrower/s</div>
+<div class="sph">A. Borrower Details</div>
 <table class="mt">
   <tr><td>Name of Borrower/s</td><td>:</td><td>[Full name/s — every person individually — NEVER "and others"]</td></tr>
-  <tr><td>Address of Borrower/s</td><td>:</td><td>[Address as per documents]</td></tr>
+  <tr><td>Co-Borrower/Co-Applicant</td><td>:</td><td>[Full name/s or "Not Applicable"]</td></tr>
+  <tr><td>Address</td><td>:</td><td>[Address as per documents]</td></tr>
+  <tr><td>Constitution</td><td>:</td><td>[Individual / Partnership Firm / Private Ltd / HUF / Trust / Society]</td></tr>
 </table>
 
-<div class="sph">B. Constitution of Borrower/s</div>
-<table class="mt">
-  <tr><td>Constitution</td><td>:</td><td>[Individual / Partnership Firm / Private Limited Company / Public Limited Company / HUF / Trust / Society / Co-operative Housing Society]</td></tr>
-</table>
-
-<div class="sph">C. Name and Address of Mortgagor/s</div>
+<div class="sph">B. Mortgagor Details</div>
 <table class="mt">
   <tr><td>Name of Mortgagor/s</td><td>:</td><td>[Full names — if same as borrower write "Same as Borrower/s above"]</td></tr>
-  <tr><td>Address of Mortgagor/s</td><td>:</td><td>[Address — if same write "Same as above"]</td></tr>
+  <tr><td>Address</td><td>:</td><td>[if same write "Same as above"]</td></tr>
+  <tr><td>Constitution</td><td>:</td><td>[Individual / Partnership Firm / etc.]</td></tr>
 </table>
 
-<div class="sph">D. Constitution of Mortgagor/s</div>
-<table class="mt">
-  <tr><td>Constitution</td><td>:</td><td>[Individual / Partnership Firm / Private Ltd / etc.]</td></tr>
-</table>
-
-<div class="sph">E. Current Owner/s of the Property</div>
+<div class="sph">C. Current Ownership</div>
 <table class="mt">
   <tr><td>Current Owner/s</td><td>:</td><td>[Full name/s individually — from latest deed — NEVER "and others"]</td></tr>
+  <tr><td>Mode of Acquisition</td><td>:</td><td>[Registered Sale Deed / Allotment / Gift Deed / etc.]</td></tr>
+  <tr><td>Registration Details</td><td>:</td><td>[Deed No., Date, SRO]</td></tr>
 </table>
 
 ═══════════════════════════════════════════════════════
-PART II — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES
+PART II — PROPERTY DESCRIPTION
+(from Manual Prompt 6)
 ═══════════════════════════════════════════════════════
-<hr><div class="ph">PART II — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>
+<hr><div class="ph">PART II — PROPERTY DESCRIPTION</div>
 
-PROPERTY DESCRIPTION MUST BE IN PARAGRAPH FORMAT:
-<div class="prop-para">Opinion on title and search in respect of immovable property bearing [Flat/Unit/Shop/Plot/Sub-Plot/Office] No. [Unit No.] on [Floor Number] Floor having Carpet Area admeasuring [Carpet Area] Sq. Mtrs., along with Balcony area admeasuring [Balcony Area] Sq. Mtrs. and Wash area admeasuring [Wash Area] Sq. Mtrs. together with undivided proportionate share area admeasuring [UDS Area] Sq. Mtrs. in the scheme known as "[Scheme Name]" constructed over Non-Agricultural land bearing Final Plot No. [FP No.] of T.P. Scheme No. [TP No.] allotted in lieu of Revenue/Block/Survey/City Survey No. [Survey No.], situate lying and being at Mouje: [Village Name], Taluka: [Taluka Name], District [District Name].</div>
+<div class="prop-para">[Full paragraph format: "Opinion on title and search in respect of immovable property bearing [Flat/Unit/Shop/Plot/Sub-Plot/Office] No. [Unit No.] on [Floor Number] Floor having Carpet Area admeasuring [Carpet Area] Sq. Mtrs., along with Balcony area admeasuring [Balcony Area] Sq. Mtrs. and Wash area admeasuring [Wash Area] Sq. Mtrs. together with undivided proportionate share area admeasuring [UDS Area] Sq. Mtrs. in the scheme known as "[Scheme Name]" constructed over Non-Agricultural land bearing Final Plot No. [FP No.] of T.P. Scheme No. [TP No.] allotted in lieu of Revenue/Block/Survey/City Survey No. [Survey No.], situate lying and being at Mouje: [Village Name], Taluka: [Taluka Name], District [District Name]."]</div>
 
+<div class="sph">Property Boundaries</div>
 <table class="mt">
   <tr><td>East (Purva)</td><td>:</td><td>[East boundary]</td></tr>
   <tr><td>West (Pashchim)</td><td>:</td><td>[West boundary]</td></tr>
@@ -732,275 +577,285 @@ PROPERTY DESCRIPTION MUST BE IN PARAGRAPH FORMAT:
 </table>
 
 ═══════════════════════════════════════════════════════
-PART III — LIST OF SCRUTINISED DOCUMENTS
+PART III — LIST OF SCRUTINIZED DOCUMENTS
+(from Manual Prompt 6 — NO ILLEGIBILITY REMARKS)
 ═══════════════════════════════════════════════════════
-CRITICAL RULE FOR PART III:
-Include ALL submitted/uploaded documents — even those that are illegible, blank, or incomplete.
-But DO NOT write remarks like "ILLEGIBLE", "BLANK", "NOT PROVIDED FOR VERIFICATION" in Part III.
-Simply list the document with its basic details. Remarks about illegibility go ONLY in Part VIII.
+CRITICAL MANUAL RULE: Include ALL submitted/uploaded documents.
+DO NOT write remarks like "ILLEGIBLE", "BLANK", "NOT PROVIDED FOR VERIFICATION" in Part III.
+Simply list every document with its basic details. Illegibility remarks go ONLY in Part VI Alerts.
+NEVER list Mutation Entries in Part III. NEVER mention Stamp Paper No. / Stamp Duty / Registration Fees.
+Latest document FIRST. Oldest LAST.
 
-Latest document FIRST. Oldest LAST. Never include Mutation Entries. Never mention Stamp Paper No. / Stamp Duty / Registration Fees.
+<hr><div class="ph">PART III — LIST OF SCRUTINIZED DOCUMENTS</div>
 
 FORMAT FOR EACH DOCUMENT:
 <div class="di">
   <p><span class="dn">N. [Document Type/Name] — Reg. No. / Sr. No. [X] | Dated: [DD-MM-YYYY]</span><br>
-  [Executant/Aapnar name/s individually] unto and in favour of [Claimant/Lenar name/s individually]. [SRO name if registration document.] [2-3 sentences of key observation — no illegibility remarks.]</p>
+  [Executant/Aapnar name/s individually] unto and in favour of [Claimant/Lenar name/s individually]. [SRO name if registration document.] [2-3 sentences of key observation — NO illegibility remarks.]</p>
 </div>
 
-EC FORMAT IN PART III (include always):
+EC FORMAT IN PART III:
 <div class="di">
-  <p><span class="dn">N. Encumbrance Certificate (EC) — Application Date: [DD-MM-YYYY] | Search Period: [From DD/MM/YYYY to DD/MM/YYYY]</span><br>
-  EC obtained by Advocate [Name/Not stated] for search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [COUNT] registered transaction/s for the subject property as under:<br>
-  Entry 1: [Type of deed] — Deed No. [X] dated [DD/MM/YYYY] — Executing Party (Aapnar): [Full name/s] — Claimant Party (Lenar): [Full name/s or Bank name] — Status: [Active / Discharged vide Release Deed No. X dated DD/MM/YYYY].<br>
-  [Repeat for each entry — every entry individually listed]</p>
+  <p><span class="dn">N. Encumbrance Certificate (EC) — Application No.: [EC_APP_NUMBER] | Application Date: [DD-MM-YYYY] | Search Period: [From DD/MM/YYYY to DD/MM/YYYY]</span><br>
+  EC obtained for search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [COUNT] registered transaction/s for the subject property as under:<br>
+  Entry 1: [English Type of deed] — Deed No. [X] dated [DD/MM/YYYY] — Executing Party (Aapnar): [Full name/s] — Claimant Party (Lenar): [Full name/s or Bank name] — Status: [Active / Discharged vide Release Deed No. X dated DD/MM/YYYY].<br>
+  [Repeat for EVERY ACTUAL ROW — every entry individually listed — NEVER Col 7 — NEVER EC Applicant]</p>
 </div>
 
-RULES: NEVER "and others". EC Applicant = IGNORE. "Banakhat Kabja Vagar" = Agreement to Sale Without Possession.
-START: <hr><div class="ph">PART I — BORROWER / MORTGAGOR DETAILS</div>
+Revenue Record / 7-12 / Mutation Format:
+<div class="di">
+  <p><span class="dn">N. Village Form No. 7/12 / Revenue Record — Survey/Block No. [X] | Village: [Name] | Taluka: [Name] | District: [Name]</span><br>
+  Land use: [Bin Kheti/Non-Agricultural]. [2-3 sentences of key details — ownership column, boja, tenancy.]</p>
+</div>
+
+RULES: NEVER "and others". NEVER EC Col 7. NEVER EC Applicant name. "Banakhat Kabja Vagar" = Agreement to Sale Without Possession.
+START: <hr><div class="ph">PART I — BORROWER DETAILS / MORTGAGOR DETAILS / CURRENT OWNERSHIP</div>
 END after Part III last document entry.`
 
-// ── 3B: PART IV + V + VI + VII ────────────────────────────────
-const L4B = `You are the Legal Report Generator — Layer 4. Generate HTML for PART IV, PART V, PART VI, PART VII.
-⚠️ OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---.
+// ── L4B: PART IV (Title Chain) + PART V (Approvals) ──────────
+const L4B = `You are Layer 4 — Legal Report Generator. Generate HTML for PART IV and PART V.
+OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---.
 
-═══ PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY ═══
-<hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
+═══════════════════════════════════════════════════════
+PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY
+(from Manual Prompts 3 & 6)
+═══════════════════════════════════════════════════════
+CRITICAL: Start from EARLIEST available record — original agricultural landowner from 7/12/FERFAR.
+DO NOT start from builder or recent sale deed. Go to the ORIGIN.
 
-RULES:
-1. Oldest to newest — always
-2. FIRST paragraph: NO "Thereafter" — begin with earliest title holder
-3. EVERY subsequent paragraph: MUST start with "Thereafter,"
+Identify all title events (from Manual Prompt 3):
+Sale Deed | Gift Deed | Exchange Deed | Settlement Deed | Partition Deed | Trust Deed
+Mortgage Deed | Release of Mortgage | Development Agreement | Court Decree | Will | Succession
+For each event: verify Previous Owner → Transfer Document → Current Owner
+If any link missing → FLAG: TITLE BREAK (Severity: CRITICAL)
+
+PART IV RULES:
+1. OLDEST event FIRST — NEWEST LAST (chronological)
+2. First paragraph: NO "Thereafter" — begin with earliest traceable record
+3. Every subsequent paragraph: MUST start with "Thereafter,"
 4. NEVER "and others" — every person individually
 5. EC-confirmed deeds (copy not submitted): include naturally — no remark, no flag
-6. End each transfer paragraph: mention Mutation Entry No. + date if available
-7. For Builder Purchase: last paragraph = Draft Sale Deed/Banakhat/Allotment between Builder and purchaser
-8. Mortgage entries: separate paragraph with discharge status
-9. Translate ALL Gujarati terms to English
+6. End each transfer paragraph: Mutation Entry No + date if available
+7. Mortgage entries: include with discharge status
+8. Translate ALL Gujarati terms to English
+9. If earliest record not traceable: "The history of the subject land prior to [date] could not be traced."
 
-FIRST PARAGRAPH FORMAT:
-<p>[Earliest holder name/s] [acquired/held] the subject property [how acquired — original allotment / agricultural landowner / government allotment etc.]. [Deed type, No., Date if applicable. Amount if known.] Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+<hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 
-SUBSEQUENT PARAGRAPHS:
-<p>Thereafter, [Seller full name/s] transferred the subject property to [Buyer full name/s] vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO Name] for a consideration of Rs. [Amount]. Entry to that effect was recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+FIRST PARAGRAPH (NO "Thereafter"):
+<p>As per the revenue records produced, the subject land bearing [Survey/Block No.], Village [Name], Taluka [Name], District [Name] was originally held by [Original Owner full name/s] as [tenure type] as evidenced by [earliest Ferfar entry / Village Form 7/12 / government records]. [Any relevant details.] Entry to that effect recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
+
+SUBSEQUENT PARAGRAPHS (always start "Thereafter,"):
+<p>Thereafter, [Seller full name/s] transferred the subject property to [Buyer full name/s] vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO Name] for a consideration of Rs. [Amount]. Entry to that effect recorded in revenue records vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
 
 MORTGAGE PARAGRAPH:
-<p>Thereafter, [Mortgagor full name/s] created a mortgage over the subject property in favour of [Bank/Mortgagee full name] vide Registered Mortgage Deed bearing Registration No. [X] dated [DD/MM/YYYY] registered at SRO [Name]. [The said mortgage stands discharged vide Registered Release Deed No. [X] dated [DD/MM/YYYY] / The said mortgage is subsisting and active as on the date of this report — no Release Deed produced.]</p>
+<p>Thereafter, [Mortgagor full name/s] created a mortgage over the subject property in favour of [Bank full name] vide Registered Mortgage Deed bearing Registration No. [X] dated [DD/MM/YYYY] at SRO [Name]. [The said mortgage stands discharged vide Registered Release Deed No. [X] dated [DD/MM/YYYY] — no subsisting charge remains. / The said mortgage is subsisting and active as on the date of this report — no Release Deed produced.]</p>
 
 FINAL PARAGRAPH:
-<p>Thereafter, [Current Owner full name/s] holds the right, title and interest in the subject property as the present registered owner/s as confirmed by the Encumbrance Certificate dated [EC Date] covering search period from [From] to [To] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [Encumbrance status — no subsisting charge / subject to existing charge of {Bank}.]</p>
+<p>Thereafter, [Current Owner full name/s] holds the right, title and interest in the subject property as the present registered owner/s as confirmed by the Encumbrance Certificate bearing E-Application No. [EC_APP_NUMBER] dated [EC Date] covering search period from [From] to [To] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [Encumbrance status — no subsisting charge / subject to existing charge of {Bank}.]</p>
 
-═══ PART V — REVENUE RECORD ANALYSIS ═══
-<hr><div class="ph">PART V — REVENUE RECORD ANALYSIS</div>
+═══════════════════════════════════════════════════════
+PART V — APPROVALS AND REGULATORY COMPLIANCE
+(from Manual Prompt 6)
+═══════════════════════════════════════════════════════
+<hr><div class="ph">PART V — APPROVALS AND REGULATORY COMPLIANCE</div>
 
-For each 7/12 / Village Form / Property Card submitted:
-<div class="sph">Village Form No. 7/12 — Survey / Block No. [X]</div>
+For each Revenue Record submitted:
+<div class="sph">Revenue Record Analysis — Village Form No. 7/12</div>
 <table class="mt">
   <tr><td>Village (Mouje)</td><td>:</td><td>[Name]</td></tr>
   <tr><td>Taluka</td><td>:</td><td>[Name]</td></tr>
   <tr><td>District</td><td>:</td><td>[Name]</td></tr>
   <tr><td>Survey / Block No.</td><td>:</td><td>[Number]</td></tr>
-  <tr><td>Total Area (H.Are.SqMt.)</td><td>:</td><td>[Area in Hectares / Are / Sq.Mtrs.]</td></tr>
-  <tr><td>Land Use (Jaminno Upyog)</td><td>:</td><td>[Bin Kheti (Non-Agricultural) / Kheti (Agricultural) — flag if Agricultural]</td></tr>
-  <tr><td>Ownership Column (Kashedari)</td><td>:</td><td>[Names as recorded in 7/12]</td></tr>
-  <tr><td>Boja / Encumbrance (in 7/12)</td><td>:</td><td>[NIL / Details of Boja if any]</td></tr>
-  <tr><td>Ganot / Tenant (Khaate)</td><td>:</td><td>[NIL / Name — flag if any tenant recorded]</td></tr>
-  <tr><td>Remarks</td><td>:</td><td>[Any special observation]</td></tr>
+  <tr><td>Total Area</td><td>:</td><td>[H.Are.SqMt.]</td></tr>
+  <tr><td>Land Use</td><td>:</td><td>[Bin Kheti / Non-Agricultural — flag if Agricultural/Kheti]</td></tr>
+  <tr><td>Ownership Column</td><td>:</td><td>[Names as recorded — flag if current owner not reflected]</td></tr>
+  <tr><td>Boja / Encumbrance</td><td>:</td><td>[NIL / Details — cross-check with EC]</td></tr>
+  <tr><td>Ganot / Tenant</td><td>:</td><td>[NIL / Name — flag if tenancy recorded]</td></tr>
 </table>
-[Repeat for each 7/12 submitted]
-[If no revenue record submitted: <p>No revenue records (Village Form 7/12, AnyRoR, Property Card, Satbara Utara) have been submitted for verification. Verification of land use classification, ownership recording, and absence of tenancy rights could not be completed from the copies produced. NOT PROVIDED FOR VERIFICATION.</p>]
 
-═══ PART VI — MUTATION ENTRY ANALYSIS ═══
-<hr><div class="ph">PART VI — MUTATION ENTRY ANALYSIS</div>
-
-<p>Mutation / Ferfar entries recorded in revenue records for the subject survey/block number for the last [X] years are as under (chronological — Earlier to Present):</p>
-
+<div class="sph">Mutation Entries — Chronological (Earlier to Present)</div>
 <table class="mut-tbl">
-  <tr>
-    <th>Sr.</th><th>Entry No.</th><th>Entry Date</th><th>Status</th><th>Nature of Entry</th><th>Details</th><th>Survey/Block No.</th>
-  </tr>
-  [One row per mutation entry]
-  <tr><td>[N]</td><td>[Entry No.]</td><td>[DD/MM/YYYY]</td><td>[Certified/Rejected]</td><td>[NA / Death / Transfer / Partition / Court Order / etc.]</td><td>[Brief details from Col 2]</td><td>[Survey No. if relevant to subject property — blank if not relevant]</td></tr>
+  <tr><th>Sr.</th><th>Entry No.</th><th>Entry Date</th><th>Status</th><th>Nature of Entry</th><th>Details</th><th>Survey No.</th></tr>
+  [One row per mutation entry for subject property]
 </table>
+<p>[Cross-check: EC entries vs Mutation entries — any discrepancy?]</p>
 
-<p>[Cross-check observation: Are all EC entries reflected in mutation entries? Are all mutation entries consistent with registered documents? Any discrepancy?]</p>
-[If no mutation entries: <p>Ferfar / Mutation entries for the subject survey/block number have not been submitted for verification. NOT PROVIDED FOR VERIFICATION.</p>]
-
-═══ PART VII — ENCUMBRANCE ANALYSIS ═══
-<hr><div class="ph">PART VII — ENCUMBRANCE ANALYSIS</div>
-
-<p>Encumbrance Certificate (EC) obtained bearing Application Date [EC Date] for search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [TOTAL COUNT] registered transaction/s for the subject property as under:</p>
-
-<table class="ec-tbl">
-  <tr>
-    <th>Sr.</th><th>Type of Deed</th><th>Deed No.</th><th>Date</th><th>Executing Party (Aapnar)</th><th>Claimant Party (Lenar)</th><th>Status</th>
-  </tr>
-  [One row per EC entry]
-  <tr><td>[N]</td><td>[Sale/Mortgage/Release/AoS]</td><td>[Reg. No.]</td><td>[DD/MM/YYYY]</td><td>[Full name/s individually]</td><td>[Full name/s or Bank]</td><td>[Active / Discharged vide No. X dated DD/MM/YYYY]</td></tr>
-</table>
-
-<p>[EC cross-check observation: Total entries found. Cross-check with registered documents and mutation entries. Any discrepancy between EC and FERFAR? Any entry within last 60 days? Any active undischarged mortgage?]</p>
-[If no EC: <p>Encumbrance Certificate has not been submitted for verification. Verification of encumbrances and registered transactions for the subject property could not be completed. NOT PROVIDED FOR VERIFICATION.</p>]
-
-START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
-END after Part VII.`
-
-// ── 3C: PART VIII + IX + X + XI + XII ────────────────────────
-const L4C = `You are the Legal Report Generator — Layer 4. Generate HTML for PART VIII, PART IX, PART X, PART XI, PART XII.
-⚠️ OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---.
-
-═══ PART VIII — APPROVALS AND REGULATORY COMPLIANCE ═══
-<hr><div class="ph">PART VIII — APPROVALS AND REGULATORY COMPLIANCE</div>
-
-CRITICAL RULE: Documents that are illegible, blank, or incomplete should be mentioned here WITH remarks.
-State each approval individually — "Provided and verified" OR "NOT PROVIDED FOR VERIFICATION."
-
+<div class="sph">Regulatory Approvals</div>
 <table class="mt">
   <tr><td>NA Order / Land Use Conversion</td><td>:</td><td>[Order No., date, authority — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
   <tr><td>Development Permission / Rajachitthi</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
   <tr><td>Sanctioned Building Plan</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
-  <tr><td>Commencement Certificate / Bandhakam Parvangi</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
-  <tr><td>RERA Registration</td><td>:</td><td>[RERA No., developer, date — OR "NOT PROVIDED FOR VERIFICATION." — Post May 2017 projects: MANDATORY]</td></tr>
+  <tr><td>Commencement Certificate</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
+  <tr><td>RERA Registration</td><td>:</td><td>[RERA No., developer, date — OR "NOT PROVIDED FOR VERIFICATION." — Post May 2017: MANDATORY]</td></tr>
   <tr><td>Fire NOC</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
-  <tr><td>Airport Authority of India NOC</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION." — flag if North boundary shows Airport]</td></tr>
+  <tr><td>Airport Authority NOC</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
   <tr><td>BU Permission / Occupancy Certificate</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
+  <tr><td>Completion Certificate</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
   <tr><td>Environmental Clearance</td><td>:</td><td>[Details — OR "NOT PROVIDED FOR VERIFICATION."]</td></tr>
 </table>
 
-[If any submitted document is illegible/blank — mention it here:
-<p>The following submitted document/s could not be read/verified: [Document name/s] — certain portions / entire document is illegible / blank. Independent verification of the contents of these documents has not been possible from the copies produced. Legible certified copies are required.</p>]
+<div class="sph">Encumbrance Certificate Analysis</div>
+<p>Encumbrance Certificate bearing E-Application No. [EC_APP_NUMBER] dated [EC Date] covering search period from [From Date] to [To Date] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. The EC discloses [TOTAL COUNT] registered transaction/s for the subject property:</p>
+<table class="ec-tbl">
+  <tr><th>Sr.</th><th>Type of Deed (English)</th><th>Deed No.</th><th>Date</th><th>Executing Party (Aapnar)</th><th>Claimant Party (Lenar)</th><th>Status</th></tr>
+  [One row per ACTUAL EC table row — NEVER Col 7 — translate Gujarati type to English]
+</table>
+<p>[EC cross-check: Total rows found. Discrepancy with Mutation/Documents? Entry within last 60 days? Active undischarged mortgage?]</p>
 
-═══ PART IX — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS ═══
-<hr><div class="ph">PART IX — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS</div>
-<p>The following issues have been identified during 15-stage title verification using 4-Layer AI Engine. HIGH SEVERITY issues are conditions precedent to sanction or disbursement. Bank shall not proceed where CRITICAL / HIGH SEVERITY issues remain unresolved.</p>
+START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
+END after Part V last table.`
 
-HIGH SEVERITY FORMAT:
+// ── L4C: PART VI (Alerts) + PART VII (Deficiency) + PART VIII (Legal Opinion) ──
+const L4C = `You are Layer 4 — Legal Report Generator. Generate HTML for PART VI, PART VII, PART VIII.
+OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---.
+
+═══════════════════════════════════════════════════════
+PART VI — ALERTS
+(from Manual Prompt 6 — Issues, Objections, Adverse Findings)
+═══════════════════════════════════════════════════════
+<hr><div class="ph">PART VI — ALERTS</div>
+<p>The following alerts and legal issues have been identified during 4-Layer AI title verification. HIGH severity alerts are conditions precedent to sanction or disbursement.</p>
+
+HIGH SEVERITY ALERT FORMAT (use for: Title Break, Active Mortgage, Court Order, Missing Mandatory Doc, False Declaration):
 <div class="ib">
   <div><span class="sh">HIGH SEVERITY</span></div>
-  <div class="it">N. [Specific Issue Title — max 10 words]</div>
-  <p>[Finding — exact reg nos, dates, party names — 3-4 sentences. Why legally material. What specific bank risk.]</p>
-  <p><span class="sg">Direction:</span> [Specific document required — exact name — from whom — by when — what action.]</p>
+  <div class="it">N. [Specific Alert Title — max 10 words]</div>
+  <p>[Finding — exact deed nos, dates, party names — 3-4 sentences. Why legally material. What bank risk.]</p>
+  <p><span class="sg">Direction:</span> [Specific document / action required — from whom — by when.]</p>
 </div>
 
-MEDIUM SEVERITY:
+MEDIUM SEVERITY FORMAT (use for: Missing Permissions, Mutation Pending, EC Short Period, Co-owner Issues):
 <div class="ib">
   <div><span class="sm">MEDIUM SEVERITY</span></div>
-  <div class="it">N. [Issue Title]</div>
+  <div class="it">N. [Alert Title]</div>
   <p>[Finding — 2-3 sentences.]</p>
-  <p><span class="sg">Direction:</span> [Specific steps.]</p>
+  <p><span class="sg">Direction:</span> [Steps.]</p>
 </div>
 
-LOW SEVERITY:
+LOW SEVERITY FORMAT (use for: Minor Deficiencies, Clerical Observations):
 <div class="ib">
   <div><span class="sl">LOW SEVERITY</span></div>
-  <div class="it">N. [Issue Title]</div>
+  <div class="it">N. [Alert Title]</div>
   <p>[Finding — 1-2 sentences.]</p>
   <p><span class="sg">Direction:</span> [Steps.]</p>
 </div>
 
-NEVER FLAG:
-- EC-confirmed deeds where deed copy not submitted (include naturally in chain — not an issue)
-- EC Applicant name (zero property interest — not an issue)
-- Stamp Paper numbers or stamp duty amounts
+NEVER FLAG in Part VI:
+- EC-confirmed deeds where deed copy not submitted (include naturally in Part IV chain — not an alert)
+- EC Applicant name (zero property interest)
+- Stamp Paper numbers
 
-═══ PART X — DOCUMENT DEFICIENCY REPORT ═══
-<hr><div class="ph">PART X — DOCUMENT DEFICIENCY REPORT</div>
+ALSO include illegibility remarks here:
+[If any submitted document is illegible/blank: <p>The following submitted document/s could not be verified: [Document name/s] — certain portions are illegible. Legible certified copies are required for complete verification.</p>]
+
+If NO issues found: <p>No adverse findings or title alerts identified on examination of the documents produced for verification. The title appears clear from the documents produced.</p>
+
+═══════════════════════════════════════════════════════
+PART VII — DOCUMENT DEFICIENCY REPORT
+(from Manual Prompt 6)
+═══════════════════════════════════════════════════════
+<hr><div class="ph">PART VII — DOCUMENT DEFICIENCY REPORT</div>
 
 <div class="sph">A. Documents Submitted and Available for Verification</div>
 <ol>[List all submitted documents that are readable and verifiable]</ol>
 
 <div class="sph">B. Documents Not Submitted (Expected but Absent)</div>
-<ol>[List each mandatory missing document — OR "NIL — All expected documents have been produced."]</ol>
+<ol>[List each mandatory missing document with reason it is required — OR "NIL — All expected documents have been produced."]</ol>
 
-<div class="sph">C. Submitted Documents That Are Illegible / Incomplete / Blank</div>
-<ol>[List documents that were submitted but cannot be read — OR "NIL."]</ol>
+<div class="sph">C. Submitted Documents That Are Illegible / Incomplete</div>
+<ol>[List documents submitted but cannot be read — OR "NIL."]</ol>
 
-═══ PART XI — MORTGAGEABILITY ASSESSMENT ═══
-<hr><div class="ph">PART XI — MORTGAGEABILITY ASSESSMENT</div>
+<div class="sph">D. Mortgageability & Risk Assessment</div>
+<p><strong>Mortgageability:</strong> [Mortgageable / Conditionally Mortgageable / Not Mortgageable]</p>
+<p><strong>SARFAESI Enforceability:</strong> [Enforceable / Conditionally Enforceable / Not Enforceable]</p>
+<p><strong>Lending Suitability:</strong> [Suitable / Conditionally Suitable / Not Suitable]</p>
+<p><strong>Security Coverage Adequacy:</strong> [Adequate / Conditional / Inadequate]</p>
+<p><strong>Risk Level:</strong> [HIGH / MODERATE / LOW]</p>
+<p><strong>Reasoning:</strong> [Brief specific explanation — 2-3 sentences]</p>
 
-<div class="morta-box">
-  <p><strong>Mortgageability:</strong> [Mortgageable / Conditionally Mortgageable / Not Mortgageable]</p>
-  <p><strong>SARFAESI Enforceability:</strong> [Enforceable / Conditionally Enforceable / Not Enforceable]</p>
-  <p><strong>Lending Suitability:</strong> [Suitable / Conditionally Suitable / Not Suitable]</p>
-  <p><strong>Security Coverage Adequacy:</strong> [Adequate / Conditional / Inadequate]</p>
-  <p><strong>Reasoning:</strong> [Brief but specific explanation — why mortgageable or conditions or why not — 3-4 sentences]</p>
-</div>
+═══════════════════════════════════════════════════════
+PART VIII — LEGAL OPINION
+(from Manual Prompt 6)
+═══════════════════════════════════════════════════════
+<hr><div class="ph">PART VIII — LEGAL OPINION</div>
 
-═══ PART XII — RISK RATING ═══
-<hr><div class="ph">PART XII — RISK RATING</div>
+Use EXACT case-specific wording from Layer 2+3 analysis. Fill actual names.
 
-<div class="risk-box">
-  <div class="risk-title">4-Layer AI Risk Assessment Engine</div>
-  <p><strong>Total Risk Score:</strong> <span class="risk-score risk-[low/mod/high]">[SCORE]/100</span></p>
-  <p><strong>Risk Classification:</strong> [LOW RISK (0-25) / MODERATE RISK (26-50) / HIGH RISK (51-75) / UNACCEPTABLE RISK (76+)]</p>
-  <p><strong>Confidence Level:</strong> [HIGH / MEDIUM / LOW / NO CONFIDENCE]</p>
-  <p><strong>Primary Risk Factors Contributing to Score:</strong></p>
-  <ol>
-    <li>[Risk factor 1 — issue name and score e.g. "Missing Title Deed = 100"]</li>
-    <li>[Risk factor 2 — if any]</li>
-    <li>[Risk factor 3 — if any]</li>
-  </ol>
-</div>
-
-START: <hr><div class="ph">PART VIII — APPROVALS AND REGULATORY COMPLIANCE</div>
-END after Part XII risk-box closing div.`
-
-// ── 3D: PART XIII + XIV + XV + XVI ────────────────────────────
-const L4D = `You are the Legal Report Generator — Layer 4. Generate HTML for PART XIII, PART XIV, PART XV, PART XVI.
-⚠️ OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---.
-
-═══ PART XIII — LEGAL OPINION AND FINAL RECOMMENDATION ═══
-<hr><div class="ph">PART XIII — LEGAL OPINION AND FINAL RECOMMENDATION</div>
-
-DO NOT include paragraph starting "This opinion pertains to..." — NOT REQUIRED.
-Use EXACT case-specific wording provided in Layer 2+3 analysis. Fill actual names.
-
-<p>[Exact legal opinion paragraph with actual names of current owner/builder and proposed purchaser/mortgagor filled in]</p>
+<p>[Exact legal opinion paragraph — fill actual names of builder/owner and proposed purchaser/mortgagor]</p>
 <p>The said immovable property is/will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.</p>
-<p>The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank[subject to charge of {existing bank} if applicable].</p>
+<p>The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank[subject to charge of {existing bank} if BT/Seller BT].</p>
 
-VERDICT BOX (choose one based on issues found):
-NOT CLEAR:
-<div class="vnc"><div class="vt" style="color:#b91c1c;">TITLE NOT CLEAR — BANK SHOULD NOT PROCEED</div><p style="margin-top:8px;font-size:12px;">[Number] HIGH SEVERITY issue/s identified. Primary concerns: [list top 3 issues briefly]. Bank must not proceed until ALL HIGH SEVERITY issues are fully resolved.</p></div>
+VERDICT BOX (choose one):
+NOT CLEAR: <div class="vnc"><div class="vt" style="color:#b91c1c;">TITLE NOT CLEAR — BANK SHOULD NOT PROCEED</div><p style="margin-top:8px;font-size:12px;">[N] HIGH SEVERITY alert/s identified. Primary concerns: [list top issues briefly]. Bank must not proceed until ALL HIGH SEVERITY alerts are fully resolved.</p></div>
+CLEAR SUBJECT TO: <div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p style="margin-top:8px;font-size:12px;">Title is marketable and mortgageable subject to: [list specific conditions].</p></div>
+CLEAR: <div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p style="margin-top:8px;font-size:12px;">Title is clear, marketable and mortgageable. [Brief reason.]</p></div>
 
-CLEAR SUBJECT TO CONDITIONS:
-<div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p style="margin-top:8px;font-size:12px;">Title is marketable and mortgageable subject to: [list specific conditions — each condition one line].</p></div>
+START: <hr><div class="ph">PART VI — ALERTS</div>
+END after Part VIII verdict box closing div.`
 
-CLEAR AND MARKETABLE:
-<div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p style="margin-top:8px;font-size:12px;">Title is clear, marketable and mortgageable. [Brief reason why clear — 1-2 sentences.]</p></div>
+// ── L4D: PART IX (Pre-Disbursement) + PART X (Post-Disbursement) + PART XI (Final Recommendation) ──
+const L4D = `You are Layer 4 — Legal Report Generator. Generate HTML for PART IX, PART X, PART XI.
+OUTPUT PURE HTML ONLY. ZERO MARKDOWN. NO ##. NO **. NO ---.
 
-═══ PART XIV — PRE-DISBURSEMENT CONDITIONS ═══
-<hr><div class="ph">PART XIV — DOCUMENTS REQUIRED — PRE-DISBURSEMENT STAGE</div>
-<p>The following documents are required to be obtained / taken into Bank custody / verified before disbursement of the loan:</p>
+═══════════════════════════════════════════════════════
+PART IX — DOCUMENTS REQUIRED AT PRE-DISBURSEMENT STAGE
+(from Manual Prompt 6 — Prompt 9)
+═══════════════════════════════════════════════════════
+<hr><div class="ph">PART IX — DOCUMENTS REQUIRED — PRE-DISBURSEMENT STAGE</div>
+<p>The following documents are required to be taken into Bank custody and verified before disbursement of the loan:</p>
 <ol>
   <li>[Specific document — exact name — from whom to be obtained — purpose/remark]</li>
   [Add all case-specific mandatory pre-disbursement documents]
 </ol>
 
-═══ PART XV — POST-DISBURSEMENT CONDITIONS ═══
-<hr><div class="ph">PART XV — DOCUMENTS REQUIRED — POST-DISBURSEMENT STAGE</div>
-<p>The following documents are required to be obtained / taken into Bank custody within the stipulated timeframe after disbursement:</p>
+CASE-SPECIFIC PRE-DISBURSEMENT:
+Builder Purchase: Original NOC from Builder for Mortgage | Original NOC from Project Finance Bank (if project loan) | Draft Sale Deed / Banakhat
+Resale: Draft of Sale Deed / Registered Banakhat | Any missing mandatory documents
+Balance Transfer: LOD from existing Bank | Foreclosure Letter | Outstanding Certificate | NOC from existing Bank | CERSAI Search | Updated EC
+Seller BT: Draft Sale Deed / Banakhat | Foreclosure Letter | LOD | NOC from existing Bank | CERSAI Search | Updated EC
+LAP: Original Registered Sale Deed | Updated EC | CERSAI Search confirming no prior charge
+
+═══════════════════════════════════════════════════════
+PART X — DOCUMENTS REQUIRED AT POST-DISBURSEMENT STAGE
+(from Manual Prompt 6 — Prompt 10)
+═══════════════════════════════════════════════════════
+<hr><div class="ph">PART X — DOCUMENTS REQUIRED — POST-DISBURSEMENT STAGE</div>
+<p>The following documents are required to be taken into Bank custody within the stipulated timeframe after disbursement:</p>
 <ol>
   <li>[Specific document — exact name — from whom — within what timeframe]</li>
-  [Add all case-specific mandatory post-disbursement documents]
+  [Add all case-specific post-disbursement documents]
 </ol>
 
-═══ PART XVI — FINAL RECOMMENDATION ═══
-<hr><div class="ph">PART XVI — FINAL RECOMMENDATION</div>
+CASE-SPECIFIC POST-DISBURSEMENT:
+Builder Purchase: Final Registered Sale Deed executed by Builder unto Purchaser — within [X] days
+Resale: Final Registered Sale Deed executed by Current Owner unto Purchaser — within [X] days
+Balance Transfer: No-Due Certificate from existing Bank | Registered Release Deed from existing Bank | Original Title Documents from existing Bank | Updated EC confirming new mortgage
+Seller BT: Registered Sale Deed in favour of Purchaser | Release Deed from existing Bank | No-Due Certificate | Updated EC | Original Title Documents
+LAP: Registered Mortgage / MODT | CERSAI Registration Confirmation | Updated EC post-mortgage
 
-<div class="title-status">
-  <div class="ts-title">Final Title Status — Select One:</div>
-  <div class="ts-value">[CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS / TITLE REQUIRES RECTIFICATION / TITLE NOT RECOMMENDED / INSUFFICIENT DOCUMENTATION FOR TITLE CERTIFICATION]</div>
+═══════════════════════════════════════════════════════
+PART XI — FINAL RECOMMENDATION
+(from Manual Prompt 6 — Select one)
+═══════════════════════════════════════════════════════
+<hr><div class="ph">PART XI — FINAL RECOMMENDATION</div>
+
+<div class="final-rec">
+  <div class="fr-title">Final Title Status (as per Master System Prompt Manual):</div>
+  <div class="fr-value">[Select ONE: CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS / TITLE REQUIRES RECTIFICATION / TITLE NOT RECOMMENDED / INSUFFICIENT DOCUMENTATION FOR TITLE CERTIFICATION]</div>
 </div>
 
-START: <hr><div class="ph">PART XIII — LEGAL OPINION AND FINAL RECOMMENDATION</div>
-END after Part XVI title-status closing div.`
+<p style="margin-top:16px;">[2-3 sentence summary: overall title status, key conditions if any, recommendation to bank for proceeding or not.]</p>
+
+START: <hr><div class="ph">PART IX — DOCUMENTS REQUIRED — PRE-DISBURSEMENT STAGE</div>
+END after Part XI recommendation paragraph.`
 
 // ================================================================
-// HTML WRAPPER
+// HTML WRAPPER — 11 PARTS
 // ================================================================
 function buildReport(p: {
   refNo: string; appId: string; today: string; bankName: string; loanType: string
-  p123: string; p4567: string; p891012: string; p13456: string
+  p123: string; p45: string; p678: string; p9_10_11: string
 }): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1028,9 +883,9 @@ function buildReport(p: {
 <div class="rtitle">LEGAL SCRUTINY REPORT — ${p.loanType}</div>
 <hr>
 ${p.p123}
-${p.p4567}
-${p.p891012}
-${p.p13456}
+${p.p45}
+${p.p678}
+${p.p9_10_11}
 <hr>
 <div class="sigrow">
   <div class="sigbox">
@@ -1080,15 +935,15 @@ export async function POST(request: NextRequest) {
 
     let docText = documentText || ''
     if (boundaryEast || boundaryWest || boundaryNorth || boundarySouth) {
-      docText += `\n\n=== PROPERTY BOUNDARIES FROM DETAILS SHEET (PRE-VERIFIED — USE EXACTLY AS IS) ===\nEast (Purva): ${boundaryEast || 'As per documents'}\nWest (Pashchim): ${boundaryWest || 'As per documents'}\nNorth (Uttar): ${boundaryNorth || 'As per documents'}\nSouth (Dakshin): ${boundarySouth || 'As per documents'}\n=== END OF BOUNDARIES ===\n`
+      docText += `\n\n=== PROPERTY BOUNDARIES FROM DETAILS SHEET (PRE-VERIFIED) ===\nEast (Purva): ${boundaryEast || 'As per documents'}\nWest (Pashchim): ${boundaryWest || 'As per documents'}\nNorth (Uttar): ${boundaryNorth || 'As per documents'}\nSouth (Dakshin): ${boundarySouth || 'As per documents'}\n=== END OF BOUNDARIES ===\n`
     }
 
     l1Content.push({
       type: 'text',
-      text: `LAYER 1 — DOCUMENT EXTRACTION ENGINE
+      text: `LAYER 1 — DOCUMENT EXTRACTION ENGINE (Prompt 2 from Manual)
 Extract ALL facts. Do NOT generate legal opinion.
 
-CASE DETAILS SHEET (PRE-VERIFIED ANCHORS — USE AS REFERENCE):
+CASE DETAILS SHEET (PRE-VERIFIED ANCHORS):
 Applicant: ${applicantName || 'As per documents'}
 Co-Applicant: ${coApplicant || 'None'}
 Current Owner: ${currentOwner || 'As per documents'}
@@ -1096,21 +951,20 @@ Case Type: ${caseType} | Loan Type: ${loanType || 'LAP'} | Bank: ${bankName} | A
 Property: ${propertyAddress || 'As per documents'}
 Boundaries: East=${boundaryEast || '?'} | West=${boundaryWest || '?'} | North=${boundaryNorth || '?'} | South=${boundarySouth || '?'}
 
-CRITICAL NOTE — EC APPLICANT IN THIS CASE:
-"Santosh Tansukh Thakrar" is an empanelled advocate who has applied for EC in respect of the subject property only. He has no relation or concern with the subject property whatsoever. COMPLETELY IGNORE his name in ALL sections of the report.
-
 SUBMITTED DOCUMENTS TEXT:
 ${docText}
 
 EXTRACTION PRIORITIES:
 1. NEVER "and others" — ALL names individually
-2. EC APPLICATION DATE + SEARCH PERIOD = MANDATORY — extract from E-Application Receipt
-3. EC Col 7 = IGNORE | EC Applicant name = IGNORE | Stamp Paper details = IGNORE
-4. ALL EC entries — count and list each one individually
-5. FERFAR: Skip Col1 (Entry Details). Col1after=Entry No+Date+Status | Col2after=Nature | Col3after=Survey(if relevant) | Col4after(Last)=IGNORE
-6. Property description in PARAGRAPH FORMAT
-7. Assign CONFIDENCE level to ownership facts
-8. Giro Mukeli = DISCHARGED | Subject property ONLY — Unit+Block+Floor match for EC entries`
+2. EC APPLICATION NUMBER + DATE + SEARCH PERIOD = MANDATORY from E-Application Receipt
+3. NEVER TRUST EC HEADER COUNT — count ALL actual table rows yourself
+4. EC Col 7 (Last) = NEVER READ OR MENTION
+5. EC Applicant name = COMPLETELY IGNORE
+6. For EVERY EC row after a Mortgage row — check if it is Release/Giro Mukeli → DISCHARGED
+7. FERFAR: Skip first col. Read Entry No+Date+Status, Nature, Survey No. Skip last col.
+8. Property description in PARAGRAPH FORMAT
+9. Giro Mukeli = DISCHARGED | Subject property ONLY — Unit+Block+Floor match
+10. Translate ALL Gujarati document types to English using the 24-category table`
     })
 
     const l1Msg = await client.messages.create({
@@ -1136,53 +990,45 @@ Current Owner: ${currentOwner || 'As per documents'} | Property: ${propertyAddre
 Bank: ${bankName} | APP ID: ${appId}
 Boundaries: East=${boundaryEast || '?'} | West=${boundaryWest || '?'} | North=${boundaryNorth || '?'} | South=${boundarySouth || '?'}
 
-EC APPLICANT NOTE: Santosh Tansukh Thakrar = empanelled advocate = applied for EC only = ZERO property nexus = COMPLETELY IGNORE in ALL sections.
-
 LAYER 1 EXTRACTED FACTS:
 ${extractedFacts}
 
-FILL META BLOCK COMPLETELY:
-1. PROPERTY_PARA = exact paragraph format ("Opinion on title and search in respect of immovable property bearing...")
-2. EC_APP_NUMBER = exact E-Application Number from EC receipt
-3. EC_DATE = exact EC application/print date
+MANDATORY — FILL META BLOCK COMPLETELY:
+1. PROPERTY_PARA = exact paragraph format from Manual
+2. EC_APP_NUMBER = exact E-Application Number from EC Receipt
+3. EC_DATE = exact EC print date
 4. EC_SEARCH_PERIOD = exact from-to search period
-5. EC_TOTAL_ENTRIES = total count of ALL entries in EC for subject property
-6. RISK_SCORE = sum of all applicable weighted scores (be precise)
-7. CONFIDENCE = based on independent records supporting ownership claim
-8. All names individually — NEVER "and others"
+5. EC_TOTAL_ENTRIES = count of ACTUAL TABLE ROWS (not header count)
+6. RISK_LEVEL = HIGH / MODERATE / LOW based on findings
+7. All names individually — NEVER "and others"
 
-EC EXTRACTION — MANDATORY — SONNET MUST DO THIS:
-⚠️ IGNORE EC HEADER COUNT: "EC discloses X transactions" is UNRELIABLE. Read ALL actual table rows.
-Read EVERY actual ROW in EC table from the extracted facts:
-Step 1: Count ACTUAL ROWS yourself (not header count) → write in EC_TOTAL_ENTRIES
-Step 2: For each row: Type (Col 1 Gujarati→English) | Deed No (Col 6) | Date (Col 5) | Aapnar (Col 3) | Lenar (Col 4)
-Step 3: If Col 4 (Lenar) = Bank name → MORTGAGE → IMMEDIATELY scan ALL remaining rows for ગીરો મુક્તિ / Release → YES=DISCHARGED, NO=ACTIVE
-Step 4: If any row = "45-A" Power of Attorney → translate as "Power of Attorney under Section 45-A" and include
-Step 5: NEVER say "no mortgage/no release" without reading every actual row
-Col 7 = IGNORE | EC Applicant name = IGNORE`
+EC EXTRACTION — READ ALL ACTUAL ROWS:
+⚠️ DO NOT TRUST EC HEADER ("X transactions") — count actual rows yourself
+For each row: English Type (translate Gujarati) | Deed No | Date | Aapnar/Seller | Lenar/Buyer or Bank
+If Lenar = Bank → MORTGAGE → check ALL subsequent rows for Release/Giro Mukeli → DISCHARGED if found
+EC Col 7 = NEVER MENTION | EC Applicant = COMPLETELY IGNORE`
       }]
     })
     const analysis = l23Msg.content[0].type === 'text' ? l23Msg.content[0].text : ''
     const meta = parseMeta(analysis)
 
     // ── LAYER 4: 4 PARALLEL REPORT GENERATION ─────────────────
-    const [r3a, r3b, r3c, r3d] = await Promise.all([
+    const [r4a, r4b, r4c, r4d] = await Promise.all([
 
-      // Part I + II + III
+      // Parts I + II + III
       client.messages.create({
         model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4A,
         messages: [{
           role: 'user',
-          content: `Generate Part I (Borrower/Mortgagor) + Part II (Property Description) + Part III (Documents List).
+          content: `Generate PART I (Borrower/Mortgagor/Ownership) + PART II (Property Description) + PART III (Documents List).
 
 APPLICANT: ${meta.applicant || applicantName}
 CO-APPLICANT: ${meta.coApplicant || coApplicant || 'Not Applicable'}
-APPLICANT CONSTITUTION: ${meta.applicantConstitution || 'Individual'}
 MORTGAGOR: ${meta.mortgagor || meta.applicant || applicantName}
-MORTGAGOR CONSTITUTION: ${meta.mortgagorConstitution || 'Individual'}
 CURRENT OWNER: ${meta.currentOwner || currentOwner}
 PROPERTY PARA: ${meta.propertyPara || propertyAddress}
 BOUNDARIES: East: ${boundaryEast || '?'} | West: ${boundaryWest || '?'} | North: ${boundaryNorth || '?'} | South: ${boundarySouth || '?'}
+EC APP NUMBER: ${meta.ecAppNumber || 'As per documents'}
 EC DATE: ${meta.ecDate || 'As per documents'}
 EC SEARCH PERIOD: ${meta.ecSearchPeriod || 'As per documents'}
 EC TOTAL ENTRIES: ${meta.ecTotalEntries || 'As per documents'}
@@ -1191,22 +1037,22 @@ BANK: ${bankName}
 ANALYSIS FROM LAYERS 1-3:
 ${analysis}
 
-CRITICAL PART III RULE: List ALL submitted documents (even illegible/blank ones) WITHOUT any illegibility remarks. Include description of every document. Illegibility remarks go ONLY in Part VIII.`
+MANUAL RULE — PART III: List ALL submitted documents WITHOUT any illegibility/blank/NOT PROVIDED remarks. Illegibility remarks go ONLY in Part VI Alerts. Never list Mutation Entries in Part III.`
         }]
       }),
 
-      // Part IV + V + VI + VII
+      // Parts IV + V
       client.messages.create({
         model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4B,
         messages: [{
           role: 'user',
-          content: `Generate Part IV (Title Chain) + Part V (Revenue Records) + Part VI (Mutation Entries) + Part VII (EC Analysis).
+          content: `Generate PART IV (Chronological Title Chain) + PART V (Revenue Records, Mutation Entries, Approvals, EC Analysis).
 
 CASE TYPE: ${caseType}
-SUBJECT PROPERTY: ${meta.propertyPara || meta.propertyPara || propertyAddress}
+SUBJECT PROPERTY: ${meta.propertyPara || propertyAddress}
 CURRENT OWNER: ${meta.currentOwner || currentOwner}
 APPLICANT: ${meta.applicant || applicantName}
-EC APPLICATION NUMBER: ${meta.ecAppNumber || 'As per documents'}
+EC APP NUMBER: ${meta.ecAppNumber || 'As per documents'}
 EC DATE: ${meta.ecDate || 'As per documents'}
 EC SEARCH PERIOD: ${meta.ecSearchPeriod || 'As per documents'}
 EC TOTAL ENTRIES: ${meta.ecTotalEntries || 'As per documents'}
@@ -1214,68 +1060,67 @@ EC TOTAL ENTRIES: ${meta.ecTotalEntries || 'As per documents'}
 ANALYSIS FROM LAYERS 1-3:
 ${analysis}
 
-CRITICAL RULES:
-- Part IV: Start from EARLIEST available record (original agricultural landowner from 7/12/FERFAR). First para NO "Thereafter". Every subsequent MUST start "Thereafter,". Final para includes EC Application No. + date + search period.
-- Part VI: Use table format for mutation entries. Col4(Last) of FERFAR = IGNORE.
-- Part VII: Table for ALL EC entries. E-Application No. + date + search period at top. Gujarati type → English. Col 7 = NEVER mention. EC Applicant = IGNORE. Giro Mukeli entry = DISCHARGED status.
-- Santosh Tansukh Thakrar = EC Applicant = COMPLETELY IGNORE.`
+RULES:
+- Part IV: Start from EARLIEST record. First para NO "Thereafter". All subsequent MUST start "Thereafter,". Final para includes EC Application No + search period.
+- Part V EC table: EVERY actual EC row — translate Gujarati type to English — Col 7 NEVER — EC Applicant NEVER — Release = DISCHARGED status.`
         }]
       }),
 
-      // Part VIII + IX + X + XI + XII
+      // Parts VI + VII + VIII
       client.messages.create({
         model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4C,
         messages: [{
           role: 'user',
-          content: `Generate Part VIII (Approvals) + Part IX (Issues) + Part X (Deficiency) + Part XI (Mortgageability) + Part XII (Risk).
+          content: `Generate PART VI (Alerts) + PART VII (Document Deficiency Report) + PART VIII (Legal Opinion + Verdict).
 
-BANK: ${bankName} | PROPERTY: ${meta.propertyPara || propertyAddress}
-RISK_SCORE: ${meta.riskScore} | RISK_CLASS: ${meta.riskClass}
-CONFIDENCE: ${meta.confidence} | MORTGAGEABILITY: ${meta.mortgageability}
-SARFAESI: ${meta.sarfaesi} | LENDING_SUITABILITY: ${meta.lendingSuitability}
+BANK: ${bankName}
+PROPERTY: ${meta.propertyPara || propertyAddress}
+RISK_LEVEL: ${meta.riskLevel}
+MORTGAGEABILITY: ${meta.mortgageability}
+SARFAESI: ${meta.sarfaesi}
+LENDING_SUITABILITY: ${meta.lendingSuitability}
 
 ANALYSIS FROM LAYERS 1-3:
 ${analysis}
 
-CRITICAL RULES:
-- Part VIII: Mention illegible/blank submitted documents HERE with remarks (not in Part III).
-- Part IX: NEVER flag EC-confirmed deeds. NEVER flag EC Applicant (Santosh Tansukh Thakrar = zero property interest).
-- Part XII: Show individual risk factors and their weighted scores contributing to total.`
+MANUAL RULES:
+- Part VI: Illegibility remarks go HERE. NEVER flag EC-confirmed deeds. NEVER flag EC Applicant.
+- Part VII section D: Include Mortgageability + SARFAESI + Lending Suitability + Risk Level assessment.
+- Part VIII: Use EXACT legal opinion wording from case type. Fill actual names. Verdict must match issues.`
         }]
       }),
 
-      // Part XIII + XIV + XV + XVI
+      // Parts IX + X + XI
       client.messages.create({
         model: 'claude-sonnet-4-6', max_tokens: 3000, system: L4D,
         messages: [{
           role: 'user',
-          content: `Generate Part XIII (Legal Opinion) + Part XIV (Pre-Disbursement) + Part XV (Post-Disbursement) + Part XVI (Final Recommendation).
+          content: `Generate PART IX (Pre-Disbursement Documents) + PART X (Post-Disbursement Documents) + PART XI (Final Recommendation).
 
 CASE TYPE: ${caseType}
 CURRENT OWNER: ${meta.currentOwner || currentOwner}
 PROPOSED PURCHASER / MORTGAGOR: ${meta.applicant || applicantName}
 BANK: ${bankName}
-EXISTING BANK (for BT / Seller BT): ${meta.existingBank || 'extract from EC analysis'}
-MORTGAGEABILITY: ${meta.mortgageability} | RISK: ${meta.riskScore}
+EXISTING BANK (BT/Seller BT): ${meta.existingBank || 'as per EC analysis'}
 
 ANALYSIS FROM LAYERS 1-3:
 ${analysis}
 
-RULES: Use EXACT wording from Part XIII as provided in Layer 2+3 analysis — fill actual names. Pre-Disbursement and Post-Disbursement must be case-specific and comprehensive. Final Recommendation must match verdict.`
+MANUAL RULES: Case-specific documents for Part IX and X. Part XI = select ONE from: CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS / TITLE REQUIRES RECTIFICATION / TITLE NOT RECOMMENDED / INSUFFICIENT DOCUMENTATION FOR TITLE CERTIFICATION.`
         }]
       })
     ])
 
-    const p123 = r3a.content[0].type === 'text' ? r3a.content[0].text : '<p>Error generating Part I-III</p>'
-    const p4567 = r3b.content[0].type === 'text' ? r3b.content[0].text : '<p>Error generating Part IV-VII</p>'
-    const p891012 = r3c.content[0].type === 'text' ? r3c.content[0].text : '<p>Error generating Part VIII-XII</p>'
-    const p13456 = r3d.content[0].type === 'text' ? r3d.content[0].text : '<p>Error generating Part XIII-XVI</p>'
+    const p123 = r4a.content[0].type === 'text' ? r4a.content[0].text : '<p>Error generating Part I-III</p>'
+    const p45 = r4b.content[0].type === 'text' ? r4b.content[0].text : '<p>Error generating Part IV-V</p>'
+    const p678 = r4c.content[0].type === 'text' ? r4c.content[0].text : '<p>Error generating Part VI-VIII</p>'
+    const p9_10_11 = r4d.content[0].type === 'text' ? r4d.content[0].text : '<p>Error generating Part IX-XI</p>'
 
     const reportHtml = buildReport({
       refNo, appId: appId || 'AUTO-000000', today,
       bankName: bankName || 'Bank',
       loanType: loanType || 'Loan Against Property',
-      p123, p4567, p891012, p13456,
+      p123, p45, p678, p9_10_11,
     })
 
     const verdict = extractVerdict(analysis)
@@ -1301,7 +1146,7 @@ RULES: Use EXACT wording from Part XIII as provided in Layer 2+3 analysis — fi
     })
 
   } catch (error: any) {
-    console.error('TITLEMATRIXAI v9.0 error:', error)
+    console.error('TITLEMATRIXAI error:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Pipeline failed' },
       { status: 500 }
