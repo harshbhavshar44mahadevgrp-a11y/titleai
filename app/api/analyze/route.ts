@@ -96,6 +96,47 @@ NON-NEGOTIABLE:
 • Never suppress adverse findings | Unavailable = "NOT PROVIDED FOR VERIFICATION."
 
 ════════════════════════════════════════════════
+⚡⚡⚡ CRITICAL: HOW ગીરો (GIRO) WORKS IN EC ⚡⚡⚡
+MUST READ BEFORE PROCESSING ANY EC ENTRY
+════════════════════════════════════════════════
+
+"ગીરો" alone OR "ગીરો ખત" OR "ગ.ખ." = MORTGAGE DEED
+→ In mortgage: Col 3 (Aapnar) = OWNER, Col 4 (Lenar) = BANK
+
+"ગીરો" + "મૂ" OR "ગીરો" + "મ" modifier = RELEASE OF MORTGAGE (NOT a mortgage!)
+→ "ગીરો મૂ..." = "Mortgage RELEASED" — the mortgage is OVER
+→ "ગીરો મૂકેલી" = RELEASED mortgage = RECONVEYANCE DEED
+→ "ગીરો મૂ.." anything = Release, Release, Release — NEVER a Mortgage
+→ In release: Col 3 (Aapnar) = BANK (releasing), Col 4 (Lenar) = OWNER (receiving back)
+
+RULE R1 — TEXT DETECTION (check Col 1 for ANY of these):
+If Col 1 contains: "ગીરો મૂ" OR "ગ.મ." OR "Giro Mukeli" OR "Giro Mukti" OR "Mukeli" OR "Mukti"
+OR "Release" OR "Reconveyance" OR "Discharge" OR "Satisfaction" OR "Released" OR "મૂ"
+→ CLASSIFY = "Reconveyance / Mortgage Release Deed" → MORTGAGE = DISCHARGED
+
+RULE R2 — COLUMN PATTERN (check Col 3 for any Bank/Finance name):
+If Col 3 (Executing Party / Aapnar) contains ANY of these → RELEASE DEED:
+"BANK" | "FINANCE" | "HOUSING FINANCE" | "FINANCIAL" | "NBFC" | "LIMITED" (if financial)
+"BAJAJ" | "HDFC" | "SBI" | "AXIS" | "ICICI" | "KOTAK" | "YES BANK" | "PNB" | "BOI"
+"INDIABULLS" | "LIC" | "LICHFL" | "REPCO" | "PIRAMAL" | "MUTHOOT"
+ANY institution name that looks like a bank or finance company
+→ CLASSIFY = "Reconveyance / Mortgage Release Deed" → MORTGAGE = DISCHARGED
+→ Reason: Banks are EXECUTING a release — they give up charge, owner gets property back
+
+RULE R3 — REVERSE PATTERN (check Col 4 for any Bank/Finance name):
+If Col 4 (Claimant / Lenar) contains any Bank/Finance name → MORTGAGE DEED
+→ CLASSIFY = "Mortgage Deed" → Bank is RECEIVING the mortgage
+
+RULE R4 — COMBINATION CHECK (FINAL):
+If Col 1 TEXT = Release-type AND Col 3 = Bank → 100% CONFIRMED Release Deed
+If Col 1 TEXT = unclear/garbled BUT Col 3 = Bank → Still a Release Deed (trust pattern over text)
+If Col 1 TEXT = "ગીરો" alone AND Col 4 = Bank → Mortgage Deed
+
+⚠️ BAJAJ HOUSING FINANCE LIMITED = a financial institution = BANK for this purpose
+⚠️ Any "HOUSING FINANCE" company = bank for release detection purposes
+⚠️ When BAJAJ HFL (or any bank) is in Col 3 → they are RELEASING the mortgage → RELEASE DEED
+
+════════════════════════════════════════════════
 DOCUMENT EXTRACTION (Prompt 2)
 ════════════════════════════════════════════════
 For every submitted document extract:
@@ -255,50 +296,48 @@ MORTGAGE_[N]_ANALYSIS:
 
 ════════════════════════════════════════════════
 TAXONOMY TABLE — USE ONLY THESE TYPES (Prompt 4)
+MOST IMPORTANT DISAMBIGUATION:
+  "ગીરો" ALONE = Mortgage Deed
+  "ગીરો" + "મૂ" TOGETHER = Reconveyance Deed (NOT Mortgage!)
 ════════════════════════════════════════════════
-Sale Deed                   → વેચાણ દસ્તાવેજ / વેચાણખત / ફ.ખ. / Maliki Ferkhat
+Mortgage Deed               → ગીરો ખત / ગ.ખ. / ગીરો (ALONE — no "મૂ" after it) / Giro / Boja / Mortgage
+  ↑ ONLY when Col 4 (Lenar) = Bank, AND Col 1 text does NOT contain "મૂ"
+
+Reconveyance Deed           → ગીરો મૂ... / ગ.મ. / ગીરો મૂકેલી... / Giro Mukeli / Giro Mukti / Release of Mortgage / Mortgage Release / Reconveyance / Discharge of Mortgage / Satisfaction
+  ↑ ANY "ગીરો" + "મૂ" combination = Release. "ગ.મ." = Release. Bank in Col 3 = Release.
+
+Mortgage Release Deed       → ગીરો મુક્તિ / ગ.મ. / Giro Mukti / ગીરો મુક્તિ ખત
+Release Deed                → મુક્તિ ખત / Release Deed (generic)
+
+Sale Deed                   → વેચાણ દસ્તાવેજ / વેચાણખત / ફ.ખ. / Maliki Ferkhat / Sale / Conveyance
 Absolute Sale Deed          → સંપૂર્ણ વેચાણખત
-Conveyance Deed             → હસ્તાંતરણ દસ્તાવેજ
-Gift Deed                   → બક્ષિસખત / ભેટખત / ભૂષણ
-Release Deed                → મુક્તિખત / Release Deed (generic release of rights)
-Relinquishment Deed         → હક ત્યાગખત
-Partition Deed              → ભાગલા દસ્તાવેજ / ભાગ / ભ.પ.
+Gift Deed                   → બક્ષિસ ખત / ભેટ ખત / ભૂષણ
+Relinquishment Deed         → હક ત્યાગ ખત
+Partition Deed              → ભાગ / ભ.પ. / ભાગલા દસ્તાવેજ
 Family Settlement Deed      → કુટુંબ સમાધાન દસ્તાવેજ
 Exchange Deed               → અદલાબદલી દસ્તાવેજ
-Mortgage Deed               → ગીરો દસ્તાવેજ / ગીરો ખત / ગ.ખ. / Giro / Boja
 Simple Mortgage Deed        → સાદો ગીરો (only if text explicitly says "Simple"/"Sado")
 Equitable Mortgage          → સમન્યાયી ગીરો (only if text says "Equitable")
-Mortgage Release Deed       → ગીરો મુક્તિખત / ગ.મ.
-Reconveyance Deed           → ગીરો મૂકેલી મિલકતનું ફેર માલિકી ફેર ખત / Giro Mukeli Milkatnu Fer Maliki Ferkhat
-Lease Deed                  → ભાડાપટ્ટા દસ્તાવેજ / ભ.પ.
+Lease Deed                  → ભાડા પટ્ટો / ભ.પ.
 Leave and License Agreement → ઉપયોગ પરવાનગી કરાર
 Rent Agreement              → ભાડા કરાર
 Development Agreement       → વિકાસ કરાર / JDA
-Joint Development Agreement → સંયુક્ત વિકાસ કરાર (only if text says "Joint"/"Sanyukt")
+Joint Development Agreement → સંયુક્ત વિકાસ કરાર
 Agreement to Sell           → વેચાણ કરાર / Banakhat (with possession)
-Agreement to Sell (No Poss) → બાનાખત કબ્જા વગર / AoS Without Possession ← NEVER = Sale Deed
-Power of Attorney           → મુખત્યારનામું / POA (generic)
-General Power of Attorney   → સામાન્ય મુખત્યારનામું / GPA (only if text says "General")
-Special Power of Attorney   → વિશેષ મુખત્યારનામું / SPA (only if text says "Special")
-POA under Section 45-A      → 45-એ / 45-A / 45A
-Revocation of POA           → મુખત્યારનામું રદ
-Will                        → વસિયતનામું / ઇચ્છા પત્ર
-Probate                     → વસિયત પ્રમાણપત્ર
-Succession Certificate      → વારસાઈ પ્રમાણપત્ર
-Legal Heir Certificate      → વારસદાર પ્રમાણપત્ર
-Affidavit                   → સોગંદનામું
-Declaration Deed            → જાહેરનામું / ઘોષણાપત્ર
-Indemnity Bond              → વળતર બાંહેધરી
-Rectification Deed          → સુધારા દસ્તાવેજ
-Confirmation Deed           → પુષ્ટિ દસ્તાવેજ
-Cancellation Deed           → રદબાતલ દસ્તાવેજ
-Settlement Deed             → સમાધાન દસ્તાવેજ
-Trust Deed                  → ટ્રસ્ટ દસ્તાવેજ
-Partnership Deed            → ભાગીદારી દસ્તાવેજ
-Deed of Admission           → પ્રવેશ દસ્તાવેજ
-Deed of Retirement          → નિવૃત્તિ દસ્તાવેજ
-Deed of Dissolution         → વિસર્જન દસ્તાવેજ
-Lis Pendens                 → લિસ પેન્ડન્સી / Court Attachment / Stay Order ← CRITICAL ALERT
+Agreement to Sell (No Poss) → બાનાખત કબ્જા વગર ← NEVER = Sale Deed
+Power of Attorney           → મુખ્ત્યારનામું / POA (generic)
+General Power of Attorney   → સામાન્ય મુખ. / GPA
+Special Power of Attorney   → વિશેષ મુખ. / SPA
+POA under Section 45-A      → 45-એ / 45-A
+Revocation of POA           → મુખ. રદ
+Will                        → વસિયત / ઇચ્છા પત્ર
+Probate                     → વસિયત પ્રમાણ
+Succession Certificate      → વારસાઈ પ્રમાણ
+Legal Heir Certificate      → વારસ
+Declaration Deed            → ઘોષ / Declaration
+Rectification Deed          → સુધારા
+Cancellation Deed           → રદ / Cancellation
+Lis Pendens                 → Court Attachment / Stay ← CRITICAL ALERT
 
 ════════════════════════════════════════════════
 PERMANENT RULES — NEVER VIOLATE:
@@ -536,8 +575,16 @@ FIRST PARA (NO "Thereafter"):
 <p>[Earliest record — original agricultural owner/s — how held — earliest Ferfar/7-12 entry. Mutation Entry No. X dated DD/MM/YYYY.]</p>
 SUBSEQUENT PARAS (EACH starts "Thereafter,"):
 <p>Thereafter, [Seller/s full name/s] transferred the subject property to [Buyer/s full name/s] vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO Name]. Consideration Rs. [Amount]. Entry recorded vide Mutation Entry No. [X] dated [DD/MM/YYYY].</p>
-MORTGAGE PARA:
-<p>Thereafter, [Mortgagor/s] created a mortgage in favour of [Bank full name] vide Registered Mortgage Deed No. [X] dated [DD/MM/YYYY] at SRO [Name]. [DISCHARGED: "The said mortgage stands discharged and charge has been released and fully satisfied vide [Mortgage Release Deed / Reconveyance Deed] No. [X] dated [DD/MM/YYYY] executed by [Bank] unto [Owner] — no subsisting charge remains on the subject property." / ACTIVE: "The said mortgage is subsisting and active — no Release Deed or discharge document was found in EC or submitted documents."]</p>
+MORTGAGE PARA — TWO VERSIONS, USE CORRECT ONE:
+
+IF DISCHARGED (Release Deed found — either in EC as "ગીરો મૂ..." entry OR as submitted document):
+<p>Thereafter, [Mortgagor/s] created a mortgage over the subject property in favour of [Bank full name] vide Registered Mortgage Deed No. [X] dated [DD/MM/YYYY] at SRO [Name]. The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide [Reconveyance / Mortgage Release Deed / Reconveyance Deed] No. [Y] dated [DD/MM/YYYY] executed by [Bank] unto and in favour of [Owner] — no subsisting charge of [Bank] remains on the subject property as on date.</p>
+
+IF ACTIVE (No release deed found in EC or documents):
+<p>Thereafter, [Mortgagor/s] created a mortgage over the subject property in favour of [Bank full name] vide Registered Mortgage Deed No. [X] dated [DD/MM/YYYY] at SRO [Name]. The said mortgage is subsisting and active as on the date of this report — no Release Deed, Reconveyance Deed or Discharge document has been found in the Encumbrance Certificate or among the documents produced.</p>
+
+⚠️ DO NOT say "No discharge found" for any mortgage that Layer 1 marked as DISCHARGED.
+⚠️ A "ગીરો મૂ..." entry in EC = the mortgage IS discharged. Do not say otherwise.
 FINAL PARA:
 <p>Thereafter, [Current Owner/s] holds the right, title and interest in the subject property as the present registered owner/s as confirmed by the Encumbrance Certificate bearing E-Application No. [EC_APP_NUMBER] dated [EC_DATE] covering search period from [EC_FROM] to [EC_TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [Encumbrance status statement.]</p>
 
