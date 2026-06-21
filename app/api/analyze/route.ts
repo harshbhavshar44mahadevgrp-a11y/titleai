@@ -743,17 +743,23 @@ ${docText}
 
 MANDATORY STEPS:
 1. Extract ALL documents — ALL names individually — NEVER "and others"
-2. From EC E-Application Receipt: extract EC_APP_NUMBER, EC_DATE, EC_FROM, EC_TO
-3. COUNT ACTUAL EC TABLE ROWS — ignore header count
-4. Apply Steps 1-7 for each EC Col 1 type
-5. ⚡ RELEASE DETECTION PRIMARY METHOD: After extracting all rows, for each row where COL3_IS_BANK=YES → this is a RELEASE. Find prior row where same bank was in Col 4 (Lenar) → that mortgage is DISCHARGED.
-6. Output each EC row as EC_ROW_[N] with all Step 7 fields
-7. Output MORTGAGE_[N]_ANALYSIS with all 3 methods checked
-8. EC Col 7 (Last) = NEVER READ OR MENTION
-9. EC Applicant = COMPLETELY IGNORE` })
+2. From EVERY EC submitted — extract EC_APP_NUMBER, EC_DATE, EC_FROM, EC_TO separately
+3. ⚠️ MULTIPLE ECs MAY BE SUBMITTED — process EACH EC document separately as its own section
+4. ⚠️ EC TABLE ROW READING — READ EVERY SINGLE ROW INCLUDING THE LAST ROW:
+   - EC tables can have 3, 4, or more rows
+   - The LAST ROW is OFTEN the Release/Discharge deed — DO NOT stop at Row 2
+   - If EC header says "3 transactions" — read ALL 3 rows, especially Row 3
+   - If you only find 2 rows but header says 3 — explicitly note "Row 3 not readable"
+5. Apply 7-Step classification for EACH EC row Col 1 text
+6. ⚡ RELEASE DETECTION: For each row where COL3_IS_BANK=YES (BAJAJ/HDFC/any bank/finance in executing party) → RELEASE DEED → prior mortgage = DISCHARGED
+7. ⚡ RELEASE DETECTION FROM SECOND EC: If a SECOND EC (different search year e.g. 2024-2026) exists and shows "ګíரō மū..." OR BANK in Col 3 → This is confirming the mortgage is DISCHARGED — cross-reference with first EC mortgage
+8. Output each EC row as EC_ROW_[N] with all Step 7 fields
+9. Output MORTGAGE_[N]_ANALYSIS with all 3 methods checked
+10. EC Col 7 (Last) = NEVER READ OR MENTION
+11. EC Applicant = COMPLETELY IGNORE` })
 
     const l1Msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001', max_tokens: 4000,
+      model: 'claude-sonnet-4-6', max_tokens: 4000,
       system: LAYER1_SYSTEM, messages: [{ role: 'user', content: l1Content }]
     })
     const extractedFacts = l1Msg.content[0].type === 'text' ? l1Msg.content[0].text : ''
