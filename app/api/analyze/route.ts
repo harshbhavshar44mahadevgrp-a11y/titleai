@@ -85,7 +85,7 @@ table.mut-tbl tr:nth-child(even) { background:#f9fafb; }
 
 
 // ================================================================
-// LAYER 1 — HAIKU — DOCUMENT EXTRACTION + 7-STEP EC ENGINE
+// LAYER 1 — SONNET — DOCUMENT EXTRACTION + 7-STEP EC ENGINE
 // CRITICAL FIX: Release detection uses Col3/Col4 PATTERN first,
 // text matching second — works even with garbled Gujarati text
 // ================================================================
@@ -742,31 +742,44 @@ DOCUMENTS TEXT:
 ${docText}
 
 MANDATORY STEPS:
-1. Extract ALL documents — ALL names individually — NEVER "and others"
-2. From EVERY EC submitted — extract EC_APP_NUMBER, EC_DATE, EC_FROM, EC_TO separately
-3. ⚠️ MULTIPLE ECs MAY BE SUBMITTED — process EACH EC document separately as its own section
-4. ⚠️ EC TABLE ROW READING — READ EVERY SINGLE ROW INCLUDING THE LAST ROW:
-   - EC tables can have 3, 4, or more rows
-   - The LAST ROW is OFTEN the Release/Discharge deed — DO NOT stop at Row 2
-   - If EC header says "3 transactions" — read ALL 3 rows, especially Row 3
-   - If you only find 2 rows but header says 3 — explicitly note "Row 3 not readable"
-5. Apply 7-Step classification for EACH EC row Col 1 text
-6. ⚡ RELEASE DETECTION: For each row where COL3_IS_BANK=YES (BAJAJ/HDFC/any bank/finance in executing party) → RELEASE DEED → prior mortgage = DISCHARGED
-7. ⚡ RELEASE DETECTION FROM SECOND EC: If a SECOND EC (different search year e.g. 2024-2026) exists and shows "ګíரō மū..." OR BANK in Col 3 → This is confirming the mortgage is DISCHARGED — cross-reference with first EC mortgage
-8. Output each EC row as EC_ROW_[N] with all Step 7 fields
-9. Output MORTGAGE_[N]_ANALYSIS with all 3 methods checked
-10. EC Col 7 (Last) = NEVER READ OR MENTION
+1. Extract ALL documents individually — NEVER "and others"
+
+2. ⚠️ MULTIPLE ECs — PROCESS ALL:
+   Find EVERY EC document submitted. Process EC-1, EC-2, EC-3 separately.
+   Newer EC (later search year like 2024-2026) has newest entries. Cross-reference ALL.
+
+3. FOR EACH EC — READ EVERY SINGLE ROW:
+   Count actual rows. Read Row 1, Row 2, Row 3 until no more rows exist.
+   LAST ROW is often the Release Deed — never stop at Row 2.
+   EC says "3 rows" → find all 3. Row garbled → state it and use COL3/COL4 pattern.
+
+4. CROSS-EC PAIRING:
+   EC-1 (2011-2023) may show MORTGAGE. EC-2 (2024-2026) may show its RELEASE.
+   Bank in Col3 of any row in any EC = RELEASE of prior mortgage = DISCHARGED.
+
+5. Apply 7-Step to EACH row in EVERY EC.
+
+6. ⚡ RELEASE (PRIMARY): COL3_IS_BANK=YES → Release Deed → that mortgage = DISCHARGED
+
+7. ⚡ RELEASE (TEXT): "Giro Muk" / "ගíරō" + "मू" / "ガíரō மū" = Release of Mortgage
+
+8. Output EC_ROW_[N] for every row in every EC submitted.
+
+9. Output MORTGAGE_[N]_ANALYSIS with all 3 methods and FINAL_STATUS.
+
+10. EC Col 7 (Last column) = NEVER READ OR MENTION.
+
 11. EC Applicant = COMPLETELY IGNORE` })
 
     const l1Msg = await client.messages.create({
-      model: 'claude-sonnet-4-6', max_tokens: 4000,
+      model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0,
       system: LAYER1_SYSTEM, messages: [{ role: 'user', content: l1Content }]
     })
     const extractedFacts = l1Msg.content[0].type === 'text' ? l1Msg.content[0].text : ''
 
     // LAYER 2+3
     const l23Msg = await client.messages.create({
-      model: 'claude-sonnet-4-6', max_tokens: 6000,
+      model: 'claude-sonnet-4-6', max_tokens: 6000, temperature: 0,
       system: getLayer23(caseType),
       messages: [{
         role: 'user', content: `LAYER 2+3 — TITLE + RISK + LEGAL
@@ -793,7 +806,7 @@ FILL META:
     // LAYER 4 — 4 PARALLEL
     const [r4a, r4b, r4c, r4d] = await Promise.all([
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4A, messages: [{
+        model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0, system: L4A, messages: [{
           role: 'user', content:
             `Parts I+II+III.
 APPLICANT: ${meta.applicant || applicantName} | CO-APPLICANT: ${meta.coApplicant || coApplicant || 'N/A'}
@@ -809,7 +822,7 @@ RULE: NO illegibility remarks in Part III — those go in Part VI ONLY.` }]
       }),
 
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4B, messages: [{
+        model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0, system: L4B, messages: [{
           role: 'user', content:
             `Parts IV+V.
 CASE: ${caseType} | PROPERTY: ${meta.propertyPara || propertyAddress}
@@ -823,7 +836,7 @@ Part V EC table: every actual row, show Classified Type + Match Confidence. NEVE
       }),
 
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 4000, system: L4C, messages: [{
+        model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0, system: L4C, messages: [{
           role: 'user', content:
             `Parts VI+VII+VIII.
 BANK: ${bankName} | MORTGAGE: ${meta.mortgageSummary}
@@ -835,7 +848,7 @@ Part VIII = EXACT legal opinion wording with actual names filled in.` }]
       }),
 
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 3000, system: L4D, messages: [{
+        model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, system: L4D, messages: [{
           role: 'user', content:
             `Parts IX+X+XI.
 CASE: ${caseType} | BANK: ${bankName}
