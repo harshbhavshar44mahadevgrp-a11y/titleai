@@ -1,16 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true,  // ← YEH ADD KARO
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '20mb',
-    },
-  },
+  // ... baaki jo bhi hai woh rakhna
 }
 
 module.exports = nextConfig
