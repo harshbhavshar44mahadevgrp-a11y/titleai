@@ -738,9 +738,113 @@ Part XI: CLEAR AND MARKETABLE TITLE or CLEAR TITLE SUBJECT TO CONDITIONS. Includ
     const p678 = r4c.content[0].type === 'text' ? r4c.content[0].text : '<p>Error Parts VI-VIII</p>'
     const p911 = r4d.content[0].type === 'text' ? r4d.content[0].text : '<p>Error Parts IX-XI</p>'
 
-    const html = buildHtml({ refNo, appId: appId || 'AUTO', today, bankName: bankName || 'Bank', loanType: loanType || 'Loan Against Property', p123, p45, p678, p911 })
+    // ================================================================
+    // LAYER 5 -- VALIDATION AGENT
+    // Catches mistakes before final report is delivered
+    // Runs deterministic checks + AI fix pass on the most critical parts
+    // ================================================================
+
+    // DETERMINISTIC CHECKS (no AI needed)
+    const validationErrors: string[] = []
+
+    // Check 1: If Layer 1 says RELEASED but Part IV or Part VI says "no discharge found"
+    const releasedInFacts = facts.toLowerCase().includes('mortgage_status=released') ||
+      facts.toLowerCase().includes('status: released') ||
+      facts.toLowerCase().includes('released_mortgages') ||
+      facts.toLowerCase().includes('charge_status: released')
+    const wronglyActiveInReport = p45.toLowerCase().includes('no release deed') ||
+      p45.toLowerCase().includes('no discharge') ||
+      p678.toLowerCase().includes('active mortgage') && releasedInFacts
+
+    if (releasedInFacts && wronglyActiveInReport) {
+      validationErrors.push('VALIDATION_ERROR_1: Layer 1 shows mortgage RELEASED but report incorrectly says active/no-discharge.')
+    }
+
+    // Check 2: If Part VI flags a RELEASED mortgage as HIGH SEVERITY active encumbrance
+    const releasedBankNames: string[] = []
+    const releaseMatches = facts.matchAll(/B\. RELEASED_MORTGAGES[\s\S]*?LENDER:\s*([^\n]+)/g)
+    for (const m of releaseMatches) {
+      if (m[1] && m[1].trim().toLowerCase() !== 'nil') releasedBankNames.push(m[1].trim().toLowerCase())
+    }
+    const p678Lower = p678.toLowerCase()
+    for (const bank of releasedBankNames) {
+      const bankShort = bank.split(' ')[0]
+      if (p678Lower.includes('active') && p678Lower.includes(bankShort) && p678Lower.includes('high severity')) {
+        validationErrors.push(`VALIDATION_ERROR_2: ${bank} mortgage is RELEASED but being flagged as HIGH SEVERITY active in Part VI.`)
+      }
+    }
+
+    // Check 3: Part III should never contain "illegible" or "not provided"
+    if (p123.toLowerCase().includes('illegible') || p123.toLowerCase().includes('not provided for verification')) {
+      validationErrors.push('VALIDATION_ERROR_3: Part III contains illegibility remarks -- these belong in Part VI only.')
+    }
+
+    // If validation errors found -- run AI fix pass on the affected parts
+    let finalP45 = p45
+    let finalP678 = p678
+
+    if (validationErrors.length > 0) {
+      console.log('VALIDATION ERRORS FOUND:', validationErrors)
+
+      // Fix pass for Part IV and Part VI (most critical parts)
+      const fixRes = await client.messages.create({
+        model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 0,
+        system: `You are a Legal Report Validation and Correction Agent.
+You will be given:
+1. Layer 1 Mortgage Lifecycle Summary (ground truth)
+2. Current Part IV (Title Chain) HTML
+3. Current Part VI (Alerts) HTML
+4. List of validation errors found
+
+Your job: Fix ONLY the errors. Do not change anything else.
+Output format: Provide corrected Part IV HTML followed by corrected Part VI HTML.
+Separator between them: ===PART6===
+
+CRITICAL RULES:
+- If mortgage is RELEASED in Lifecycle Summary -> Part IV must say "stands discharged and charge fully released and satisfied"
+- If mortgage is RELEASED -> Part VI must NOT flag it as active encumbrance
+- If mortgage is ACTIVE -> Part VI MUST flag it as HIGH SEVERITY
+- Never flag released mortgages. Never ignore active mortgages.
+- Pure HTML output only. No markdown.`,
+        messages: [{
+          role: 'user',
+          content: `VALIDATION ERRORS TO FIX:
+${validationErrors.join('\n')}
+
+LAYER 1 MORTGAGE LIFECYCLE SUMMARY (GROUND TRUTH):
+${facts.includes('MORTGAGE_LIFECYCLE_SUMMARY') ? facts.substring(facts.indexOf('MORTGAGE_LIFECYCLE_SUMMARY')) : facts}
+
+CURRENT PART IV HTML (may have errors):
+${p45.substring(0, 3000)}
+
+CURRENT PART VI HTML (may have errors):
+${p678.substring(0, 3000)}
+
+Fix the errors. Output corrected Part IV HTML, then ===PART6===, then corrected Part VI HTML.`
+        }]
+      })
+
+      const fixText = fixRes.content[0].type === 'text' ? fixRes.content[0].text : ''
+      if (fixText.includes('===PART6===')) {
+        const parts = fixText.split('===PART6===')
+        if (parts[0].trim()) finalP45 = parts[0].trim()
+        if (parts[1] && parts[1].trim()) finalP678 = parts[1].trim()
+        console.log('VALIDATION FIX APPLIED successfully')
+      }
+    }
+
+    // ================================================================
+    // BUILD FINAL REPORT (with validated/fixed content)
+    // ================================================================
+    const html = buildHtml({
+      refNo, appId: appId || 'AUTO', today,
+      bankName: bankName || 'Bank',
+      loanType: loanType || 'Loan Against Property',
+      p123, p45: finalP45, p678: finalP678, p911
+    })
     const verdict = getVerdict(analysis)
     let savedToDb = false, dbError = null
+
 
     if (userId && supabase) {
       try {
