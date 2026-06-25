@@ -49,6 +49,16 @@ function safeJsonParse(raw: string): any {
   return {}
 }
 
+// Strip markdown code blocks and preamble from AI HTML output
+function cleanAiOutput(text: string): string {
+  // Remove markdown code block wrappers
+  text = text.replace(/`{3}html[\r\n]?/g, '').replace(/`{3}[\r\n]?/g, '')
+  // Remove AI preamble (anything before first HTML tag)
+  const firstTag = text.search(/<(hr|div|table|p|h[1-6])/i)
+  if (firstTag > 0) text = text.slice(firstTag)
+  return text.trim()
+}
+
 // ================================================================
 // INTERFACES
 // ================================================================
@@ -253,7 +263,7 @@ export async function POST(req: NextRequest) {
 
 Focus on extracting from:
 - Sale Deeds: seller names, buyer names, dates, registration number, sub-registrar, survey no, plot no, flat no, floor, wing, building, society, area, consideration, boundaries, taluka, district
-- 7/12 / Revenue Record: survey no, khata no, owner name, area, land type, taluka, district
+- 7/12 / Revenue Record: survey number (e.g. 214), ALL khata numbers listed (may be many like 73,137,1022...), owner name, total area with units (e.g. 2-16-42-10 H.Are.SqMt or 14068 Sq.Mt), land classification/type (e.g. Paiki Bin Kheti / Jirayat / Non-Agricultural), taluka, district
 - Mutation entries: entry number, date, nature, from/to names, survey no, status
 - NA Order: order number, date, authority
 - Development Permission: permission number, date, authority, approved area
@@ -465,7 +475,7 @@ ABSOLUTE RULES:
       // CALL A: Part I, II, III
       client.messages.create({
         model: 'claude-sonnet-4-6', max_tokens: 3500, temperature: 0,
-        system: `You are a legal report writer. Generate HTML using ONLY verified facts. RULES: (1) Part I Borrower table has EXACTLY 3 rows ONLY: Name of Borrower, Co-Applicant, Constitution. NO extra rows. (2) Co-Applicant = EXACTLY "${finalCoApp}". (3) No markdown. Pure HTML.`,
+        system: `You are a legal report writer generating a LEGAL HTML DOCUMENT. CRITICAL OUTPUT RULES: (1) Output ONLY raw HTML - start DIRECTLY with <hr><div class="ph">PART I - NEVER add preamble text or markdown code blocks or backticks. (2) Part I Borrower table has EXACTLY 3 rows ONLY: Name of Borrower, Co-Applicant, Constitution - NO other rows. (3) Co-Applicant MUST be EXACTLY "${finalCoApp}" - copy verbatim. (4) Never use triple backticks. Never say "I'll generate" or "Let me". Start directly with HTML.`,
         messages: [{
           role: 'user', content: `${GT}
 
@@ -504,7 +514,7 @@ Start with: <hr><div class="ph">PART I` }]
       // CALL B: Part IV, V
       client.messages.create({
         model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0,
-        system: 'Legal report writer. HTML only using verified facts. No markdown.',
+        system: 'Legal report writer. Output ONLY raw HTML starting with <hr>. Never use markdown code blocks or backticks. Never add preamble text. Start directly with HTML.',
         messages: [{
           role: 'user', content: `${GT}
 
@@ -527,7 +537,7 @@ Start with: <hr><div class="ph">PART IV` }]
       // CALL C: Part VI, VII, VIII
       client.messages.create({
         model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 0,
-        system: 'Legal report writer. HTML only using verified facts. No markdown.',
+        system: 'Legal report writer. Output ONLY raw HTML starting with <hr>. Never use markdown code blocks or backticks. Never add preamble text. Start directly with HTML.',
         messages: [{
           role: 'user', content: `${GT}
 
@@ -558,7 +568,7 @@ Start with: <hr><div class="ph">PART IX` }]
     // ============================================================
     // ASSEMBLE FINAL REPORT
     // ============================================================
-    const parts = [r4a, r4b, r4c, r4d].map(r => r.content[0]?.type === 'text' ? r.content[0].text : '').join('\n')
+    const parts = [r4a, r4b, r4c, r4d].map(r => r.content[0]?.type === 'text' ? r.content[0].text : '').map(cleanAiOutput).join('\n')
     const html = buildReport({ refNo, appId: appId || 'AUTO', today, bankName: finalBank, loanType: loanTypeMap[caseType] || 'LAP', riskRating: riskResult.rating, riskScore: riskResult.score, parts })
     const verdict = riskResult.rating === 'RED' ? 'NOT CLEAR' : riskResult.rating === 'GREEN' ? 'CLEAR' : 'CLEAR SUBJECT TO CONDITIONS'
 
