@@ -225,10 +225,12 @@ export async function POST(req: NextRequest) {
     const refNo = `TM/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`
     const loanTypeMap: Record<string, string> = { builder_purchase: 'Builder Purchase', resale: 'Resale Property', bt: 'Balance Transfer', seller_bt: 'Seller Balance Transfer', lap: 'LAP (Loan Against Property)' }
 
-    // Build image content array
+    // Build image content array with file name labels
     const imgContent: any[] = []
     if (images?.length) {
       for (const img of images) {
+        // Label each image so AI knows which file it came from
+        imgContent.push({ type: 'text', text: `[Image from file: ${img.name}]` })
         imgContent.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } })
       }
     }
@@ -256,23 +258,25 @@ export async function POST(req: NextRequest) {
       // -- 1A: GENERAL EXTRACTION PROMPT --
       const generalContent: any[] = [...imgContent]
       if (documentText && String(documentText).trim().length > 50) {
-        generalContent.push({ type: 'text', text: `DOCUMENT TEXT FROM PDFs:\n${String(documentText).slice(0, 7000)}` })
+        generalContent.push({ type: 'text', text: `DOCUMENT TEXT FROM PDFs:\n${String(documentText).slice(0, 15000)}` })
       }
       generalContent.push({
         type: 'text', text: `You are an Indian property document expert. Extract all information from these documents EXCEPT the EC table (handle separately).
 
 Focus on extracting from:
 - Sale Deeds: seller names, buyer names, dates, registration number, sub-registrar, survey no, plot no, flat no, floor, wing, building, society, area, consideration, boundaries, taluka, district
-- 7/12 / Revenue Record: survey number (e.g. 214), ALL khata numbers listed (may be many like 73,137,1022...), owner name, total area with units (e.g. 2-16-42-10 H.Are.SqMt or 14068 Sq.Mt), land classification/type (e.g. Paiki Bin Kheti / Jirayat / Non-Agricultural), taluka, district
-- Mutation entries: entry number, date, nature, from/to names, survey no, status
-- NA Order: order number, date, authority
-- Development Permission: permission number, date, authority, approved area
-- OC / BCC / Completion Certificate: certificate number, date, authority
-- RERA: registration number, promoter name
-- All other documents: list them in documents_found
+- 7/12 / Revenue Record (satbara utara / record of rights): survey number, ALL khata numbers listed (may be many: 73,137,1022,1023...), owner/khatedaar name, total area with units (2-16-42-10 H.Are.SqMt or 14068 Sq.Mt), land type/classification (Paiki Bin Kheti / Jirayat / Non-Agricultural / Juni Shart), taluka, district
+- Mutation entries: entry number, date, nature (transfer/purchase), from name, to name, survey no, status (completed/pending)
+- NA Order: order number, date, authority (collector/tehsildar)
+- Development Permission / GUDA permission / Parvanagi: permission number (starts with GUDA/ or similar), date, issuing authority (GUDA/municipality), approved area -- LOOK FOR images labeled with GUDA or Development Permission
+- OC / BCC / Completion Certificate: certificate number, date, issuing authority
+- RERA: registration number, promoter/developer name
+- AAI NOC / Airport NOC: NOC ID number (like AHME/WEST/B/...), date, validity date -- LOOK FOR images labeled AAI
+- Fire NOC: date, issuing authority
+- All documents found: list every document you see in documents_found array
 
 Output ONLY valid JSON, no markdown, no explanation:
-{"sale_deeds":[{"seller_names":[],"buyer_names":[],"execution_date":"","registration_date":"","registration_no":"","sub_registrar_office":"","survey_no":"","plot_no":"","flat_no":"","floor_no":"","wing":"","building_name":"","society_name":"","area":"","consideration_amount":"","taluka":"","district":"","boundaries":{"east":"","west":"","north":"","south":""}}],"mutation_entries":[{"entry_no":"","date":"","nature":"","from_name":"","to_name":"","survey_no":"","status":""}],"revenue_record":{"survey_no":"","khata_no":"","owner_name":"","area":"","land_type":"","taluka":"","district":""},"na_order":{"order_no":"","date":"","authority":""},"dev_permission":{"permission_no":"","date":"","authority":"","approved_area":""},"oc_bcc":{"certificate_no":"","date":"","authority":""},"rera":{"registration_no":"","promoter_name":""},"property_description_consolidated":"","documents_found":[]}` })
+{"sale_deeds":[{"seller_names":[],"buyer_names":[],"execution_date":"","registration_date":"","registration_no":"","sub_registrar_office":"","survey_no":"","plot_no":"","flat_no":"","floor_no":"","wing":"","building_name":"","society_name":"","area":"","consideration_amount":"","taluka":"","district":"","boundaries":{"east":"","west":"","north":"","south":""}}],"mutation_entries":[{"entry_no":"","date":"","nature":"","from_name":"","to_name":"","survey_no":"","status":""}],"revenue_record":{"survey_no":"","khata_no":"","owner_name":"","area":"","land_type":"","taluka":"","district":""},"na_order":{"order_no":"","date":"","authority":""},"dev_permission":{"permission_no":"","date":"","authority":"","approved_area":""},"oc_bcc":{"certificate_no":"","date":"","authority":""},"rera":{"registration_no":"","promoter_name":""},"aai_noc":{"noc_id":"","date":"","valid_till":"","authority":""},"fire_noc":{"date":"","authority":""},"property_description_consolidated":"","documents_found":[]}` })
 
       // -- 1B: DEDICATED EC EXTRACTION PROMPT --
       const ecContent: any[] = [...imgContent]
@@ -308,7 +312,7 @@ Output ONLY valid JSON, no markdown:
 
       // RUN BOTH IN PARALLEL
       const [genResult, ecResult] = await Promise.all([
-        client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 2500, temperature: 0, messages: [{ role: 'user', content: generalContent }] }).catch(() => null),
+        client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, temperature: 0, messages: [{ role: 'user', content: generalContent }] }).catch(() => null),
         client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 2000, temperature: 0, messages: [{ role: 'user', content: ecContent }] }).catch(() => null),
       ])
 
@@ -324,6 +328,8 @@ Output ONLY valid JSON, no markdown:
           dev_permission: genData.dev_permission || {},
           oc_bcc: genData.oc_bcc || {},
           rera: genData.rera || {},
+          aai_noc: genData.aai_noc || {},
+          fire_noc: genData.fire_noc || {},
           documents_found: genData.documents_found || [],
           property_description_consolidated: genData.property_description_consolidated || ''
         }
@@ -446,6 +452,8 @@ NA Order: ${extractedFacts.na_order?.order_no ? `No. ${extractedFacts.na_order.o
 Dev Permission: ${extractedFacts.dev_permission?.permission_no ? `No. ${extractedFacts.dev_permission.permission_no} dated ${extractedFacts.dev_permission.date} by ${extractedFacts.dev_permission.authority}` : 'NOT PROVIDED'}
 OC/BCC: ${extractedFacts.oc_bcc?.certificate_no ? `No. ${extractedFacts.oc_bcc.certificate_no} dated ${extractedFacts.oc_bcc.date}` : 'NOT PROVIDED'}
 RERA: ${extractedFacts.rera?.registration_no ? `No. ${extractedFacts.rera.registration_no} Promoter: ${extractedFacts.rera.promoter_name}` : 'NOT PROVIDED'}
+AAI NOC: ${extractedFacts.aai_noc?.noc_id ? `NOC ID: ${extractedFacts.aai_noc.noc_id} dated ${extractedFacts.aai_noc.date} valid till ${extractedFacts.aai_noc.valid_till}` : 'NOT PROVIDED'}
+Fire NOC: ${extractedFacts.fire_noc?.date ? `Dated ${extractedFacts.fire_noc.date} by ${extractedFacts.fire_noc.authority}` : 'NOT PROVIDED'}
 Documents Found: ${(extractedFacts.documents_found || []).join(', ') || 'As per uploaded files'}
 
 RISK: Score ${riskResult.score}/100 | Rating: ${riskResult.rating}
