@@ -1,99 +1,28 @@
-﻿// ================================================================
-// TITLEMATRIXAI v4 -- /api/analyze/route.ts
-// STAGE 1A + 1B: PARALLEL extraction (general docs + dedicated EC)
-// STAGE 2: Deterministic code (mortgage lifecycle, risk score)
-// STAGE 3: 4 parallel report generation calls
-// EC extracted by dedicated call -- no matter what
-// temperature: 0 on ALL calls -- consistent every time
-// ================================================================
-export const maxDuration = 300
+﻿export const maxDuration = 300
 export const dynamic = 'force-dynamic'
-
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-
 const client = new Anthropic()
-const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-  : null
+const db = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY) : null
 
-// ================================================================
-// BANK DETECTION
-// ================================================================
-const BANK_PATTERNS = [
-  'BANK', 'FINANCE', 'HOUSING FINANCE', 'FINANCIAL', 'NBFC', 'CAPITAL', 'FINCORP',
-  'BAJAJ', 'HDFC', 'SBI', 'AXIS', 'ICICI', 'KOTAK', 'PNB', 'BOI', 'CANARA',
+const BANKS = ['BANK', 'FINANCE', 'HOUSING FINANCE', 'FINANCIAL', 'NBFC', 'CAPITAL', 'FINCORP',
+  'BAJAJ', 'HDFC', 'SBI', 'AXIS', 'ICICI', 'KOTAK', 'PNB', 'BOI', 'CANARA', 'UNION',
   'INDIABULLS', 'LIC', 'LICHFL', 'REPCO', 'PIRAMAL', 'MUTHOOT', 'TATA CAPITAL',
-  'ADITYA BIRLA', 'FULLERTON', 'AAVAS', 'HOME FIRST', 'APTUS', 'SHRIRAM',
-  'GRUH', 'SUNDARAM', 'IIFL',
-]
-function isBank(name: string): boolean {
-  if (!name) return false
-  const u = name.toUpperCase()
-  return BANK_PATTERNS.some(p => u.includes(p))
+  'ADITYA BIRLA', 'FULLERTON', 'AAVAS', 'HOME FIRST', 'APTUS', 'SHRIRAM', 'INDIA BULLS']
+function isBank(n: string): boolean {
+  if (!n) return false
+  const u = n.toUpperCase()
+  return BANKS.some(b => u.includes(b))
 }
-
-// ================================================================
-// SAFE JSON PARSE -- tries multiple strategies
-// ================================================================
-function safeJsonParse(raw: string): any {
-  const strategies = [
-    raw.trim(),
-    raw.replace(/^[\s\S]*?(?=\{)/, '').replace(/\}[\s\S]*$/, '}'),
-    raw.replace(/`{3}json[\r\n]?/g, '').replace(/`{3}[\r\n]?/g, '').trim(),
-  ]
-  for (const s of strategies) {
-    try { const r = JSON.parse(s); if (r && typeof r === 'object') return r } catch { }
-  }
-  return {}
-}
-
-// Strip markdown code blocks and preamble from AI HTML output
-function cleanAiOutput(text: string): string {
-  // Remove markdown code block wrappers
-  text = text.replace(/`{3}html[\r\n]?/g, '').replace(/`{3}[\r\n]?/g, '')
-  // Remove AI preamble (anything before first HTML tag)
-  const firstTag = text.search(/<(hr|div|table|p|h[1-6])/i)
-  if (firstTag > 0) text = text.slice(firstTag)
-  return text.trim()
-}
-
-// ================================================================
-// INTERFACES
-// ================================================================
-interface ECRow {
-  row_number: number
-  col1_raw_text: string
-  col2_property: string
-  col3_aapnar: string
-  col4_lenar: string
-  col5_date: string
-  col6_deed_no: string
-}
-interface Charge {
-  lender: string; borrower: string; deed_no: string; date: string
-  row: number; status: 'ACTIVE' | 'RELEASED'
-  release_deed_no?: string; release_date?: string
-}
-interface RiskFinding {
-  code: string; severity: 'critical' | 'high' | 'medium' | 'low'
-  description: string; evidence: string
-}
-interface TxnRecord {
-  seller: string; buyer: string; instrument: string
-  date: string; reg_no: string; sub_registrar: string
-}
-
-// ================================================================
-// STAGE 2A: DETERMINISTIC MORTGAGE LIFECYCLE
-// ================================================================
-function mortgageLifecycle(rows: ECRow[]): { active: Charge[]; released: Charge[]; summary: string; encumbrance: string } {
+interface ECRow { row_number: number; col1_type: string; col2_property: string; col3_aapnar: string; col4_lenar: string; col5_date: string; col6_deed_no: string }
+interface Charge { lender: string; borrower: string; deed_no: string; date: string; row: number; status: 'ACTIVE' | 'RELEASED'; release_deed_no?: string; release_date?: string }
+function mortgageLifecycle(rows: ECRow[]) {
   const charges: Charge[] = []
   for (const r of rows) {
-    if (isBank(r.col4_lenar) && !isBank(r.col3_aapnar)) {
+    if (isBank(r.col4_lenar) && !isBank(r.col3_aapnar))
       charges.push({ lender: r.col4_lenar, borrower: r.col3_aapnar, deed_no: r.col6_deed_no, date: r.col5_date, row: r.row_number, status: 'ACTIVE' })
-    }
   }
   for (const r of rows) {
     if (isBank(r.col3_aapnar)) {
@@ -106,490 +35,359 @@ function mortgageLifecycle(rows: ECRow[]): { active: Charge[]; released: Charge[
   const released = charges.filter(c => c.status === 'RELEASED')
   const encumbrance = active.length > 0 ? 'ENCUMBERED' : released.length > 0 ? 'CLEAR_WITH_PRIOR_RELEASE' : 'CLEAR'
   const summary = active.length === 0
-    ? released.length > 0
-      ? `CLEAR. Prior mortgage by ${released.map(r => r.lender).join(', ')} fully RELEASED vide Deed No. ${released.map(r => r.release_deed_no).join(', ')}.`
-      : 'CLEAR. No encumbrance found in EC.'
-    : `ENCUMBERED. Active mortgage: ${active.map(a => `${a.lender} Deed No.${a.deed_no} dt.${a.date}`).join('; ')}`
+    ? released.length > 0 ? `CLEAR. Prior mortgage by ${released.map(r => r.lender).join(', ')} RELEASED vide Deed No. ${released.map(r => r.release_deed_no).join(', ')}.` : 'CLEAR. No mortgage found.'
+    : `ENCUMBERED. Active: ${active.map(a => `${a.lender} Deed:${a.deed_no} Date:${a.date}`).join('; ')}`
   return { active, released, summary, encumbrance }
 }
-
-// ================================================================
-// STAGE 2B: RISK SCORING
-// ================================================================
-function computeRiskScore(findings: RiskFinding[]): { score: number; rating: 'RED' | 'AMBER' | 'GREEN' } {
-  const weights: Record<string, number> = { critical: 40, high: 25, medium: 10, low: 3 }
-  let score = Math.min(100, findings.reduce((s, f) => s + (weights[f.severity] || 3), 0))
-  if (findings.some(f => f.severity === 'critical') || score >= 60) return { score, rating: 'RED' }
-  if (score >= 25) return { score, rating: 'AMBER' }
-  return { score, rating: 'GREEN' }
-}
-
-// ================================================================
-// STAGE 2C: TITLE CHAIN NARRATIVE
-// ================================================================
-function buildChainNarrative(txns: TxnRecord[]): string {
-  if (!txns.length) return 'Title chain to be verified from submitted documents.'
-  const sorted = [...txns].sort((a, b) => {
-    const p = (d: string) => { const pts = d.split('/'); return pts.length === 3 ? parseInt(pts[2] + pts[1].padStart(2, '0') + pts[0].padStart(2, '0')) : parseInt(d.replace(/\D/g, '')) }
-    return p(a.date) - p(b.date)
-  })
-  return sorted.map((t, i) => {
-    const pre = i === 0 ? '' : 'Thereafter, '
-    return `${pre}${t.seller} executed and registered ${t.instrument} in favour of ${t.buyer} bearing Registration No. ${t.reg_no || '[as per document]'} dated ${t.date || '[as per document]'}${t.sub_registrar ? ` before the Sub-Registrar, ${t.sub_registrar}` : ''}.`
-  }).join(' ')
-}
-
-// ================================================================
-// CSS
-// ================================================================
-const CSS = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Georgia','Times New Roman',serif;font-size:13px;line-height:1.9;color:#1a1a1a;background:#fff;max-width:920px;margin:0 auto;padding:48px 60px}.hdr{border-bottom:3px solid #1B3A6B;padding-bottom:18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-start}.firm{font-size:22px;font-weight:bold;letter-spacing:1px;color:#1B3A6B}.sub{font-size:11px;color:#555;margin-top:2px}.hdr-right{text-align:right;font-size:12px;line-height:2}.rtitle{font-size:14px;font-weight:bold;text-align:center;text-decoration:underline;text-transform:uppercase;letter-spacing:1px;margin:16px 0 4px}hr{border:none;border-top:1px solid #ccc;margin:16px 0}.ph{font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px;background:#1B3A6B;color:#fff;padding:7px 14px}.sph{font-size:12px;font-weight:bold;color:#1B3A6B;margin:14px 0 6px;border-left:4px solid #1B3A6B;padding-left:10px;text-transform:uppercase}.mt{width:100%;margin-bottom:10px;border-collapse:collapse}.mt td{font-size:12px;padding:6px 4px;vertical-align:top;border-bottom:1px solid #f0f0f0}.mt td:first-child{width:260px;color:#555;font-weight:600}.mt td:nth-child(2){width:14px}.mt td:last-child{font-weight:500}p{margin-bottom:10px;text-align:justify}.prop-para{background:#f7f9fc;border-left:4px solid #1B3A6B;padding:14px 18px;margin:10px 0 14px;font-style:italic;line-height:2.1}.ib{margin-bottom:14px;padding:12px 16px;border-left:4px solid #e5e7eb;background:#fafafa;border-radius:2px}.sh{display:inline-block;background:#b91c1c;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px;border-radius:2px;letter-spacing:.5px}.sm{display:inline-block;background:#b45309;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px;border-radius:2px;letter-spacing:.5px}.sl{display:inline-block;background:#1d4ed8;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px;border-radius:2px;letter-spacing:.5px}.it{font-weight:bold;font-size:13px;margin-bottom:4px}.sg{font-weight:bold;font-style:italic;color:#1B3A6B}ol{padding-left:22px;margin-bottom:10px}ol li{margin-bottom:5px}table.ec-tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}table.ec-tbl th{background:#1B3A6B;color:#fff;padding:6px 8px;text-align:left;font-size:10px;font-weight:700}table.ec-tbl td{border:1px solid #ddd;padding:6px 8px;vertical-align:top;font-size:11px}table.ec-tbl tr:nth-child(even){background:#f7f9fc}.ec-rel{color:#15803d;font-weight:bold}.ec-act{color:#b91c1c;font-weight:bold}table.mut{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}table.mut th{background:#374151;color:#fff;padding:5px 8px;text-align:left;font-size:10px}table.mut td{border:1px solid #e5e7eb;padding:5px 8px;vertical-align:top}table.mut tr:nth-child(even){background:#f9fafb}.vnc{margin-top:16px;padding:14px 18px;border:2px solid #b91c1c;background:#fff5f5;border-radius:2px}.vc{margin-top:16px;padding:14px 18px;border:2px solid #15803d;background:#f0fdf4;border-radius:2px}.vs{margin-top:16px;padding:14px 18px;border:2px solid #b45309;background:#fffbeb;border-radius:2px}.vt{font-size:13px;font-weight:bold;text-transform:uppercase;margin-bottom:6px}.final-rec{margin-top:22px;padding:18px 22px;border:3px solid #1B3A6B;background:#EFF3FB;border-radius:2px}.fr-title{font-size:11px;font-weight:bold;color:#1B3A6B;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase}.fr-value{font-size:16px;font-weight:bold;color:#1B3A6B}.sigrow{margin-top:50px;display:flex;justify-content:space-between;align-items:flex-end}.sigbox{text-align:center}.sigline{width:200px;border-bottom:1px solid #1a1a1a;margin:0 auto 6px;height:40px}.ftr{margin-top:36px;border-top:1px solid #ccc;padding-top:14px;font-size:11px;color:#666;text-align:center}.disc{margin-top:10px;font-size:10px;color:#999;text-align:justify;line-height:1.6}.wm{font-size:10px;color:#bbb;text-align:center;margin-top:8px;letter-spacing:2px;text-transform:uppercase}.risk-badge{display:inline-block;padding:4px 12px;border-radius:3px;font-weight:bold;font-size:12px;margin-top:4px}@media print{body{padding:30px 40px}}`
-
-// ================================================================
-// LEGAL OPINIONS
-// ================================================================
-function getLegalOpinion(ct: string, owner: string, applicant: string, existingBank: string): string {
-  const o: Record<string, string> = {
-    builder_purchase: `On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of ${owner} in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution and registration of Sale Deed unto and in favour of ${applicant} and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank.`,
-    resale: `On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of ${owner} in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution and registration of Sale Deed unto and in favour of ${applicant} and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank.`,
-    bt: `On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of ${owner} in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid subject to charge of ${existingBank} and after the execution and registration of deed of release of mortgage unto and in favour of ${owner} and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank subject to charge of ${existingBank}.`,
-    seller_bt: `On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of ${owner} in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid subject to charge of ${existingBank} and after the execution and registration of deed of release of mortgage unto and in favour of ${owner} and after the execution and registration of sale deed unto and in favour of ${applicant} and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank subject to charge of ${existingBank}.`,
-    lap: `On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of ${owner} in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and He/She/They have/has legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank.`,
+function buildECTable(rows: ECRow[], lc: any): string {
+  if (!rows.length) return '<p>No EC entries found.</p>'
+  let h = `<table class="ec-tbl"><tr><th>Sr.</th><th>Type</th><th>Deed No.</th><th>Date</th><th>Col 3 Aapnar</th><th>Col 4 Lenar</th><th>Status</th></tr>`
+  for (const r of rows) {
+    const isRelRow = isBank(r.col3_aapnar) && !isBank(r.col4_lenar)
+    const isMortRow = isBank(r.col4_lenar) && !isBank(r.col3_aapnar)
+    const isActMort = lc.active.some((c: Charge) => c.row === r.row_number)
+    let cls = '', txt = '', type = r.col1_type || 'Unknown'
+    if (isRelRow) { cls = 'ec-rel'; txt = 'RELEASED/DISCHARGED'; type = 'Reconveyance / Mortgage Release Deed' }
+    else if (isMortRow && isActMort) { cls = 'ec-act'; txt = 'ACTIVE MORTGAGE'; type = 'Mortgage Deed' }
+    else if (isMortRow && !isActMort) { cls = 'ec-rel'; txt = 'MORTGAGE - RELEASED'; type = 'Mortgage Deed' }
+    else { cls = ''; txt = 'Transaction' }
+    h += `<tr><td>${r.row_number}</td><td>${type}</td><td>${r.col6_deed_no || '--'}</td><td>${r.col5_date || '--'}</td><td>${r.col3_aapnar || '--'}</td><td>${r.col4_lenar || '--'}</td><td class="${cls}">${txt}</td></tr>`
   }
-  return o[ct] || o['lap']
+  return h + '</table>'
 }
+function getVerdict(t: string): string {
+  const u = t.toUpperCase()
+  if (u.includes('NOT CLEAR') || u.includes('TITLE BREAK')) return 'NOT CLEAR'
+  if (u.includes('CLEAR TITLE SUBJECT TO') || u.includes('CLEAR SUBJECT TO')) return 'CLEAR SUBJECT TO'
+  if (u.includes('CLEAR AND MARKETABLE') || u.includes('MORTGAGEABLE')) return 'CLEAR'
+  return 'PENDING'
+}
+const CSS = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Georgia','Times New Roman',serif;font-size:13px;line-height:1.9;color:#1a1a1a;background:#fff;max-width:920px;margin:0 auto;padding:48px 60px}.hdr{border-bottom:3px solid #1B3A6B;padding-bottom:18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-start}.firm{font-size:22px;font-weight:bold;letter-spacing:1px;color:#1B3A6B}.sub{font-size:11px;color:#555;margin-top:2px}.hdr-right{text-align:right;font-size:12px;line-height:2}.rtitle{font-size:14px;font-weight:bold;text-align:center;text-decoration:underline;text-transform:uppercase;letter-spacing:1px;margin:16px 0 4px}hr{border:none;border-top:1px solid #ccc;margin:16px 0}.ph{font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px;background:#1B3A6B;color:#fff;padding:7px 14px}.sph{font-size:12px;font-weight:bold;color:#1B3A6B;margin:14px 0 6px;border-left:4px solid #1B3A6B;padding-left:10px;text-transform:uppercase}.mt{width:100%;margin-bottom:10px;border-collapse:collapse}.mt td{font-size:12px;padding:5px 4px;vertical-align:top;border-bottom:1px solid #f0f0f0}.mt td:first-child{width:260px;color:#555}.mt td:nth-child(2){width:14px}.mt td:last-child{font-weight:500}p{margin-bottom:10px;text-align:justify}.prop-para{background:#f7f9fc;border-left:4px solid #1B3A6B;padding:12px 16px;margin:10px 0 14px;font-style:italic;line-height:2}.di{margin-bottom:16px;padding-bottom:12px;border-bottom:1px dotted #ddd}.dn{font-weight:bold}.ib{margin-bottom:18px;padding:12px 16px;border-left:4px solid #e5e7eb;background:#fafafa;border-radius:2px}.sh{display:inline-block;background:#b91c1c;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px;border-radius:2px}.sm{display:inline-block;background:#b45309;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px;border-radius:2px}.sl{display:inline-block;background:#1d4ed8;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px;border-radius:2px}.it{font-weight:bold;font-size:13px;margin-bottom:6px}.sg{font-weight:bold;font-style:italic;color:#1B3A6B}ol{padding-left:22px;margin-bottom:10px}ol li{margin-bottom:5px}table.ec-tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}table.ec-tbl th{background:#1B3A6B;color:#fff;padding:6px 8px;text-align:left;font-size:10px}table.ec-tbl td{border:1px solid #ddd;padding:6px 8px;vertical-align:top}table.ec-tbl tr:nth-child(even){background:#f7f9fc}.ec-rel{color:#15803d;font-weight:bold}.ec-act{color:#b91c1c;font-weight:bold}.ec-unk{color:#b45309;font-style:italic}table.mut{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}table.mut th{background:#374151;color:#fff;padding:5px 8px;text-align:left;font-size:11px}table.mut td{border:1px solid #e5e7eb;padding:5px 8px;vertical-align:top}table.mut tr:nth-child(even){background:#f9fafb}.vnc{margin-top:20px;padding:14px 18px;border:2px solid #b91c1c;background:#fff5f5;border-radius:2px}.vc{margin-top:20px;padding:14px 18px;border:2px solid #15803d;background:#f0fdf4;border-radius:2px}.vs{margin-top:20px;padding:14px 18px;border:2px solid #b45309;background:#fffbeb;border-radius:2px}.vt{font-size:13px;font-weight:bold;text-transform:uppercase;margin-bottom:6px}.final-rec{margin-top:22px;padding:18px 22px;border:3px solid #1B3A6B;background:#EFF3FB;border-radius:2px}.fr-title{font-size:11px;font-weight:bold;color:#1B3A6B;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase}.fr-value{font-size:16px;font-weight:bold;color:#1B3A6B}.sigrow{margin-top:50px;display:flex;justify-content:space-between;align-items:flex-end}.sigbox{text-align:center}.sigline{width:200px;border-bottom:1px solid #1a1a1a;margin:0 auto 6px;height:40px}.ftr{margin-top:36px;border-top:1px solid #ccc;padding-top:14px;font-size:11px;color:#666;text-align:center}.disc{margin-top:10px;font-size:10px;color:#999;text-align:justify;line-height:1.6}.wm{font-size:10px;color:#bbb;text-align:center;margin-top:8px;letter-spacing:2px;text-transform:uppercase}@media print{body{padding:30px 40px}.ib{page-break-inside:avoid}}`
+const L1 = `You are Document Extraction Engine (Layer 1). Implements Prompt 2 + Prompt 4 + Steps 1-7 + Mortgage Lifecycle Engine.
+NON-NEGOTIABLE: Never assume. Never create. Never suppress. Unavailable = "NOT PROVIDED FOR VERIFICATION."
+PROMPT 2 -- EXTRACT FROM EVERY DOCUMENT:
+Document Type | Registration Number | Registration Date | Executant (every person, NEVER "and others") | Claimant (every person) | Property Description | Survey No | Village | Taluka | District | Area | Boundaries
+PROPERTY PARA FORMAT: "Opinion on title and search in respect of immovable property bearing [Type] No. [X] on [Floor] Floor having Carpet Area admeasuring [X] Sq. Mtrs., along with Balcony area admeasuring [X] Sq. Mtrs. and Wash area admeasuring [X] Sq. Mtrs. together with undivided proportionate share area admeasuring [X] Sq. Mtrs. in the scheme known as '[Name]' constructed over Non-Agricultural land bearing Final Plot No. [X] of T.P. Scheme No. [X] allotted in lieu of Revenue/Block/Survey/City Survey No. [X], situate lying and being at Mouje: [Village], Taluka: [Taluka], District [District]."
+PROMPT 4 -- EC COLUMN MAPPING:
+COL 1: Type of Deed | COL 2: Property | COL 3: Executing Party (Aapnar) | COL 4: Claimant (Lenar) | COL 5: Date | COL 6: Deed No | COL 7 (LAST): NEVER READ NEVER MENTION
+EC Receipt: extract EC_APP_NUMBER, EC_DATE, EC_FROM, EC_TO
+EC Applicant name = IGNORE. Count actual rows, ignore header count.
+MORTGAGE LIFECYCLE ENGINE:
+MORTGAGE = Col4 is Bank, Col3 is Owner -> create CHARGE RECORD (STATUS: ACTIVE)
+RELEASE = Col3 is Bank (ROLE FLIP), Col4 is Owner -> find matching CHARGE -> STATUS: RELEASED
+Release keywords: Giro Mukeli/Mukti/Release/Reconveyance/Discharge/Satisfaction
+Output MORTGAGE_LIFECYCLE_SUMMARY: A.ACTIVE_MORTGAGES B.RELEASED_MORTGAGES C.UNMATCHED_RELEASES D.ENCUMBRANCE_STATUS
+STEPS 1-7 EC CLASSIFICATION:
+1.Capture RAW_COL1_TEXT 2.Normalize 3.Match taxonomy 4.Disambiguate (Bank Col3=Release, Bank Col4=Mortgage) 5.NO-GUESS RULE if uncertain 6.Confidence tag 7.Output EC_ROW_[N] with all fields
+TAXONOMY: Sale Deed|Absolute Sale Deed|Conveyance Deed|Gift Deed|Release Deed|Relinquishment Deed|Partition Deed|Family Settlement Deed|Exchange Deed|Mortgage Deed|Simple Mortgage Deed|Equitable Mortgage|Mortgage Release Deed|Reconveyance Deed|Lease Deed|Leave and License Agreement|Rent Agreement|Development Agreement|Joint Development Agreement|Agreement to Sell|Agreement to Sell Without Possession|Banakhat|Power of Attorney|General Power of Attorney|Special Power of Attorney|POA under Section 45-A|Revocation of POA|Will|Probate|Succession Certificate|Legal Heir Certificate|Affidavit|Declaration Deed|Indemnity Bond|Rectification Deed|Confirmation Deed|Cancellation Deed|Settlement Deed|Trust Deed|Partnership Deed|Deed of Admission|Deed of Retirement|Deed of Dissolution|Lis Pendens
+RULES: NEVER "and others" | EC Col 7 NEVER | EC Applicant IGNORE | Loan Amount NEVER | Stamp Paper NEVER`
 
-// ================================================================
-// EC TABLE HTML
-// ================================================================
-function buildECTable(rows: ECRow[], lifecycle: any): string {
-  let html = `<table class="ec-tbl"><tr><th>Sr.</th><th>Document Type</th><th>Deed No.</th><th>Date</th><th>Executing Party (Aapnar / Col 3)</th><th>Claimant Party (Lenar / Col 4)</th><th>Status</th></tr>`
-  for (const row of rows) {
-    const isRelease = isBank(row.col3_aapnar) && !isBank(row.col4_lenar)
-    const isMortgage = isBank(row.col4_lenar) && !isBank(row.col3_aapnar)
-    const isActive = lifecycle.active.some((c: Charge) => c.row === row.row_number)
-    let sc = '', st = '', tt = row.col1_raw_text || 'Transaction'
-    if (isRelease) { sc = 'ec-rel'; st = 'RELEASED / DISCHARGED'; tt = 'Mortgage Release Deed' }
-    else if (isMortgage && isActive) { sc = 'ec-act'; st = 'ACTIVE MORTGAGE'; tt = 'Mortgage Deed' }
-    else if (isMortgage && !isActive) { sc = 'ec-rel'; st = 'MORTGAGE - RELEASED'; tt = 'Mortgage Deed' }
-    else { sc = ''; st = 'Transaction' }
-    html += `<tr><td>${row.row_number}</td><td>${tt}</td><td>${row.col6_deed_no || '--'}</td><td>${row.col5_date || '--'}</td><td>${row.col3_aapnar || '--'}</td><td>${row.col4_lenar || '--'}</td><td class="${sc}">${st}</td></tr>`
+const L23_BASE = `You are Layer 2 (Title Verification) and Layer 3 (Risk). Never assume. Never create. Never suppress. Unavailable = "NOT PROVIDED FOR VERIFICATION."
+TITLE CHAIN: Every transfer needs documentary support. No support = TITLE BREAK CRITICAL.
+RISK: HIGH|MODERATE|LOW | MORTGAGEABILITY: Mortgageable|Conditionally|Not | SARFAESI: Enforceable|Conditionally|Not | LENDING: Suitable|Conditionally|Not
+EC VERIFICATION: RELEASED = do not flag. ACTIVE = flag HIGH SEVERITY. NEVER override RELEASED to ACTIVE. EC Col7 NEVER. EC Applicant IGNORE. Loan Amount NEVER.`
+
+function getL23(ct: string): string {
+  const op: Record<string, string> = {
+    builder_purchase: `"On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF BUILDER] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution and registration of Sale Deed unto and in favour of [NAME OF PROPOSED PURCHASER/BORROWER/MORTGAGOR] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank."`,
+    resale: `"On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution and registration of Sale Deed unto and in favour of [NAME OF PROPOSED PURCHASER/BORROWER/MORTGAGOR] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank."`,
+    bt: `"On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid subject to charge of [NAME OF EXISTING BANK] and after the execution and registration of deed of release of mortgage unto and in favour of [NAME OF CURRENT OWNER/BORROWER/MORTGAGOR] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank subject to charge of [NAME OF EXISTING BANK]."`,
+    seller_bt: `"On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid subject to charge of [NAME OF EXISTING BANK] and after the execution and registration of deed of release of mortgage unto and in favour of [NAME OF CURRENT OWNER/S] and after the execution and registration of sale deed unto and in favour of [NAME OF PROPOSED PURCHASER/S] and He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank subject to charge of [NAME OF EXISTING BANK]."`,
+    lap: `"On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [NAME OF CURRENT OWNER/S] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and He/She/They have/has legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt. The said immovable property will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority. The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank."`
   }
-  return html + `</table>`
+  const meta: Record<string, string> = {
+    builder_purchase: `---META---\nAPPLICANT: [Draft Sale Deed/Banakhat -- Buyer -- NEVER stamp paper]\nCO_APPLICANT: [Names or N/A]\nMORTGAGOR: [Same as Applicant]\nPROPERTY_PARA: [Full paragraph format]\nPROPERTY_BOUNDARIES: East:[X] | West:[X] | North:[X] | South:[X]\nCURRENT_OWNER: [Builder/Developer]\nEC_APP_NUMBER: [from EC Receipt]\nEC_DATE: [Date of Print]\nEC_FROM: [start] | EC_TO: [end]\nEC_ROW_COUNT: [actual rows]\nMORTGAGE_SUMMARY: [NONE / RELEASED vide Deed No.X / ACTIVE -- Bank:X Deed:Y]\nRISK_LEVEL: [HIGH/MODERATE/LOW]\nMORTGAGEABILITY: [Mortgageable/Conditionally/Not]\nSARFAESI: [Enforceable/Conditionally/Not]\nLENDING_SUITABILITY: [Suitable/Conditionally/Not]\nEXISTING_BANK: [N/A]\n---END META---`,
+    resale: `---META---\nAPPLICANT: [Second Party -- Draft Deed/Banakhat -- NEVER stamp paper]\nCO_APPLICANT: [Names or N/A]\nMORTGAGOR: [Same as Applicant]\nPROPERTY_PARA: [Full paragraph]\nPROPERTY_BOUNDARIES: East:[X] | West:[X] | North:[X] | South:[X]\nCURRENT_OWNER: [First Party -- ALL names]\nEC_APP_NUMBER: [from receipt] | EC_DATE: [Date of Print]\nEC_FROM: [start] | EC_TO: [end] | EC_ROW_COUNT: [actual rows]\nMORTGAGE_SUMMARY: [NONE / RELEASED vide Deed No.X / ACTIVE -- Bank:X Deed:Y]\nRISK_LEVEL: [HIGH/MODERATE/LOW]\nMORTGAGEABILITY: [Mortgageable/Conditionally/Not]\nSARFAESI: [Enforceable/Conditionally/Not]\nLENDING_SUITABILITY: [Suitable/Conditionally/Not]\nEXISTING_BANK: [N/A or bank if active]\n---END META---`,
+    bt: `---META---\nAPPLICANT: [Current owner/borrower]\nCO_APPLICANT: [Names or N/A]\nMORTGAGOR: [Same as Applicant]\nPROPERTY_PARA: [Full paragraph]\nPROPERTY_BOUNDARIES: East:[X] | West:[X] | North:[X] | South:[X]\nCURRENT_OWNER: [Same as Applicant]\nEC_APP_NUMBER: [from receipt] | EC_DATE: [Date of Print]\nEC_FROM: [start] | EC_TO: [end] | EC_ROW_COUNT: [actual rows]\nMORTGAGE_SUMMARY: [ACTIVE -- Bank:[X] Deed No:[Y] Date:[Z]]\nRISK_LEVEL: [HIGH/MODERATE/LOW]\nMORTGAGEABILITY: [Conditionally Mortgageable]\nSARFAESI: [Conditionally Enforceable]\nLENDING_SUITABILITY: [Conditionally Suitable]\nEXISTING_BANK: [Bank name from EC]\n---END META---`,
+    seller_bt: `---META---\nAPPLICANT: [Proposed purchaser -- Buyer side]\nCO_APPLICANT: [Names or N/A]\nMORTGAGOR: [Same as Applicant]\nPROPERTY_PARA: [Full paragraph]\nPROPERTY_BOUNDARIES: East:[X] | West:[X] | North:[X] | South:[X]\nCURRENT_OWNER: [Seller -- ALL names individually]\nEC_APP_NUMBER: [from receipt] | EC_DATE: [Date of Print]\nEC_FROM: [start] | EC_TO: [end] | EC_ROW_COUNT: [actual rows]\nMORTGAGE_SUMMARY: [ACTIVE -- Bank:[X] Deed No:[Y] Date:[Z]]\nRISK_LEVEL: [HIGH/MODERATE/LOW]\nMORTGAGEABILITY: [Conditionally Mortgageable]\nSARFAESI: [Conditionally Enforceable]\nLENDING_SUITABILITY: [Conditionally Suitable]\nEXISTING_BANK: [Bank name from EC]\n---END META---`,
+    lap: `---META---\nAPPLICANT: [Current owner/borrower]\nCO_APPLICANT: [Names or N/A]\nMORTGAGOR: [Same as Applicant]\nPROPERTY_PARA: [Full paragraph]\nPROPERTY_BOUNDARIES: East:[X] | West:[X] | North:[X] | South:[X]\nCURRENT_OWNER: [Same as Applicant]\nEC_APP_NUMBER: [from receipt] | EC_DATE: [Date of Print]\nEC_FROM: [start] | EC_TO: [end] | EC_ROW_COUNT: [actual rows]\nMORTGAGE_SUMMARY: [NONE / UNDISCLOSED ACTIVE if found]\nRISK_LEVEL: [HIGH/MODERATE/LOW]\nMORTGAGEABILITY: [Mortgageable/Not]\nSARFAESI: [Enforceable/Not]\nLENDING_SUITABILITY: [Suitable/Not]\nEXISTING_BANK: [N/A]\n---END META---`
+  }
+  const k = ct in meta ? ct : 'lap'
+  return L23_BASE + `\n=== CASE: ${k.toUpperCase().replace(/_/g, ' ')} ===\n` + meta[k] + `\n\nLEGAL OPINION (fill actual names):\n` + (op[k] || op['lap'])
 }
-
-// ================================================================
-// MUTATION TABLE HTML
-// ================================================================
-function buildMutationTable(mutations: any[]): string {
-  if (!mutations || !mutations.length) return '<p style="color:#666;font-size:12px;">Mutation entries not provided or not extracted.</p>'
-  let html = `<table class="mut"><tr><th>Sr.</th><th>Entry No.</th><th>Date</th><th>Nature</th><th>From</th><th>To</th><th>Survey No.</th><th>Status</th></tr>`
-  mutations.forEach((m: any, i: number) => {
-    html += `<tr><td>${i + 1}</td><td>${m.entry_no || '--'}</td><td>${m.date || '--'}</td><td>${m.nature || '--'}</td><td>${m.from_name || '--'}</td><td>${m.to_name || '--'}</td><td>${m.survey_no || '--'}</td><td>${m.status || '--'}</td></tr>`
-  })
-  return html + `</table>`
+function parseMeta(t: string) {
+  const b = t.match(/---META---\s*([\s\S]*?)---END META---/i)?.[1] || ''
+  const g = (k: string) => b.match(new RegExp(`^${k}:\\s*(.+)$`, 'mi'))?.[1]?.trim() || ''
+  return {
+    applicant: g('APPLICANT'), coApplicant: g('CO_APPLICANT'), mortgagor: g('MORTGAGOR'),
+    propertyPara: g('PROPERTY_PARA'), propertyBoundaries: g('PROPERTY_BOUNDARIES'),
+    currentOwner: g('CURRENT_OWNER'), ecAppNumber: g('EC_APP_NUMBER'), ecDate: g('EC_DATE'),
+    ecFrom: g('EC_FROM'), ecTo: g('EC_TO'), ecRowCount: g('EC_ROW_COUNT'),
+    mortgageSummary: g('MORTGAGE_SUMMARY'), riskLevel: g('RISK_LEVEL'),
+    mortgageability: g('MORTGAGEABILITY'), sarfaesi: g('SARFAESI'),
+    lendingSuitability: g('LENDING_SUITABILITY'), existingBank: g('EXISTING_BANK')
+  }
 }
+const L4A = `Layer 4 -- PART I, PART II, PART III. PURE HTML ONLY.
+PART I: <hr><div class="ph">PART I -- BORROWER DETAILS / MORTGAGOR DETAILS / CURRENT OWNERSHIP</div>
+<div class="sph">A. Borrower Details</div><table class="mt"><tr><td>Name of Borrower/s</td><td>:</td><td>[Every person -- NEVER "and others"]</td></tr><tr><td>Co-Borrower / Co-Applicant</td><td>:</td><td>[Names or "Not Applicable"]</td></tr><tr><td>Address</td><td>:</td><td>[As per documents]</td></tr><tr><td>Constitution</td><td>:</td><td>[Individual / Partnership / Private Ltd / HUF / Trust]</td></tr></table>
+<div class="sph">B. Mortgagor Details</div><table class="mt"><tr><td>Name of Mortgagor/s</td><td>:</td><td>[Same as Borrower/s above OR full names]</td></tr><tr><td>Address</td><td>:</td><td>[As per documents]</td></tr><tr><td>Constitution</td><td>:</td><td>[Individual]</td></tr></table>
+<div class="sph">C. Current Ownership</div><table class="mt"><tr><td>Current Owner/s</td><td>:</td><td>[Full name/s from latest deed]</td></tr><tr><td>Mode of Acquisition</td><td>:</td><td>[Registered Sale Deed / Allotment / Gift / etc.]</td></tr><tr><td>Registration Details</td><td>:</td><td>[Deed No., Date, SRO]</td></tr></table>
+PART II: <hr><div class="ph">PART II -- PROPERTY DESCRIPTION</div>
+<div class="prop-para">[Full paragraph: "Opinion on title and search in respect of immovable property bearing [Type] No. [X] on [Floor] Floor having Carpet Area admeasuring [X] Sq. Mtrs., along with Balcony area admeasuring [X] Sq. Mtrs. and Wash area admeasuring [X] Sq. Mtrs. together with undivided proportionate share area admeasuring [X] Sq. Mtrs. in the scheme known as '[Name]' constructed over Non-Agricultural land bearing Final Plot No. [X] of T.P. Scheme No. [X] allotted in lieu of Revenue/Block/Survey/City Survey No. [X], situate lying and being at Mouje: [Village], Taluka: [Taluka], District [District]."]</div>
+<table class="mt"><tr><td>East (Purva)</td><td>:</td><td>[boundary]</td></tr><tr><td>West (Pashchim)</td><td>:</td><td>[boundary]</td></tr><tr><td>North (Uttar)</td><td>:</td><td>[boundary]</td></tr><tr><td>South (Dakshin)</td><td>:</td><td>[boundary]</td></tr></table>
+PART III: RULE -- ALL submitted documents. NO "ILLEGIBLE"/"BLANK"/"NOT PROVIDED" here -- Part VI only. Latest first.
+<hr><div class="ph">PART III -- LIST OF SCRUTINIZED DOCUMENTS</div>
+Each doc: <div class="di"><p><span class="dn">N. [Type] -- Reg. No. [X] | Dated: [DD-MM-YYYY]</span><br>[Executant/s] unto and in favour of [Claimant/s]. [SRO.] [2-3 sentences.]</p></div>
+EC: <div class="di"><p><span class="dn">N. Encumbrance Certificate -- E-App. No.: [no] | Date: [date] | Period: [from] to [to]</span><br>EC bearing E-Application No. [no] dated [date] for search period [from] to [to] issued by IGR, Revenue Dept, Gujarat. [N] transaction/s found. [Summary.]</p></div>
+START: <hr><div class="ph">PART I`
 
-// ================================================================
-// REPORT HTML BUILDER
-// ================================================================
-function buildReport(p: any): string {
-  const rc = p.riskRating === 'RED' ? '#b91c1c' : p.riskRating === 'AMBER' ? '#b45309' : '#15803d'
-  const rb = p.riskRating === 'RED' ? '#FEF2F2' : p.riskRating === 'AMBER' ? '#FFFBEB' : '#F0FDF4'
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Legal Scrutiny Report - ${p.refNo}</title><style>${CSS}</style></head><body>
-<div class="hdr">
-  <div><div class="firm">TITLEMATRIXAI</div><div class="sub">ADVOCATES, TITLE SEARCH &amp; LEGAL SCRUTINY CONSULTANTS</div><div class="sub">Panel Legal Counsel - Mortgage, Banking &amp; Real Estate</div><div class="sub">support@titlematrixai.com | www.titlematrixai.in</div></div>
-  <div class="hdr-right"><div><strong>Ref No.:</strong> ${p.refNo}</div><div><strong>App ID:</strong> ${p.appId}</div><div><strong>Date:</strong> ${p.today}</div><div><strong>Bank:</strong> ${p.bankName}</div><div class="risk-badge" style="background:${rb};color:${rc};border:1px solid ${rc};">RISK: ${p.riskRating} (${p.riskScore}/100)</div></div>
-</div>
-<div class="rtitle">LEGAL SCRUTINY REPORT - ${p.loanType}</div><hr>
-${p.parts}
-<hr>
-<div class="sigrow">
-  <div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">TITLEMATRIXAI</div><div style="font-size:10px;color:#666;">Date: ${p.today}</div></div>
-  <div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">Authorised Signatory</div><div style="font-size:10px;color:#666;">${p.bankName}</div></div>
-</div>
-<div class="ftr">Generated by TITLEMATRIXAI | support@titlematrixai.com<div class="disc">DISCLAIMER: This report is prepared for ${p.bankName} (App ID: ${p.appId}). Based solely on documents produced for scrutiny. Does not constitute guarantee of title.</div><div class="wm">TITLEMATRIXAI - CONFIDENTIAL - FOR BANK USE ONLY</div></div>
+const L4B = `Layer 4 -- PART IV, PART V. PURE HTML ONLY.
+PART IV: Oldest first. First para NO "Thereafter". Each subsequent MUST start "Thereafter,".
+<hr><div class="ph">PART IV -- CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
+First: <p>[Earliest owner -- mutation entry No. X dated DD/MM/YYYY.]</p>
+Each next: <p>Thereafter, [Seller/s] transferred to [Buyer/s] vide Registered [Type] No. [X] dated [DD/MM/YYYY] at SRO [Name]. Mutation No. [X] dated [DD/MM/YYYY].</p>
+MORTGAGE -- IF RELEASED: <p>Thereafter, [Mortgagor/s] created mortgage in favour of [Bank] vide Mortgage Deed No. [X] dated [DD/MM/YYYY] at SRO [Name]. The said mortgage stands discharged and charge fully released and satisfied vide [Reconveyance/Mortgage Release Deed] No. [Y] dated [DD/MM/YYYY] by [Bank] unto [Owner] -- no subsisting charge remains.</p>
+MORTGAGE -- IF ACTIVE: <p>Thereafter, [Mortgagor/s] created mortgage in favour of [Bank] vide Mortgage Deed No. [X] dated [DD/MM/YYYY] at SRO [Name]. The said mortgage is subsisting and active -- no Release Deed found.</p>
+Final: <p>Thereafter, [Current Owner/s] holds right, title and interest confirmed by EC E-App No. [EC_APP_NUMBER] dated [EC_DATE] period [EC_FROM] to [EC_TO]. Encumbrance Status: [ENCUMBRANCE_STATUS].</p>
+RULE: NEVER say "no discharge" for RELEASED mortgage.
+PART V: <hr><div class="ph">PART V -- APPROVALS AND REGULATORY COMPLIANCE</div>
+<div class="sph">Revenue Record</div><table class="mt"><tr><td>Village</td><td>:</td><td>[Name]</td></tr><tr><td>Taluka</td><td>:</td><td>[Name]</td></tr><tr><td>District</td><td>:</td><td>[Name]</td></tr><tr><td>Survey/Block No.</td><td>:</td><td>[No.]</td></tr><tr><td>Total Area</td><td>:</td><td>[H.Are.SqMt.]</td></tr><tr><td>Land Use</td><td>:</td><td>[Bin Kheti/Non-Agricultural = OK | Kheti/Agricultural = FLAG IMMEDIATELY]</td></tr><tr><td>Ownership</td><td>:</td><td>[Names -- flag if current owner not reflected]</td></tr><tr><td>Boja/Encumbrance</td><td>:</td><td>[NIL / Details]</td></tr><tr><td>Ganot/Tenant</td><td>:</td><td>[NIL / flag if found]</td></tr></table>
+<div class="sph">Mutation Entries</div><table class="mut"><tr><th>Sr.</th><th>Entry No.</th><th>Date</th><th>Status</th><th>Nature</th><th>Details</th><th>Survey No.</th></tr>[rows]</table>
+<div class="sph">Regulatory Approvals</div><table class="mt"><tr><td>NA Order</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr><tr><td>Development Permission</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr><tr><td>Building Plan</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr><tr><td>Commencement Certificate</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr><tr><td>RERA Registration</td><td>:</td><td>[RERA No. OR "NOT PROVIDED FOR VERIFICATION." -- Post May 2017: MANDATORY]</td></tr><tr><td>Fire NOC</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr><tr><td>Airport NOC</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr><tr><td>OC / BU Permission</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr><tr><td>Completion Certificate</td><td>:</td><td>[Details OR "NOT PROVIDED FOR VERIFICATION."]</td></tr></table>
+<div class="sph">Encumbrance Analysis</div>
+<p>[EC_TABLE_HTML_PLACEHOLDER]</p>
+<div class="sph">Mortgage Lifecycle Summary</div>
+<table class="mt"><tr><td>A. Active Mortgages</td><td>:</td><td>[A. ACTIVE_MORTGAGES]</td></tr><tr><td>B. Released Mortgages</td><td>:</td><td>[B. RELEASED_MORTGAGES]</td></tr><tr><td>C. Unmatched Releases</td><td>:</td><td>[C. UNMATCHED_RELEASES]</td></tr><tr><td>D. Encumbrance Status</td><td>:</td><td>[D. ENCUMBRANCE_STATUS]</td></tr></table>
+START: <hr><div class="ph">PART IV`
+
+const L4C = `Layer 4 -- PART VI, PART VII, PART VIII. PURE HTML ONLY. Max 5 alerts.
+PART VI: <hr><div class="ph">PART VI -- ALERTS</div><p>Alerts identified. HIGH = conditions precedent to sanction.</p>
+HIGH: <div class="ib"><div><span class="sh">HIGH SEVERITY</span></div><div class="it">N. [Title]</div><p>[Finding. 2-3 sentences.]</p><p><span class="sg">Direction:</span> [Action.]</p></div>
+MEDIUM: <div class="ib"><div><span class="sm">MEDIUM SEVERITY</span></div><div class="it">N. [Title]</div><p>[2 sentences.]</p><p><span class="sg">Direction:</span> [Steps.]</p></div>
+LOW: <div class="ib"><div><span class="sl">LOW SEVERITY</span></div><div class="it">N. [Title]</div><p>[1-2 sentences.]</p><p><span class="sg">Direction:</span> [Steps.]</p></div>
+RULES: NEVER flag released mortgage. NEVER flag EC-confirmed deeds. NEVER flag EC Applicant. No alerts = <p>No material adverse findings. Title appears clear.</p>
+PART VII: <hr><div class="ph">PART VII -- DOCUMENT DEFICIENCY REPORT</div>
+<div class="sph">A. Documents Submitted</div><ol>[all readable docs]</ol>
+<div class="sph">B. Critical Missing</div><ol>[mandatory missing OR NIL]</ol>
+<div class="sph">C. Important Missing</div><ol>[other missing OR NIL]</ol>
+<div class="sph">D. Illegible/Incomplete</div><ol>[unreadable OR NIL]</ol>
+<div class="sph">E. Risk Assessment</div><table class="mt"><tr><td>Risk Level</td><td>:</td><td>[HIGH/MODERATE/LOW]</td></tr><tr><td>Mortgageability</td><td>:</td><td>[Mortgageable/Conditionally/Not]</td></tr><tr><td>SARFAESI</td><td>:</td><td>[Enforceable/Conditionally/Not]</td></tr><tr><td>Lending Suitability</td><td>:</td><td>[Suitable/Conditionally/Not]</td></tr><tr><td>Security Coverage</td><td>:</td><td>[Adequate/Marginal/Inadequate]</td></tr><tr><td>Reasoning</td><td>:</td><td>[2-3 sentences]</td></tr></table>
+PART VIII: <hr><div class="ph">PART VIII -- LEGAL OPINION</div>
+<p>[EXACT legal opinion with actual names]</p>
+<p>The said immovable property is/will be enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.</p>
+<p>The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank.</p>
+VERDICT: HIGH alerts: <div class="vnc"><div class="vt" style="color:#b91c1c;">TITLE NOT CLEAR -- BANK SHOULD NOT PROCEED</div><p style="margin-top:8px;font-size:12px;">Resolve ALL HIGH alerts before proceeding.</p></div>
+MEDIUM/LOW only: <div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p style="margin-top:8px;font-size:12px;">Mortgageable subject to: [conditions].</p></div>
+No alerts: <div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p style="margin-top:8px;font-size:12px;">[Brief reason.]</p></div>
+START: <hr><div class="ph">PART VI`
+
+const L4D = `Layer 4 -- PART IX, PART X, PART XI. PURE HTML ONLY.
+PART IX: <hr><div class="ph">PART IX -- PRE-DISBURSEMENT DOCUMENTS</div><p>Required BEFORE disbursement:</p>
+<ol>[Case-specific: Builder Purchase: NOC from Builder|NOC from Project Finance Bank|Draft Sale Deed/Banakhat|Allotment Letter|Missing docs || Resale: Draft Sale Deed|Chain docs || BT: LOD from existing Bank|Foreclosure Letter|NOC|CERSAI|Updated EC || Seller BT: Draft Deed|Foreclosure|LOD|NOC|CERSAI|Updated EC || LAP: Original Sale Deed|Updated EC|CERSAI]</ol>
+PART X: <hr><div class="ph">PART X -- POST-DISBURSEMENT DOCUMENTS</div><p>Required AFTER disbursement:</p>
+<ol>[Case-specific: Builder Purchase: Final Registered Sale Deed || Resale: Final Registered Sale Deed || BT: No-Due Certificate|Release Deed from existing Bank|Original Title Docs|Updated EC || Seller BT: Sale Deed|Release Deed|No-Due Certificate|Updated EC || LAP: Registered Mortgage/MODT|CERSAI Confirmation|Updated EC]</ol>
+PART XI: <hr><div class="ph">PART XI -- FINAL RECOMMENDATION</div>
+<div class="final-rec"><div class="fr-title">Final Title Status:</div><div class="fr-value">[CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS]</div></div>
+<p style="margin-top:16px;">[3-4 sentences: overall status, conditions, bank can proceed, mortgage lifecycle summary.]</p>
+START: <hr><div class="ph">PART IX`
+function buildHtml(p: { refNo: string; appId: string; today: string; bankName: string; loanType: string; p123: string; p45: string; p678: string; p911: string }): string {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Legal Scrutiny Report</title><style>${CSS}</style></head><body>
+<div class="hdr"><div><div class="firm">TITLEMATRIXAI</div><div class="sub">ADVOCATES, TITLE SEARCH &amp; LEGAL SCRUTINY CONSULTANTS</div><div class="sub">Panel Legal Counsel -- Mortgage, Banking &amp; Real Estate Transactions</div><div class="sub">support@titlematrixai.com | www.titlematrixai.com</div></div>
+<div class="hdr-right"><div><strong>Reference No.:</strong> ${p.refNo}</div><div><strong>Application ID:</strong> ${p.appId}</div><div><strong>Report Date:</strong> ${p.today}</div><div><strong>Bank:</strong> ${p.bankName}</div></div></div>
+<div class="rtitle">LEGAL SCRUTINY REPORT -- ${p.loanType}</div><hr>
+${p.p123}${p.p45}${p.p678}${p.p911}
+<hr><div class="sigrow"><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">TITLEMATRIXAI</div><div style="font-size:10px;color:#666;">Date: ${p.today}</div></div>
+<div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">Authorised Signatory</div><div style="font-size:10px;color:#666;">${p.bankName}</div></div></div>
+<div class="ftr">Generated by TITLEMATRIXAI | support@titlematrixai.com<div class="disc">DISCLAIMER: Prepared for ${p.bankName}, App ${p.appId}. Based on documents produced. Not a guarantee of title.</div><div class="wm">TITLEMATRIXAI -- CONFIDENTIAL -- FOR BANK USE ONLY</div></div>
 </body></html>`
 }
 
-// ================================================================
-// MAIN HANDLER
-// ================================================================
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { images, caseType, appId, bankName, applicantName, coApplicant,
-      propertyAddress, currentOwner, boundaryEast, boundaryWest, boundaryNorth,
-      boundarySouth, userId, documentText, ecData } = body
-
+    const { images, documentText, caseType, appId, bankName, loanType,
+      applicantName, coApplicant, propertyAddress, currentOwner,
+      boundaryEast, boundaryWest, boundaryNorth, boundarySouth, userId } = body
     const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    const refNo = `TM/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`
-    const loanTypeMap: Record<string, string> = { builder_purchase: 'Builder Purchase', resale: 'Resale Property', bt: 'Balance Transfer', seller_bt: 'Seller Balance Transfer', lap: 'LAP (Loan Against Property)' }
+    const refNo = `TITLEMATRIXAI/${new Date().getFullYear()}/${String(Date.now()).slice(-4)}`
+    const loanMap: Record<string, string> = { builder_purchase: 'Builder Purchase', resale: 'Resale Property', bt: 'Balance Transfer', seller_bt: 'Seller BT', lap: 'LAP (Loan Against Property)' }
 
-    // Build image content array with file name labels
+    // Build image content array
     const imgContent: any[] = []
-    if (images?.length) {
-      for (const img of images) {
-        // Label each image so AI knows which file it came from
-        imgContent.push({ type: 'text', text: `[Image from file: ${img.name}]` })
-        imgContent.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } })
-      }
-    }
+    if (images?.length) for (const img of images)
+      imgContent.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } })
 
-    // ============================================================
-    // STAGE 1: PARALLEL EXTRACTION
-    // 1A: General extraction (sale deed, 7/12, mutation, approvals)
-    // 1B: Dedicated EC extraction (ALWAYS runs, no matter what)
-    // Both run simultaneously -- faster + more reliable
-    // ============================================================
+    // ================================================================
+    // STEP 0: DEDICATED EC EXTRACTION -- any how EC must be detected
+    // ================================================================
     let ecRows: ECRow[] = []
-    let ecMeta = { ec_app_number: '', ec_date: '', ec_from: '', ec_to: '', row_count: 0 }
-    let extractedFacts: any = {
-      sale_deeds: [], mutation_entries: [], revenue_record: {},
-      na_order: {}, dev_permission: {}, oc_bcc: {}, rera: {},
-      documents_found: [], property_description_consolidated: ''
-    }
+    let ecMeta = { ec_app_number: '', ec_date: '', ec_from: '', ec_to: '' }
+    let lifecycle = { active: [] as Charge[], released: [] as Charge[], summary: 'No EC data.', encumbrance: 'UNKNOWN' }
 
-    if (ecData?.rows?.length) {
-      // Pre-processed EC from frontend
-      ecRows = ecData.rows
-      ecMeta = { ec_app_number: ecData.ec_app_number || '', ec_date: ecData.ec_date || '', ec_from: ecData.ec_from || '', ec_to: ecData.ec_to || '', row_count: ecData.rows.length }
-    } else if (imgContent.length > 0 || (documentText && documentText.trim().length > 50)) {
+    if (imgContent.length > 0) {
+      try {
+        const ecPrompt = [...imgContent, {
+          type: 'text', text: `Find the Encumbrance Certificate (EC) document in these images.
+EC title: "Milakat parna boja angenu patrak" OR "Encumbrance Certificate" (Gujarati/English).
+It has a TABLE with property transaction rows.
+Extract ALL rows. Output ONLY this JSON (no markdown):
+{"found":true,"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"exact col1 text","col2_property":"","col3_aapnar":"executing party col3","col4_lenar":"claimant party col4","col5_date":"","col6_deed_no":""}]}
+RULES: Extract EVERY row. Column 7 (last) = DO NOT extract. EC applicant from header = IGNORE.
+If no EC found: {"found":false,"rows":[]}` }]
 
-      // -- 1A: GENERAL EXTRACTION PROMPT --
-      const generalContent: any[] = [...imgContent]
-      if (documentText && String(documentText).trim().length > 50) {
-        generalContent.push({ type: 'text', text: `DOCUMENT TEXT FROM PDFs:\n${String(documentText).slice(0, 15000)}` })
-      }
-      generalContent.push({
-        type: 'text', text: `You are an Indian property document expert. Extract all information from these documents EXCEPT the EC table (handle separately).
-
-Focus on extracting from:
-- Sale Deeds: seller names, buyer names, dates, registration number, sub-registrar, survey no, plot no, flat no, floor, wing, building, society, area, consideration, boundaries, taluka, district
-- 7/12 / Revenue Record (satbara utara / record of rights): survey number, ALL khata numbers listed (may be many: 73,137,1022,1023...), owner/khatedaar name, total area with units (2-16-42-10 H.Are.SqMt or 14068 Sq.Mt), land type/classification (Paiki Bin Kheti / Jirayat / Non-Agricultural / Juni Shart), taluka, district
-- Mutation entries: entry number, date, nature (transfer/purchase), from name, to name, survey no, status (completed/pending)
-- NA Order: order number, date, authority (collector/tehsildar)
-- Development Permission / GUDA permission / Parvanagi: permission number (starts with GUDA/ or similar), date, issuing authority (GUDA/municipality), approved area -- LOOK FOR images labeled with GUDA or Development Permission
-- OC / BCC / Completion Certificate: certificate number, date, issuing authority
-- RERA: registration number, promoter/developer name
-- AAI NOC / Airport NOC: NOC ID number (like AHME/WEST/B/...), date, validity date -- LOOK FOR images labeled AAI
-- Fire NOC: date, issuing authority
-- All documents found: list every document you see in documents_found array
-
-Output ONLY valid JSON, no markdown, no explanation:
-{"sale_deeds":[{"seller_names":[],"buyer_names":[],"execution_date":"","registration_date":"","registration_no":"","sub_registrar_office":"","survey_no":"","plot_no":"","flat_no":"","floor_no":"","wing":"","building_name":"","society_name":"","area":"","consideration_amount":"","taluka":"","district":"","boundaries":{"east":"","west":"","north":"","south":""}}],"mutation_entries":[{"entry_no":"","date":"","nature":"","from_name":"","to_name":"","survey_no":"","status":""}],"revenue_record":{"survey_no":"","khata_no":"","owner_name":"","area":"","land_type":"","taluka":"","district":""},"na_order":{"order_no":"","date":"","authority":""},"dev_permission":{"permission_no":"","date":"","authority":"","approved_area":""},"oc_bcc":{"certificate_no":"","date":"","authority":""},"rera":{"registration_no":"","promoter_name":""},"aai_noc":{"noc_id":"","date":"","valid_till":"","authority":""},"fire_noc":{"date":"","authority":""},"property_description_consolidated":"","documents_found":[]}` })
-
-      // -- 1B: DEDICATED EC EXTRACTION PROMPT --
-      const ecContent: any[] = [...imgContent]
-      ecContent.push({
-        type: 'text', text: `You are an expert in Gujarat Sub-Registrar Encumbrance Certificates (EC). Find the EC document in these images and extract its data.
-
-WHAT TO LOOK FOR - Gujarat EC document has:
-- TITLE: "Badha Dastavejo ni Nondh" OR "Encumbrance Certificate" OR table with Gujarati headers
-- HEADER at top of document:
-  * Application Number = "Darkhast No." OR "E-No." OR any reference number -> ec_app_number
-  * Issue date of EC -> ec_date (DD/MM/YYYY)
-  * Period FROM date = "Muddatni Sharu Tarikh" OR "From" -> ec_from (DD/MM/YYYY)
-  * Period TO date = "Muddatni Ant Tarikh" OR "To" OR "Sudhi" -> ec_to (DD/MM/YYYY)
-  * IGNORE the "Arji Karta" (applicant name) row
-
-- TABLE with 7 columns (IGNORE last/7th column completely):
-  Col 1: Deed type (Vikray Patra/Sale, Baynama/Agreement, Mortgage/Girvitpatra, Release etc.)
-  Col 2: Property description
-  Col 3: "Dastavej Kari Aapnar" = WHO GIVES = Executant -> col3_aapnar
-  Col 4: "Dastavej Kari Lenar" = WHO RECEIVES = Claimant -> col4_lenar
-  Col 5: Registration date -> col5_date
-  Col 6 (2nd LAST): Registration number -> col6_deed_no
-  Col 7 (LAST): IGNORE COMPLETELY
-
-IMPORTANT RULES:
-- Even if EC has ZERO transaction rows, still extract app number, date, from, to from header
-- Each data row in table = one entry in ec_rows array
-- If you cannot find EC document, return empty strings but keep the JSON structure
-- Read Gujarati text visually from images
-
-Output ONLY valid JSON, no markdown:
-{"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","ec_rows":[{"row_number":1,"col1_raw_text":"","col2_property":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}]}` })
-
-      // RUN BOTH IN PARALLEL
-      const [genResult, ecResult] = await Promise.all([
-        client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, temperature: 0, messages: [{ role: 'user', content: generalContent }] }).catch(() => null),
-        client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 2000, temperature: 0, messages: [{ role: 'user', content: ecContent }] }).catch(() => null),
-      ])
-
-      // Parse general extraction
-      if (genResult) {
-        const genRaw = genResult.content[0]?.type === 'text' ? genResult.content[0].text : '{}'
-        const genData = safeJsonParse(genRaw)
-        extractedFacts = {
-          sale_deeds: genData.sale_deeds || [],
-          mutation_entries: genData.mutation_entries || [],
-          revenue_record: genData.revenue_record || {},
-          na_order: genData.na_order || {},
-          dev_permission: genData.dev_permission || {},
-          oc_bcc: genData.oc_bcc || {},
-          rera: genData.rera || {},
-          aai_noc: genData.aai_noc || {},
-          fire_noc: genData.fire_noc || {},
-          documents_found: genData.documents_found || [],
-          property_description_consolidated: genData.property_description_consolidated || ''
+        const ecRes = await client.messages.create({
+          model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0,
+          messages: [{ role: 'user', content: ecPrompt }]
+        })
+        const ecRaw = ecRes.content[0].type === 'text' ? ecRes.content[0].text : '{}'
+        const ecJson = JSON.parse(ecRaw.replace(/```json?\n?/g, '').replace(/```\n?/g, '').trim())
+        if (ecJson.found && ecJson.rows?.length > 0) {
+          ecRows = ecJson.rows
+          ecMeta = { ec_app_number: ecJson.ec_app_number || '', ec_date: ecJson.ec_date || '', ec_from: ecJson.ec_from || '', ec_to: ecJson.ec_to || '' }
+          lifecycle = mortgageLifecycle(ecRows)
+          console.log('EC extracted:', ecRows.length, 'rows | Status:', lifecycle.encumbrance)
         }
-      }
-
-      // Parse EC extraction
-      if (ecResult) {
-        const ecRaw = ecResult.content[0]?.type === 'text' ? ecResult.content[0].text : '{}'
-        const ecData2 = safeJsonParse(ecRaw)
-        ecRows = ecData2.ec_rows || []
-        ecMeta = {
-          ec_app_number: ecData2.ec_app_number || '',
-          ec_date: ecData2.ec_date || '',
-          ec_from: ecData2.ec_from || '',
-          ec_to: ecData2.ec_to || '',
-          row_count: ecRows.length
-        }
-      }
+      } catch (e) { console.log('EC extraction error:', e) }
     }
 
-    // ============================================================
-    // STAGE 2: DETERMINISTIC PROCESSING (code, not AI)
-    // ============================================================
-
-    // 2A: Mortgage lifecycle
-    const lifecycle = mortgageLifecycle(ecRows)
-
-    // 2B: Title chain
-    const txnRecords: TxnRecord[] = (extractedFacts.sale_deeds || [])
-      .filter((sd: any) => (sd.seller_names?.length || sd.buyer_names?.length))
-      .map((sd: any) => ({
-        seller: (sd.seller_names || []).filter(Boolean).join(' & ') || 'Unknown',
-        buyer: (sd.buyer_names || []).filter(Boolean).join(' & ') || 'Unknown',
-        instrument: 'Sale Deed',
-        date: sd.registration_date || sd.execution_date || '',
-        reg_no: sd.registration_no || '',
-        sub_registrar: sd.sub_registrar_office || ''
-      }))
-    const chainNarrative = buildChainNarrative(txnRecords)
-
-    // 2C: Resolve final values (form > extracted > default)
-    const firstDeed = extractedFacts.sale_deeds?.[0] || {}
-    const lastDeed = extractedFacts.sale_deeds?.[extractedFacts.sale_deeds?.length - 1] || {}
-    const finalApplicant = applicantName || 'As per Application'
-    const finalCoApp = coApplicant || 'Not Applicable'
-    const finalOwner = currentOwner || (txnRecords.length > 0 ? txnRecords[txnRecords.length - 1].buyer : 'As per Documents')
-    const finalBank = bankName || 'Bank'
-    const finalAddress = propertyAddress || extractedFacts.property_description_consolidated || 'As per Documents'
-    const finalEast = boundaryEast || lastDeed?.boundaries?.east || firstDeed?.boundaries?.east || 'As per Documents'
-    const finalWest = boundaryWest || lastDeed?.boundaries?.west || firstDeed?.boundaries?.west || 'As per Documents'
-    const finalNorth = boundaryNorth || lastDeed?.boundaries?.north || firstDeed?.boundaries?.north || 'As per Documents'
-    const finalSouth = boundarySouth || lastDeed?.boundaries?.south || firstDeed?.boundaries?.south || 'As per Documents'
-    const existingBank = lifecycle.active[0]?.lender || lifecycle.released[0]?.lender || 'N/A'
-
-    // 2D: Risk findings
-    const riskFindings: RiskFinding[] = []
-    if (lifecycle.active.length > 0) {
-      riskFindings.push({ code: 'ACTIVE_MORTGAGE', severity: 'critical', description: `Active mortgage in favour of ${lifecycle.active.map(a => a.lender).join(', ')} vide Deed No. ${lifecycle.active.map(a => a.deed_no).join(', ')} dated ${lifecycle.active.map(a => a.date).join(', ')}.`, evidence: 'Encumbrance Certificate' })
-    }
-    if (!extractedFacts.na_order?.order_no && (caseType === 'builder_purchase' || caseType === 'resale')) {
-      riskFindings.push({ code: 'NA_ORDER_MISSING', severity: 'medium', description: 'NA Order (Non-Agricultural Conversion Order) not provided for scrutiny.', evidence: 'Document checklist' })
-    }
-    if (!extractedFacts.oc_bcc?.certificate_no) {
-      riskFindings.push({ code: 'OC_MISSING', severity: 'low', description: 'Occupancy Certificate / Completion Certificate not provided.', evidence: 'Document checklist' })
-    }
-    const riskResult = computeRiskScore(riskFindings)
-
-    // Pre-build HTML tables
-    const ecTableHtml = ecRows.length > 0 ? buildECTable(ecRows, lifecycle) : '<p style="color:#666;font-style:italic;">No EC entries found.</p>'
-    const mutTableHtml = buildMutationTable(extractedFacts.mutation_entries)
-    const legalOpinion = getLegalOpinion(caseType, finalOwner, finalApplicant, existingBank)
-
-    // ============================================================
-    // GROUND TRUTH -- all verified facts fed to report AI
-    // ============================================================
-    const GT = `
-VERIFIED FACTS - USE EXACTLY - DO NOT CHANGE OR HALLUCINATE:
-
-CASE: ${caseType} | ${loanTypeMap[caseType] || 'LAP'} | App ID: ${appId || refNo} | Ref: ${refNo} | Date: ${today}
-BANK: ${finalBank}
-APPLICANT: ${finalApplicant}
-CO-APPLICANT: ${finalCoApp}
-CURRENT OWNER / MORTGAGOR: ${finalOwner}
-
-PROPERTY:
-Address: ${finalAddress}
-Survey/Plot No: ${firstDeed.survey_no || firstDeed.plot_no || lastDeed.survey_no || 'As per documents'}
-Flat/Unit: ${lastDeed.flat_no || firstDeed.flat_no || ''}
-Floor/Wing: ${lastDeed.floor_no || ''} ${lastDeed.wing || ''}
-Building/Society: ${lastDeed.building_name || lastDeed.society_name || firstDeed.building_name || ''}
-Area: ${lastDeed.area || firstDeed.area || 'As per documents'}
-Taluka: ${firstDeed.taluka || lastDeed.taluka || ''}
-District: ${firstDeed.district || lastDeed.district || ''}
-East: ${finalEast} | West: ${finalWest} | North: ${finalNorth} | South: ${finalSouth}
-
-SALE DEEDS (${(extractedFacts.sale_deeds || []).length} found):
-${(extractedFacts.sale_deeds || []).map((sd: any, i: number) => `  Deed ${i + 1}: Seller: ${(sd.seller_names || []).join(', ') || 'Unknown'} | Buyer: ${(sd.buyer_names || []).join(', ') || 'Unknown'} | Reg.No: ${sd.registration_no || 'N/A'} | Date: ${sd.registration_date || sd.execution_date || 'N/A'} | Sub-Reg: ${sd.sub_registrar_office || 'N/A'} | Consideration: ${sd.consideration_amount || 'N/A'}`).join('\n') || '  Not extracted'}
-
-TITLE CHAIN: ${chainNarrative}
-
-EC DATA:
-App No: ${ecMeta.ec_app_number || 'N/A'} | Date: ${ecMeta.ec_date || 'N/A'} | Period: ${ecMeta.ec_from || 'N/A'} to ${ecMeta.ec_to || 'N/A'} | Entries: ${ecMeta.row_count}
-Encumbrance Status: ${lifecycle.encumbrance}
+    const ecTableHtml = buildECTable(ecRows, lifecycle)
+    const ecGroundTruth = `
+=== EC GROUND TRUTH (100% CORRECT -- DO NOT CONTRADICT) ===
+EC App No: ${ecMeta.ec_app_number} | Date: ${ecMeta.ec_date} | Period: ${ecMeta.ec_from} to ${ecMeta.ec_to}
+EC Rows: ${ecRows.length}
+Encumbrance: ${lifecycle.encumbrance}
 Summary: ${lifecycle.summary}
 Active Mortgages: ${lifecycle.active.length === 0 ? 'NONE' : lifecycle.active.map(a => `${a.lender} Deed:${a.deed_no} Date:${a.date}`).join(' | ')}
-Released Mortgages: ${lifecycle.released.length === 0 ? 'NONE' : lifecycle.released.map(r => `${r.lender} released vide ${r.release_deed_no} on ${r.release_date}`).join(' | ')}
+Released Mortgages: ${lifecycle.released.length === 0 ? 'NONE' : lifecycle.released.map(r => `${r.lender} RELEASED vide ${r.release_deed_no} on ${r.release_date}`).join(' | ')}
+RULE: RELEASED mortgage = DO NOT flag as alert. ACTIVE = flag HIGH SEVERITY.
+=== END EC GROUND TRUTH ===`
 
-REVENUE RECORD (7/12):
-Survey No: ${extractedFacts.revenue_record?.survey_no || 'NOT PROVIDED'}
-Khata No: ${extractedFacts.revenue_record?.khata_no || 'NOT PROVIDED'}
-Owner: ${extractedFacts.revenue_record?.owner_name || 'NOT PROVIDED'}
-Area: ${extractedFacts.revenue_record?.area || 'NOT PROVIDED'}
-Land Type: ${extractedFacts.revenue_record?.land_type || 'NOT PROVIDED'}
-Taluka/District: ${extractedFacts.revenue_record?.taluka || ''} / ${extractedFacts.revenue_record?.district || ''}
+    // ================================================================
+    // LAYER 1: Full document extraction
+    // ================================================================
+    const l1Content = [...imgContent, {
+      type: 'text', text: `LAYER 1 -- DOCUMENT EXTRACTION
+CASE: ${caseType} | BANK: ${bankName} | APP: ${appId}
+Applicant: ${applicantName} | Co: ${coApplicant || 'None'} | Owner: ${currentOwner}
+Property: ${propertyAddress}
+Boundaries: E=${boundaryEast || '?'} W=${boundaryWest || '?'} N=${boundaryNorth || '?'} S=${boundarySouth || '?'}
+${documentText || ''}
+${ecGroundTruth}
+EXTRACT ALL DOCUMENTS. Apply 7-Step for each EC row. Output MORTGAGE_LIFECYCLE_SUMMARY.
+EC data already extracted above -- use it. EC Col 7 NEVER. EC Applicant IGNORE.` }]
 
-MUTATION ENTRIES: ${(extractedFacts.mutation_entries || []).length} found
+    const l1Res = await client.messages.create({
+      model: 'claude-sonnet-4-6', max_tokens: 6000, temperature: 0,
+      system: L1, messages: [{ role: 'user', content: l1Content }]
+    })
+    const facts = l1Res.content[0].type === 'text' ? l1Res.content[0].text : ''
 
-REGULATORY APPROVALS:
-NA Order: ${extractedFacts.na_order?.order_no ? `No. ${extractedFacts.na_order.order_no} dated ${extractedFacts.na_order.date} by ${extractedFacts.na_order.authority}` : 'NOT PROVIDED'}
-Dev Permission: ${extractedFacts.dev_permission?.permission_no ? `No. ${extractedFacts.dev_permission.permission_no} dated ${extractedFacts.dev_permission.date} by ${extractedFacts.dev_permission.authority}` : 'NOT PROVIDED'}
-OC/BCC: ${extractedFacts.oc_bcc?.certificate_no ? `No. ${extractedFacts.oc_bcc.certificate_no} dated ${extractedFacts.oc_bcc.date}` : 'NOT PROVIDED'}
-RERA: ${extractedFacts.rera?.registration_no ? `No. ${extractedFacts.rera.registration_no} Promoter: ${extractedFacts.rera.promoter_name}` : 'NOT PROVIDED'}
-AAI NOC: ${extractedFacts.aai_noc?.noc_id ? `NOC ID: ${extractedFacts.aai_noc.noc_id} dated ${extractedFacts.aai_noc.date} valid till ${extractedFacts.aai_noc.valid_till}` : 'NOT PROVIDED'}
-Fire NOC: ${extractedFacts.fire_noc?.date ? `Dated ${extractedFacts.fire_noc.date} by ${extractedFacts.fire_noc.authority}` : 'NOT PROVIDED'}
-Documents Found: ${(extractedFacts.documents_found || []).join(', ') || 'As per uploaded files'}
+    // ================================================================
+    // LAYER 2+3: Title + Risk
+    // ================================================================
+    const l23Res = await client.messages.create({
+      model: 'claude-sonnet-4-6', max_tokens: 6000, temperature: 0,
+      system: getL23(caseType),
+      messages: [{
+        role: 'user', content: `LAYER 2+3 -- TITLE + RISK
+CASE: ${caseType} | BANK: ${bankName} | APP: ${appId}
+APPLICANT: ${applicantName} | CO: ${coApplicant || 'None'} | OWNER: ${currentOwner}
+PROPERTY: ${propertyAddress}
+BOUNDARIES: E=${boundaryEast || '?'} W=${boundaryWest || '?'} N=${boundaryNorth || '?'} S=${boundarySouth || '?'}
+${ecGroundTruth}
+LAYER 1 FACTS: ${facts}
+Fill META block using EC ground truth. RELEASED = DO NOT flag. ACTIVE = flag HIGH.` }]
+    })
+    const analysis = l23Res.content[0].type === 'text' ? l23Res.content[0].text : ''
+    const meta = parseMeta(analysis)
+    const existingBank = lifecycle.active.length > 0 ? lifecycle.active[0].lender : (lifecycle.released.length > 0 ? lifecycle.released[0].lender : 'N/A')
 
-RISK: Score ${riskResult.score}/100 | Rating: ${riskResult.rating}
-Findings: ${riskFindings.length === 0 ? 'NONE' : riskFindings.map(r => `[${r.severity.toUpperCase()}] ${r.code}: ${r.description}`).join(' || ')}
-
-LEGAL OPINION TEXT (copy exactly in Part VIII):
-${legalOpinion}
-
-ABSOLUTE RULES:
-1. Never mention any company other than TITLEMATRIXAI
-2. Never mention EC column 7 or EC applicant name
-3. Never mention loan amount or stamp paper number
-4. Never invent facts not listed above
-5. NOT PROVIDED fields = write "NOT PROVIDED" in report
-6. Released mortgage = never flag as active
-7. Co-Applicant = EXACTLY "${finalCoApp}" -- do not change this
-8. Applicant = EXACTLY "${finalApplicant}"
-9. Bank = EXACTLY "${finalBank}"
-10. Part I Borrower table = ONLY 3 rows: Name of Borrower, Co-Applicant, Constitution
-`
-
-    // ============================================================
-    // STAGE 3: 4 PARALLEL REPORT GENERATION CALLS
-    // ============================================================
+    // ================================================================
+    // LAYER 4: 4 Parallel -- 11-Part Report
+    // ================================================================
+    const ctx = `${ecGroundTruth}\nLAYER 1: ${facts}\nLAYER 23: ${analysis}`
     const [r4a, r4b, r4c, r4d] = await Promise.all([
-
-      // CALL A: Part I, II, III
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 3500, temperature: 0,
-        system: `You are a legal report writer generating a LEGAL HTML DOCUMENT. CRITICAL OUTPUT RULES: (1) Output ONLY raw HTML - start DIRECTLY with <hr><div class="ph">PART I - NEVER add preamble text or markdown code blocks or backticks. (2) Part I Borrower table has EXACTLY 3 rows ONLY: Name of Borrower, Co-Applicant, Constitution - NO other rows. (3) Co-Applicant MUST be EXACTLY "${finalCoApp}" - copy verbatim. (4) Never use triple backticks. Never say "I'll generate" or "Let me". Start directly with HTML.`,
+        model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0, system: L4A,
         messages: [{
-          role: 'user', content: `${GT}
-
-Generate PART I, PART II, PART III as HTML.
-
-PART I - output EXACTLY this structure:
-<hr><div class="ph">PART I - BORROWER / MORTGAGOR / CURRENT OWNERSHIP</div>
-<div class="sph">A. Borrower Details</div>
-<table class="mt">
-<tr><td>Name of Borrower / Applicant</td><td>:</td><td>${finalApplicant}</td></tr>
-<tr><td>Co-Applicant</td><td>:</td><td>${finalCoApp}</td></tr>
-<tr><td>Constitution</td><td>:</td><td>Individual</td></tr>
-</table>
-<div class="sph">B. Mortgagor / Current Owner Details</div>
-<table class="mt">
-<tr><td>Name of Mortgagor</td><td>:</td><td>${finalOwner}</td></tr>
-<tr><td>Relation to Borrower</td><td>:</td><td>[Builder / Owner / Self as applicable]</td></tr>
-<tr><td>Type of Transaction</td><td>:</td><td>${loanTypeMap[caseType] || 'LAP'}</td></tr>
-</table>
-<div class="sph">C. Current Ownership</div>
-<table class="mt">
-<tr><td>Current Owner</td><td>:</td><td>${finalOwner}</td></tr>
-<tr><td>Mode of Acquisition</td><td>:</td><td>[from VERIFIED FACTS sale deeds]</td></tr>
-<tr><td>Registration Details</td><td>:</td><td>[Reg No and date from latest deed in VERIFIED FACTS]</td></tr>
-<tr><td>Sub-Registrar Office</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-<tr><td>Proposed Purchaser / Mortgagor</td><td>:</td><td>${finalApplicant}</td></tr>
-</table>
-
-PART II - Property description paragraph + boundaries table. Use ALL property details from VERIFIED FACTS.
-
-PART III - List all scrutinized documents with dates and registration numbers from VERIFIED FACTS. Include EC as: Encumbrance Certificate (EC) -- App No: ${ecMeta.ec_app_number || 'N/A'}, EC Date: ${ecMeta.ec_date || 'N/A'}, Period: ${ecMeta.ec_from || 'N/A'} to ${ecMeta.ec_to || 'N/A'}, Total Transactions: ${ecMeta.row_count}, Status: ${lifecycle.encumbrance}.
-
-Start with: <hr><div class="ph">PART I` }]
+          role: 'user', content: `Parts I+II+III.
+APPLICANT: ${meta.applicant || applicantName} | CO: ${meta.coApplicant || coApplicant || 'N/A'}
+MORTGAGOR: ${meta.mortgagor || meta.applicant || applicantName}
+OWNER: ${meta.currentOwner || currentOwner} | PROPERTY: ${meta.propertyPara || propertyAddress}
+BOUNDARIES: E:${boundaryEast || '?'} W:${boundaryWest || '?'} N:${boundaryNorth || '?'} S:${boundarySouth || '?'}
+EC: App No.${meta.ecAppNumber || ecMeta.ec_app_number || '?'} Date:${meta.ecDate || ecMeta.ec_date || '?'} Period:${meta.ecFrom || ecMeta.ec_from || '?'} to ${meta.ecTo || ecMeta.ec_to || '?'} Rows:${ecRows.length}
+BANK: ${bankName}
+${ctx}
+RULE: Part III NO illegibility/blank/not-provided remarks. Those go Part VI ONLY.` }]
       }),
 
-      // CALL B: Part IV, V
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0,
-        system: 'Legal report writer. Output ONLY raw HTML starting with <hr>. Never use markdown code blocks or backticks. Never add preamble text. Start directly with HTML.',
+        model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0, system: L4B,
         messages: [{
-          role: 'user', content: `${GT}
-
-EC TABLE HTML (insert exactly where shown):
-${ecTableHtml}
-
-MUTATION TABLE HTML (insert exactly where shown):
-${mutTableHtml}
-
-Generate PART IV and PART V.
-
-PART IV - Chronological title chain:
-Rules: Oldest first. First para NO "Thereafter". Each next MUST start "Thereafter,". Use TITLE CHAIN from VERIFIED FACTS. Released mortgage: "...stands fully discharged and released vide Release Deed No. [X] dated [Y]..." Active mortgage: "...subsisting and active charge as on date..." Final para: EC App No ${ecMeta.ec_app_number || 'N/A'} dated ${ecMeta.ec_date || 'N/A'} period ${ecMeta.ec_from || 'N/A'} to ${ecMeta.ec_to || 'N/A'}. Encumbrance: ${lifecycle.encumbrance}. ${lifecycle.summary}
-
-PART V - Approvals and compliance. Include revenue records, [INSERT MUTATION TABLE], regulatory approvals, [INSERT EC TABLE], EC analysis with status: ${lifecycle.encumbrance}. ${lifecycle.summary}
-
-Start with: <hr><div class="ph">PART IV` }]
+          role: 'user', content: `Parts IV+V.
+CASE: ${caseType} | PROPERTY: ${meta.propertyPara || propertyAddress} | OWNER: ${meta.currentOwner || currentOwner}
+EC: App No.${meta.ecAppNumber || ecMeta.ec_app_number || '?'} Period:${meta.ecFrom || ecMeta.ec_from || '?'} to ${meta.ecTo || ecMeta.ec_to || '?'}
+MORTGAGE SUMMARY: ${lifecycle.summary}
+ENCUMBRANCE: ${lifecycle.encumbrance}
+${ctx}
+Replace [EC_TABLE_HTML_PLACEHOLDER] with this exact HTML: ${ecTableHtml}
+Rules: Part IV oldest first. First NO "Thereafter". Each subsequent MUST start "Thereafter,". RELEASED mortgage = "fully released and satisfied". ACTIVE = "subsisting and active".` }]
       }),
 
-      // CALL C: Part VI, VII, VIII
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 0,
-        system: 'Legal report writer. Output ONLY raw HTML starting with <hr>. Never use markdown code blocks or backticks. Never add preamble text. Start directly with HTML.',
+        model: 'claude-sonnet-4-6', max_tokens: 6000, temperature: 0, system: L4C,
         messages: [{
-          role: 'user', content: `${GT}
-
-Generate PART VI, PART VII, PART VIII.
-
-PART VI - Max 5-6 alerts. Use <div class="ib"><span class="sh">CRITICAL</span> or <span class="sh">HIGH</span> or <span class="sm">MEDIUM</span> or <span class="sl">LOW</span><div class="it">[Title]</div><p>[Details]</p></div>. Never flag released mortgage as active. Base on RISK FINDINGS in VERIFIED FACTS.
-
-PART VII - Document deficiency with sections A (available), B (critical missing), C (requiring verification), D (illegible - NIL if none), E (risk assessment table with Risk Score: ${riskResult.score}/100, Rating: ${riskResult.rating}, Encumbrance: ${lifecycle.encumbrance}, Mortgageability, SARFAESI, Lending Suitability).
-
-PART VIII - Legal opinion: <p>${legalOpinion}</p> Then verdict based on rating ${riskResult.rating}: GREEN=vc class CLEAR AND MARKETABLE TITLE, AMBER=vs class CLEAR SUBJECT TO CONDITIONS, RED=vnc class TITLE NOT CLEAR.
-
-Start with: <hr><div class="ph">PART VI` }]
+          role: 'user', content: `Parts VI+VII+VIII. Max 5 alerts.
+BANK: ${bankName} | ENCUMBRANCE: ${lifecycle.encumbrance}
+ACTIVE MORTGAGES: ${lifecycle.active.length === 0 ? 'NONE' : lifecycle.active.map(a => a.lender + ' Deed:' + a.deed_no).join(', ')}
+RELEASED MORTGAGES: ${lifecycle.released.length === 0 ? 'NONE' : lifecycle.released.map(r => r.lender + ' RELEASED').join(', ')}
+${ctx}
+RULES: NEVER flag released mortgage. NEVER flag EC Applicant. Part VIII use exact legal opinion wording.
+Legal opinion to use: ${(() => { const k = caseType in { builder_purchase: 1, resale: 1, bt: 1, seller_bt: 1, lap: 1 } ? caseType : 'lap'; const owner = meta.currentOwner || currentOwner; const app = meta.applicant || applicantName; const eb = existingBank; if (k === 'bt' || k === 'seller_bt') return `...valid subject to charge of ${eb} and after execution of release unto ${app}...`; return `...right title and interest of ${owner}...after Sale Deed unto ${app}...SARFAESI enforceable...`; })()}`
+        }]
       }),
 
-      // CALL D: Part IX, X, XI
       client.messages.create({
-        model: 'claude-sonnet-4-6', max_tokens: 2500, temperature: 0,
-        system: 'Legal report writer. HTML only. No markdown.',
+        model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, system: L4D,
         messages: [{
-          role: 'user', content: `${GT}
-
-Generate PART IX (pre-disbursement docs for case type ${caseType}), PART X (post-disbursement docs), PART XI (final recommendation with final-rec div class, title status ${riskResult.rating === 'GREEN' ? 'CLEAR AND MARKETABLE TITLE' : riskResult.rating === 'AMBER' ? 'CLEAR TITLE SUBJECT TO CONDITIONS' : 'TITLE NOT CLEAR'}, 3-4 sentence summary including EC status: ${lifecycle.summary} and risk score ${riskResult.score}/100 ${riskResult.rating}).
-
-Start with: <hr><div class="ph">PART IX` }]
+          role: 'user', content: `Parts IX+X+XI.
+CASE: ${caseType} | BANK: ${bankName} | OWNER: ${meta.currentOwner || currentOwner} | APPLICANT: ${meta.applicant || applicantName}
+EXISTING BANK: ${existingBank} | ENCUMBRANCE: ${lifecycle.encumbrance} | ${lifecycle.summary}
+Part XI select ONE: CLEAR AND MARKETABLE TITLE or CLEAR TITLE SUBJECT TO CONDITIONS.` }]
       })
     ])
 
-    // ============================================================
-    // ASSEMBLE FINAL REPORT
-    // ============================================================
-    const parts = [r4a, r4b, r4c, r4d].map(r => r.content[0]?.type === 'text' ? r.content[0].text : '').map(cleanAiOutput).join('\n')
-    const html = buildReport({ refNo, appId: appId || 'AUTO', today, bankName: finalBank, loanType: loanTypeMap[caseType] || 'LAP', riskRating: riskResult.rating, riskScore: riskResult.score, parts })
-    const verdict = riskResult.rating === 'RED' ? 'NOT CLEAR' : riskResult.rating === 'GREEN' ? 'CLEAR' : 'CLEAR SUBJECT TO CONDITIONS'
+    let p123 = r4a.content[0].type === 'text' ? r4a.content[0].text : '<p>Error I-III</p>'
+    let p45 = r4b.content[0].type === 'text' ? r4b.content[0].text : '<p>Error IV-V</p>'
+    let p678 = r4c.content[0].type === 'text' ? r4c.content[0].text : '<p>Error VI-VIII</p>'
+    const p911 = r4d.content[0].type === 'text' ? r4d.content[0].text : '<p>Error IX-XI</p>'
 
-    if (userId && supabase) {
+    // ================================================================
+    // LAYER 5: Validation -- catch and fix mistakes
+    // ================================================================
+    const errors: string[] = []
+    if (lifecycle.released.length > 0 && (p45.toLowerCase().includes('no release') || p45.toLowerCase().includes('no discharge')))
+      errors.push('ERROR: RELEASED mortgage incorrectly says no discharge in Part IV.')
+    if (p123.toLowerCase().includes('illegible') || p123.toLowerCase().includes('not provided for verification'))
+      errors.push('ERROR: Part III has illegibility remarks -- must move to Part VI.')
+
+    if (errors.length > 0) {
       try {
-        await supabase.from('reports').insert({ user_id: userId, case_type: caseType || 'lap', applicant_name: finalApplicant, bank_name: finalBank, property_address: finalAddress, app_id: appId || refNo, verdict, report_html: html })
-      } catch (e) { console.error('Supabase error:', e) }
+        const fixRes = await client.messages.create({
+          model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 0,
+          system: `Fix ONLY the listed errors. Output: corrected Part IV HTML then ===P6=== then corrected Part VI HTML. Pure HTML only.`,
+          messages: [{ role: 'user', content: `ERRORS:\n${errors.join('\n')}\n${ecGroundTruth}\nPART IV:\n${p45.substring(0, 3000)}\nPART VI:\n${p678.substring(0, 3000)}\nFix and output.` }]
+        })
+        const ft = fixRes.content[0].type === 'text' ? fixRes.content[0].text : ''
+        if (ft.includes('===P6===')) {
+          const pts = ft.split('===P6===')
+          if (pts[0].trim()) p45 = pts[0].trim()
+          if (pts[1]?.trim()) p678 = pts[1].trim()
+        }
+      } catch (e) { console.log('Validation fix failed:', e) }
     }
 
-    return NextResponse.json({ success: true, report: html, verdict, lifecycle, riskScore: riskResult, ecData: { rows: ecRows, ...ecMeta }, extractedFacts })
+    const html = buildHtml({ refNo, appId: appId || 'AUTO', today, bankName: bankName || 'Bank', loanType: loanMap[caseType] || 'LAP', p123, p45, p678, p911 })
+    const verdict = lifecycle.encumbrance === 'ENCUMBERED' ? 'NOT CLEAR' : lifecycle.encumbrance === 'CLEAR' ? 'CLEAR' : 'CLEAR SUBJECT TO'
 
+    if (userId && db) {
+      try { await db.from('reports').insert({ user_id: userId, case_type: caseType || 'lap', applicant_name: meta.applicant || applicantName || 'Unknown', bank_name: bankName || 'Unknown', property_address: meta.propertyPara || propertyAddress || 'Unknown', app_id: appId || refNo, verdict, report_html: html }) }
+      catch (e) { console.log('DB save error:', e) }
+    }
+    return NextResponse.json({ success: true, report: html, verdict, lifecycle, ecRows, debug: { facts, analysis, ecMeta } })
   } catch (e: any) {
-    console.error('TITLEMATRIXAI v4 error:', e)
-    return NextResponse.json({ success: false, error: e.message || 'Analysis failed. Please try again.' }, { status: 500 })
+    console.error('TITLEMATRIXAI error:', e)
+    return NextResponse.json({ success: false, error: e.message || 'Pipeline failed' }, { status: 500 })
   }
 }
