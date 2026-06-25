@@ -344,14 +344,42 @@ export async function POST(req: NextRequest) {
 
       extractContent.push({
         type: 'text',
-        text: `You are an expert in Indian property legal documents. Extract ALL information from the documents shown.
+        text: `You are an expert in Indian property legal documents especially Gujarat Sub-Registrar documents. Extract ALL information carefully from every document image shown.
 
-EC COLUMN RULES (CRITICAL - READ CAREFULLY):
-- Column 3 "Aapnar" / "Executing Party" = WHO GIVES (borrower mortgages to bank; bank releases to owner)
-- Column 4 "Lenar" / "Claimant Party" = WHO RECEIVES (bank gets mortgage; owner gets release)
-- Column 7 (LAST column in EC table) = IGNORE COMPLETELY, never extract
-- EC Applicant name row = IGNORE COMPLETELY
-- For Gujarati / regional language text in images: read visually, do not guess
+================================================================
+GUJARAT ENCUMBRANCE CERTIFICATE (EC) - DETAILED READING GUIDE
+================================================================
+EC document from Gujarat Sub-Registrar has this structure:
+
+HEADER SECTION (very top of EC document):
+- EC Application Number: Look for "Darkhast No." OR "E-No." OR "No." printed near title. -> ec_app_number
+- Issue Date: When EC was generated -> ec_date  
+- Period FROM date: "Muddatni Sharu Tarikh" or "From" date -> ec_from (DD/MM/YYYY)
+- Period TO date: "Muddatni Ant Tarikh" or "To" date -> ec_to (DD/MM/YYYY)
+- IGNORE: "Arji Karta" (applicant name) row - never extract this
+
+EC TABLE - 7 COLUMNS (left to right):
+  Col 1 (FIRST):       Deed type (Sale Deed / Mortgage / Release / Gift)
+  Col 2 (SECOND):      Property description
+  Col 3 (THIRD):       "Dastavej Kari Aapnar" = WHO GIVES = Executant party -> col3_aapnar
+  Col 4 (FOURTH):      "Dastavej Kari Lenar" = WHO RECEIVES = Claimant party -> col4_lenar
+  Col 5 (FIFTH):       Registration date -> col5_date
+  Col 6 (SECOND LAST): Registration number / Deed number -> col6_deed_no
+  Col 7 (LAST):        COMPLETELY IGNORE - never read, never extract
+
+MORTGAGE vs RELEASE:
+- Col3=BANK + Col4=OWNER = RELEASE DEED (mortgage discharged)
+- Col3=OWNER + Col4=BANK = MORTGAGE DEED (active charge)
+
+CRITICAL: Even if EC has ZERO transaction rows, still extract ec_app_number, ec_date, ec_from, ec_to from the header section of the EC document.
+
+================================================================
+OTHER DOCUMENTS
+================================================================
+- Sale Deed: seller name, buyer name, registration number, date, Sub-Registrar, survey no, flat no, area, boundaries
+- 7/12 Extract: survey number, owner name (Khatedaar), area (Visata), land type
+- Mutation: entry number, date, from/to names, survey number
+- All Gujarati text: read visually from images, transliterate to English
 
 Output ONLY valid JSON. No markdown. No explanation. No preamble:
 {
@@ -458,6 +486,52 @@ Output ONLY valid JSON. No markdown. No explanation. No preamble:
           documents_found: extracted.documents_found || [],
           property_description_consolidated: extracted.property_description_consolidated || ''
         }
+
+        // FALLBACK: If EC app number still missing, try dedicated EC extraction
+        if (!ecMeta.ec_app_number && imgContent.length > 0) {
+          try {
+            const ecFallbackContent: any[] = [...imgContent]
+            ecFallbackContent.push({
+              type: 'text',
+              text: `These are images of a Gujarat Encumbrance Certificate (EC). Find and extract ONLY the EC header information and table rows.
+
+Look at the TOP of the EC document for:
+1. Application/Reference number (Darkhast No / E-No) -> ec_app_number
+2. Issue date of EC -> ec_date
+3. Search period start date (From / Sharu) -> ec_from
+4. Search period end date (To / Ant / Sudhi) -> ec_to
+
+Look at the TABLE in the EC for rows with these 6 columns (ignore 7th/last column):
+Col1=Deed type, Col2=Property, Col3=Executant(Aapnar/who gives), Col4=Claimant(Lenar/who receives), Col5=Date, Col6=Reg.No.
+
+Output ONLY valid JSON, no markdown:
+{"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","ec_rows":[{"row_number":1,"col1_raw_text":"","col2_property":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}]}`
+            })
+            const ecFallbackRes = await client.messages.create({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 2000,
+              temperature: 0,
+              messages: [{ role: 'user', content: ecFallbackContent }]
+            })
+            const ecRaw2 = ecFallbackRes.content[0].type === 'text' ? ecFallbackRes.content[0].text : '{}'
+            let ecExtracted2: any = {}
+            const attempts2 = [ecRaw2.trim(), ecRaw2.replace(/```json
+              ? /g,'').replace(/```
+?/g,'').trim(), (ecRaw2.match(/\{[\s\S]*\}/) || ['{}'])[0]]
+            for (const a of attempts2) { try { ecExtracted2 = JSON.parse(a); break } catch {} }
+            if (ecExtracted2.ec_app_number || (ecExtracted2.ec_rows && ecExtracted2.ec_rows.length > 0)) {
+              ecRows = ecExtracted2.ec_rows || ecRows
+              ecMeta = {
+                ec_app_number: ecExtracted2.ec_app_number || ecMeta.ec_app_number,
+                ec_date: ecExtracted2.ec_date || ecMeta.ec_date,
+                ec_from: ecExtracted2.ec_from || ecMeta.ec_from,
+                ec_to: ecExtracted2.ec_to || ecMeta.ec_to,
+                row_count: ecRows.length
+              }
+            }
+          } catch(ecErr) { console.error('EC fallback failed:', ecErr) }
+        }
+
       } catch (e) {
         console.error('Stage 1 extraction failed:', e)
         // Continue with empty facts -- report will show what's available
@@ -490,14 +564,14 @@ Output ONLY valid JSON. No markdown. No explanation. No preamble:
     const lastDeed = extractedFacts.sale_deeds?.[extractedFacts.sale_deeds.length - 1] || {}
 
     const finalApplicant = applicantName || 'As per Application'
-    const finalCoApp = coApplicant || 'Not Applicable'
-    const finalOwner = currentOwner || (txnRecords.length > 0 ? txnRecords[txnRecords.length - 1].buyer : 'As per Documents')
-    const finalBank = bankName || 'Bank'
-    const finalAddress = propertyAddress || extractedFacts.property_description_consolidated || 'As per Documents'
-    const finalEast = boundaryEast || lastDeed?.boundaries?.east || firstDeed?.boundaries?.east || 'As per Documents'
-    const finalWest = boundaryWest || lastDeed?.boundaries?.west || firstDeed?.boundaries?.west || 'As per Documents'
-    const finalNorth = boundaryNorth || lastDeed?.boundaries?.north || firstDeed?.boundaries?.north || 'As per Documents'
-    const finalSouth = boundarySouth || lastDeed?.boundaries?.south || firstDeed?.boundaries?.south || 'As per Documents'
+    const finalCoApp     = coApplicant || 'Not Applicable'
+    const finalOwner     = currentOwner || (txnRecords.length > 0 ? txnRecords[txnRecords.length - 1].buyer : 'As per Documents')
+    const finalBank      = bankName || 'Bank'
+    const finalAddress   = propertyAddress || extractedFacts.property_description_consolidated || 'As per Documents'
+    const finalEast      = boundaryEast  || lastDeed?.boundaries?.east  || firstDeed?.boundaries?.east  || 'As per Documents'
+    const finalWest      = boundaryWest  || lastDeed?.boundaries?.west  || firstDeed?.boundaries?.west  || 'As per Documents'
+    const finalNorth     = boundaryNorth || lastDeed?.boundaries?.north || firstDeed?.boundaries?.north || 'As per Documents'
+    const finalSouth     = boundarySouth || lastDeed?.boundaries?.south || firstDeed?.boundaries?.south || 'As per Documents'
 
     const existingBank = lifecycle.active.length > 0
       ? lifecycle.active[0].lender
@@ -510,7 +584,7 @@ Output ONLY valid JSON. No markdown. No explanation. No preamble:
       riskFindings.push({
         code: 'ACTIVE_MORTGAGE',
         severity: 'critical',
-        description: `Active charge/mortgage in favour of ${lifecycle.active.map(a => a.lender).join(', ')} vide Deed No. ${lifecycle.active.map(a => a.deed_no).join(', ')} dated ${lifecycle.active.map(a => a.date).join(', ')} without corresponding release deed.`,
+        description: `Active charge / mortgage in favour of ${ lifecycle.active.map(a => a.lender).join(', ') } vide Deed No.${ lifecycle.active.map(a => a.deed_no).join(', ') } dated ${ lifecycle.active.map(a => a.date).join(', ') } without corresponding release deed.`,
         evidence: 'Encumbrance Certificate - EC table'
       })
     }
@@ -522,7 +596,7 @@ Output ONLY valid JSON. No markdown. No explanation. No preamble:
         riskFindings.push({
           code: 'SHORT_EC_PERIOD',
           severity: 'medium',
-          description: `EC period (${ecMeta.ec_from} to ${ecMeta.ec_to}) covers less than 13 years. Minimum 30-year search recommended.`,
+          description: `EC period(${ ecMeta.ec_from } to ${ ecMeta.ec_to }) covers less than 13 years.Minimum 30 - year search recommended.`,
           evidence: 'EC date range'
         })
       }
@@ -563,85 +637,87 @@ Output ONLY valid JSON. No markdown. No explanation. No preamble:
     const groundTruth = `
 VERIFIED FACTS - USE EXACTLY AS PROVIDED - DO NOT INVENT OR HALLUCINATE:
 
-CASE INFORMATION:
-- Case Type: ${caseType} (${loanTypeMap[caseType] || 'LAP'})
-- App ID: ${appId || refNo}
-- Ref No: ${refNo}
-- Date of Report: ${today}
-- Bank: ${finalBank}
-- Applicant Name: ${finalApplicant}
-- Co-Applicant: ${finalCoApp}
-- Current Owner / Mortgagor: ${finalOwner}
+              CASE INFORMATION:
+              - Case Type: ${ caseType }(${ loanTypeMap[caseType] || 'LAP' })
+            - App ID: ${ appId || refNo}
+- Ref No: ${ refNo }
+          - Date of Report: ${ today }
+          - Bank: ${ finalBank }
+          - Applicant Name: ${ finalApplicant }
+          - Co - Applicant: ${ finalCoApp }
+          - Current Owner / Mortgagor: ${ finalOwner }
 
 PROPERTY DETAILS:
-- Address / Description: ${finalAddress}
-- Survey No / Plot No: ${firstDeed.survey_no || firstDeed.plot_no || lastDeed.survey_no || lastDeed.plot_no || 'As per documents'}
-- Flat / Unit No: ${lastDeed.flat_no || firstDeed.flat_no || ''}
-- Floor / Wing: ${lastDeed.floor_no || ''} ${lastDeed.wing || ''}
-- Building / Society: ${lastDeed.building_name || lastDeed.society_name || firstDeed.building_name || firstDeed.society_name || ''}
-- Area: ${lastDeed.area || firstDeed.area || 'As per documents'}
-- Taluka: ${firstDeed.taluka || lastDeed.taluka || ''}
-- District: ${firstDeed.district || lastDeed.district || ''}
-- East Boundary: ${finalEast}
-- West Boundary: ${finalWest}
-- North Boundary: ${finalNorth}
-- South Boundary: ${finalSouth}
+          - Address / Description: ${ finalAddress }
+          - Survey No / Plot No: ${ firstDeed.survey_no || firstDeed.plot_no || lastDeed.survey_no || lastDeed.plot_no || 'As per documents' }
+          - Flat / Unit No: ${ lastDeed.flat_no || firstDeed.flat_no || '' }
+          - Floor / Wing: ${ lastDeed.floor_no || '' } ${ lastDeed.wing || '' }
+          - Building / Society: ${ lastDeed.building_name || lastDeed.society_name || firstDeed.building_name || firstDeed.society_name || '' }
+          - Area: ${ lastDeed.area || firstDeed.area || 'As per documents' }
+          - Taluka: ${ firstDeed.taluka || lastDeed.taluka || '' }
+          - District: ${ firstDeed.district || lastDeed.district || '' }
+          - East Boundary: ${ finalEast }
+          - West Boundary: ${ finalWest }
+          - North Boundary: ${ finalNorth }
+          - South Boundary: ${ finalSouth }
 
-SALE DEEDS EXTRACTED (${(extractedFacts.sale_deeds || []).length} deeds):
-${(extractedFacts.sale_deeds || []).map((sd: any, i: number) =>
-      `  Deed ${i + 1}: Seller(s): ${(sd.seller_names || []).join(', ')} | Buyer(s): ${(sd.buyer_names || []).join(', ')} | Reg.No: ${sd.registration_no || 'N/A'} | Date: ${sd.registration_date || sd.execution_date || 'N/A'} | Sub-Registrar: ${sd.sub_registrar_office || 'N/A'} | Consideration: ${sd.consideration_amount || 'N/A'}`
-    ).join('\n') || '  Not extracted from documents'}
+SALE DEEDS EXTRACTED(${(extractedFacts.sale_deeds || []).length} deeds):
+${
+          (extractedFacts.sale_deeds || []).map((sd: any, i: number) =>
+            `  Deed ${i + 1}: Seller(s): ${(sd.seller_names || []).join(', ')} | Buyer(s): ${(sd.buyer_names || []).join(', ')} | Reg.No: ${sd.registration_no || 'N/A'} | Date: ${sd.registration_date || sd.execution_date || 'N/A'} | Sub-Registrar: ${sd.sub_registrar_office || 'N/A'} | Consideration: ${sd.consideration_amount || 'N/A'}`
+          ).join('\n') || '  Not extracted from documents'
+        }
 
-TITLE CHAIN NARRATIVE (use this exactly in Part IV):
-${chainNarrative}
+TITLE CHAIN NARRATIVE(use this exactly in Part IV):
+${ chainNarrative }
 
 EC ENCUMBRANCE DATA:
-- EC App No: ${ecMeta.ec_app_number || 'N/A'}
-- EC Date: ${ecMeta.ec_date || 'N/A'}
-- EC Period: ${ecMeta.ec_from || 'N/A'} to ${ecMeta.ec_to || 'N/A'}
-- Total EC Entries: ${ecMeta.row_count}
-- Encumbrance Status: ${lifecycle.encumbrance}
-- Mortgage Summary: ${lifecycle.summary}
-- Active Mortgages: ${lifecycle.active.length === 0 ? 'NONE' : lifecycle.active.map(a => `${a.lender} Deed:${a.deed_no} Date:${a.date}`).join(' | ')}
-- Released Mortgages: ${lifecycle.released.length === 0 ? 'NONE' : lifecycle.released.map(r => `${r.lender} released vide ${r.release_deed_no} dated ${r.release_date}`).join(' | ')}
+        - EC App No: ${ ecMeta.ec_app_number || 'N/A' }
+        - EC Date: ${ ecMeta.ec_date || 'N/A' }
+        - EC Period: ${ ecMeta.ec_from || 'N/A' } to ${ ecMeta.ec_to || 'N/A' }
+        - Total EC Entries: ${ ecMeta.row_count }
+        - Encumbrance Status: ${ lifecycle.encumbrance }
+        - Mortgage Summary: ${ lifecycle.summary }
+        - Active Mortgages: ${ lifecycle.active.length === 0 ? 'NONE' : lifecycle.active.map(a => `${a.lender} Deed:${a.deed_no} Date:${a.date}`).join(' | ') }
+        - Released Mortgages: ${ lifecycle.released.length === 0 ? 'NONE' : lifecycle.released.map(r => `${r.lender} released vide ${r.release_deed_no} dated ${r.release_date}`).join(' | ') }
 
-REVENUE RECORD (7/12):
-- Survey No: ${extractedFacts.revenue_record?.survey_no || 'NOT PROVIDED'}
-- Khata No: ${extractedFacts.revenue_record?.khata_no || 'NOT PROVIDED'}
-- Owner in Revenue Record: ${extractedFacts.revenue_record?.owner_name || 'NOT PROVIDED'}
-- Area: ${extractedFacts.revenue_record?.area || 'NOT PROVIDED'}
-- Land Type: ${extractedFacts.revenue_record?.land_type || 'NOT PROVIDED'}
-- Taluka / District: ${extractedFacts.revenue_record?.taluka || ''} / ${extractedFacts.revenue_record?.district || ''}
+REVENUE RECORD(7 / 12):
+        - Survey No: ${ extractedFacts.revenue_record?.survey_no || 'NOT PROVIDED' }
+        - Khata No: ${ extractedFacts.revenue_record?.khata_no || 'NOT PROVIDED' }
+        - Owner in Revenue Record: ${ extractedFacts.revenue_record?.owner_name || 'NOT PROVIDED' }
+        - Area: ${ extractedFacts.revenue_record?.area || 'NOT PROVIDED' }
+        - Land Type: ${ extractedFacts.revenue_record?.land_type || 'NOT PROVIDED' }
+        - Taluka / District: ${ extractedFacts.revenue_record?.taluka || '' } / ${extractedFacts.revenue_record?.district || ''}
 
-MUTATION ENTRIES: ${(extractedFacts.mutation_entries || []).length} entries found
+MUTATION ENTRIES: ${ (extractedFacts.mutation_entries || []).length } entries found
 
 REGULATORY APPROVALS:
-- NA Order: ${extractedFacts.na_order?.order_no ? `No. ${extractedFacts.na_order.order_no} dated ${extractedFacts.na_order.date} by ${extractedFacts.na_order.authority}` : 'NOT PROVIDED'}
-- Development Permission: ${extractedFacts.dev_permission?.permission_no ? `No. ${extractedFacts.dev_permission.permission_no} dated ${extractedFacts.dev_permission.date} by ${extractedFacts.dev_permission.authority}` : 'NOT PROVIDED'}
-- OC / BCC / Completion Certificate: ${extractedFacts.oc_bcc?.certificate_no ? `No. ${extractedFacts.oc_bcc.certificate_no} dated ${extractedFacts.oc_bcc.date} by ${extractedFacts.oc_bcc.authority}` : 'NOT PROVIDED'}
-- RERA: ${extractedFacts.rera?.registration_no ? `No. ${extractedFacts.rera.registration_no} Promoter: ${extractedFacts.rera.promoter_name}` : 'NOT PROVIDED'}
+        - NA Order: ${ extractedFacts.na_order?.order_no ? `No. ${extractedFacts.na_order.order_no} dated ${extractedFacts.na_order.date} by ${extractedFacts.na_order.authority}` : 'NOT PROVIDED' }
+        - Development Permission: ${ extractedFacts.dev_permission?.permission_no ? `No. ${extractedFacts.dev_permission.permission_no} dated ${extractedFacts.dev_permission.date} by ${extractedFacts.dev_permission.authority}` : 'NOT PROVIDED' }
+        - OC / BCC / Completion Certificate: ${ extractedFacts.oc_bcc?.certificate_no ? `No. ${extractedFacts.oc_bcc.certificate_no} dated ${extractedFacts.oc_bcc.date} by ${extractedFacts.oc_bcc.authority}` : 'NOT PROVIDED' }
+        - RERA: ${ extractedFacts.rera?.registration_no ? `No. ${extractedFacts.rera.registration_no} Promoter: ${extractedFacts.rera.promoter_name}` : 'NOT PROVIDED' }
 
-DOCUMENTS FOUND IN UPLOAD: ${(extractedFacts.documents_found || []).join(', ') || 'As per uploaded files'}
+DOCUMENTS FOUND IN UPLOAD: ${ (extractedFacts.documents_found || []).join(', ') || 'As per uploaded files' }
 
-RISK ASSESSMENT (DETERMINISTIC - CODE COMPUTED):
-- Risk Score: ${riskResult.score} / 100
-- Risk Rating: ${riskResult.rating}
-- Risk Findings: ${riskFindings.length === 0 ? 'NONE' : riskFindings.map(r => `[${r.severity.toUpperCase()}] ${r.code}: ${r.description}`).join(' || ')}
+RISK ASSESSMENT(DETERMINISTIC - CODE COMPUTED):
+        - Risk Score: ${ riskResult.score } / 100
+          - Risk Rating: ${ riskResult.rating }
+        - Risk Findings: ${ riskFindings.length === 0 ? 'NONE' : riskFindings.map(r => `[${r.severity.toUpperCase()}] ${r.code}: ${r.description}`).join(' || ') }
 
-LEGAL OPINION TEXT (use exactly in Part VIII):
-${legalOpinion}
+LEGAL OPINION TEXT(use exactly in Part VIII):
+${ legalOpinion }
 
 ABSOLUTE RULES - NEVER VIOLATE:
-1. Never mention any company name other than TITLEMATRIXAI
-2. Never read or mention EC column 7 or EC applicant name
-3. Never mention loan amount or stamp paper number
-4. Never invent facts not listed above
-5. If approval says NOT PROVIDED - write "NOT PROVIDED" in report
-6. Released mortgage = CLEAR - do NOT flag as active encumbrance
-7. Active mortgage = flag as CRITICAL / HIGH severity in Part VI
-8. Use all boundary values EXACTLY as given above
-9. Applicant name in report = EXACTLY "${finalApplicant}"
-10. Bank name in report = EXACTLY "${finalBank}"
+        1. Never mention any company name other than TITLEMATRIXAI
+        2. Never read or mention EC column 7 or EC applicant name
+        3. Never mention loan amount or stamp paper number
+        4. Never invent facts not listed above
+        5. If approval says NOT PROVIDED - write "NOT PROVIDED" in report
+        6. Released mortgage = CLEAR - do NOT flag as active encumbrance
+        7. Active mortgage = flag as CRITICAL / HIGH severity in Part VI
+        8. Use all boundary values EXACTLY as given above
+        9. Applicant name in report = EXACTLY "${finalApplicant}"
+        10. Bank name in report = EXACTLY "${finalBank}"
 `
 
     // ============================================================
@@ -655,55 +731,55 @@ ABSOLUTE RULES - NEVER VIOLATE:
         model: 'claude-sonnet-4-6',
         max_tokens: 3500,
         temperature: 0,
-        system: `You are a legal report writer for Indian property due diligence. Generate HTML using ONLY verified facts. STRICT RULES: (1) Part I Borrower table must contain EXACTLY these 3 rows only - Name of Borrower, Co-Applicant, Constitution. NO extra rows like Bank or App ID or Date in borrower table. (2) Co-Applicant value is "${finalCoApp}" - copy it EXACTLY, never replace with applicant name. (3) No markdown. Pure HTML only.`,
+        system: `You are a legal report writer for Indian property due diligence.Generate HTML using ONLY verified facts.STRICT RULES: (1) Part I Borrower table must contain EXACTLY these 3 rows only - Name of Borrower, Co - Applicant, Constitution.NO extra rows like Bank or App ID or Date in borrower table. (2) Co - Applicant value is "${finalCoApp}" - copy it EXACTLY, never replace with applicant name. (3) No markdown.Pure HTML only.`,
         messages: [{
           role: 'user',
-          content: `${groundTruth}
+          content: `${ groundTruth }
 
 Generate PART I, PART II, PART III as HTML.
 
-PART I - output this EXACT HTML (fill only [bracketed] parts, do NOT add extra rows):
-<hr><div class="ph">PART I - BORROWER / MORTGAGOR / CURRENT OWNERSHIP</div>
-<div class="sph">A. Borrower Details</div>
-<table class="mt">
-<tr><td>Name of Borrower / Applicant</td><td>:</td><td>${finalApplicant}</td></tr>
-<tr><td>Co-Applicant</td><td>:</td><td>${finalCoApp}</td></tr>
-<tr><td>Constitution</td><td>:</td><td>Individual</td></tr>
-</table>
-<div class="sph">B. Mortgagor / Current Owner Details</div>
-<table class="mt">
-<tr><td>Name of Mortgagor</td><td>:</td><td>${finalOwner}</td></tr>
-<tr><td>Relation to Borrower</td><td>:</td><td>[Owner / Self / Builder as applicable from VERIFIED FACTS]</td></tr>
-<tr><td>Type of Transaction</td><td>:</td><td>${loanTypeMap[caseType] || 'LAP'}</td></tr>
-</table>
-<div class="sph">C. Current Ownership</div>
-<table class="mt">
-<tr><td>Current Owner</td><td>:</td><td>${finalOwner}</td></tr>
-<tr><td>Mode of Acquisition</td><td>:</td><td>[Sale Deed / Gift Deed / from VERIFIED FACTS sale deeds]</td></tr>
-<tr><td>Registration Details</td><td>:</td><td>[Reg No and Date from latest sale deed in VERIFIED FACTS]</td></tr>
-<tr><td>Sub-Registrar Office</td><td>:</td><td>[from VERIFIED FACTS sale deeds]</td></tr>
-<tr><td>Proposed Purchaser / Mortgagor</td><td>:</td><td>${finalApplicant}</td></tr>
-</table>
+PART I - output this EXACT HTML(fill only[bracketed] parts, do NOT add extra rows):
+        <hr><div class="ph" > PART I - BORROWER / MORTGAGOR / CURRENT OWNERSHIP </div>
+          < div class="sph" > A.Borrower Details </div>
+            < table class="mt" >
+              <tr><td>Name of Borrower / Applicant < /td><td>:</td > <td>${ finalApplicant } </td></tr >
+                <tr><td>Co - Applicant < /td><td>:</td > <td>${ finalCoApp } </td></tr >
+                  <tr><td>Constitution < /td><td>:</td > <td>Individual < /td></tr >
+                  </table>
+                  < div class="sph" > B.Mortgagor / Current Owner Details </div>
+                    < table class="mt" >
+                      <tr><td>Name of Mortgagor < /td><td>:</td > <td>${ finalOwner } </td></tr >
+                        <tr><td>Relation to Borrower < /td><td>:</td > <td>[Owner / Self / Builder as applicable from VERIFIED FACTS] < /td></tr >
+                          <tr><td>Type of Transaction < /td><td>:</td > <td>${ loanTypeMap[caseType] || 'LAP' } </td></tr >
+                            </table>
+                            < div class="sph" > C.Current Ownership </div>
+                              < table class="mt" >
+                                <tr><td>Current Owner < /td><td>:</td > <td>${ finalOwner } </td></tr >
+                                  <tr><td>Mode of Acquisition < /td><td>:</td > <td>[Sale Deed / Gift Deed / from VERIFIED FACTS sale deeds] < /td></tr >
+                                    <tr><td>Registration Details < /td><td>:</td > <td>[Reg No and Date from latest sale deed in VERIFIED FACTS] < /td></tr >
+                                      <tr><td>Sub - Registrar Office < /td><td>:</td > <td>[from VERIFIED FACTS sale deeds] < /td></tr >
+                                        <tr><td>Proposed Purchaser / Mortgagor < /td><td>:</td > <td>${ finalApplicant } </td></tr >
+                                          </table>
 
 PART II structure:
-<hr><div class="ph">PART II - PROPERTY DESCRIPTION</div>
-<div class="prop-para">
-[Write a complete paragraph describing the property using ALL details from VERIFIED FACTS property section: flat no, floor, wing, building name, society name, survey no/plot no, area, taluka, district, full address. Be specific and complete.]
-</div>
-<table class="mt">
-<tr><td>East</td><td>:</td><td>${finalEast}</td></tr>
-<tr><td>West</td><td>:</td><td>${finalWest}</td></tr>
-<tr><td>North</td><td>:</td><td>${finalNorth}</td></tr>
-<tr><td>South</td><td>:</td><td>${finalSouth}</td></tr>
-<tr><td>Total Area</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-<tr><td>Survey / Plot No.</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-</table>
+        <hr><div class="ph" > PART II - PROPERTY DESCRIPTION </div>
+          < div class="prop-para" >
+            [Write a complete paragraph describing the property using ALL details from VERIFIED FACTS property section: flat no, floor, wing, building name, society name, survey no / plot no, area, taluka, district, full address.Be specific and complete.]
+            </div>
+            < table class="mt" >
+              <tr><td>East < /td><td>:</td > <td>${ finalEast } </td></tr >
+                <tr><td>West < /td><td>:</td > <td>${ finalWest } </td></tr >
+                  <tr><td>North < /td><td>:</td > <td>${ finalNorth } </td></tr >
+                    <tr><td>South < /td><td>:</td > <td>${ finalSouth } </td></tr >
+                      <tr><td>Total Area < /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                        <tr><td>Survey / Plot No.< /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                          </table>
 
 PART III structure:
-<hr><div class="ph">PART III - LIST OF SCRUTINIZED DOCUMENTS</div>
-[Number each document. Include from VERIFIED FACTS: all sale deeds with dates and reg nos, EC with App No ${ecMeta.ec_app_number} dated ${ecMeta.ec_date} period ${ecMeta.ec_from} to ${ecMeta.ec_to} with ${ecMeta.row_count} transactions, revenue records, approvals. NO illegibility remarks here.]
+        <hr><div class="ph" > PART III - LIST OF SCRUTINIZED DOCUMENTS </div>
+        [Number each document.Include from VERIFIED FACTS: all sale deeds with dates and reg nos, EC with App No ${ ecMeta.ec_app_number } dated ${ ecMeta.ec_date } period ${ ecMeta.ec_from } to ${ ecMeta.ec_to } with ${ ecMeta.row_count } transactions, revenue records, approvals.NO illegibility remarks here.]
 
-Start your output with: <hr><div class="ph">PART I`
+Start your output with: <hr><div class="ph" > PART I`
         }]
       }),
 
@@ -715,58 +791,58 @@ Start your output with: <hr><div class="ph">PART I`
         system: 'You are a legal report writer for Indian property due diligence. Generate HTML report sections using ONLY verified facts. No markdown. Pure HTML.',
         messages: [{
           role: 'user',
-          content: `${groundTruth}
+          content: `${ groundTruth }
 
-EC TABLE (pre-built HTML - insert exactly where indicated):
-${ecTableHtml}
+EC TABLE(pre - built HTML - insert exactly where indicated):
+${ ecTableHtml }
 
-MUTATION TABLE (pre-built HTML - insert exactly where indicated):
-${mutationTableHtml}
+MUTATION TABLE(pre - built HTML - insert exactly where indicated):
+${ mutationTableHtml }
 
 Generate PART IV and PART V as HTML.
 
 PART IV structure:
-<hr><div class="ph">PART IV - CHRONOLOGICAL TITLE CHAIN OF OWNERSHIP</div>
-[Write title chain paragraphs using TITLE CHAIN NARRATIVE from VERIFIED FACTS]
-RULES:
+        <hr><div class="ph" > PART IV - CHRONOLOGICAL TITLE CHAIN OF OWNERSHIP </div>
+        [Write title chain paragraphs using TITLE CHAIN NARRATIVE from VERIFIED FACTS]
+          RULES:
 - Oldest deed first
-- First paragraph: NO "Thereafter"
-- Every subsequent paragraph MUST start with "Thereafter,"
-- For each deed: mention parties, deed type, Reg.No., date, Sub-Registrar
-- For released mortgage: "...Thereafter, the aforesaid charge in favour of [bank] stands fully discharged and released vide Release Deed No. [no.] dated [date], duly registered..."
-- For active mortgage: "...Thereafter, [owner] created mortgage / charge in favour of [bank] vide Mortgage Deed No. [no.] dated [date], which subsists and remains active as on date of this report..."
-- Final paragraph: mention EC App No. ${ecMeta.ec_app_number} dated ${ecMeta.ec_date} covering period ${ecMeta.ec_from} to ${ecMeta.ec_to}. State encumbrance status: ${lifecycle.encumbrance}. ${lifecycle.summary}
+          - First paragraph: NO "Thereafter"
+            - Every subsequent paragraph MUST start with "Thereafter,"
+            - For each deed: mention parties, deed type, Reg.No., date, Sub - Registrar
+              - For released mortgage: "...Thereafter, the aforesaid charge in favour of [bank] stands fully discharged and released vide Release Deed No. [no.] dated [date], duly registered..."
+                - For active mortgage: "...Thereafter, [owner] created mortgage / charge in favour of [bank] vide Mortgage Deed No. [no.] dated [date], which subsists and remains active as on date of this report..."
+                  - Final paragraph: mention EC App No.${ ecMeta.ec_app_number } dated ${ ecMeta.ec_date } covering period ${ ecMeta.ec_from } to ${ ecMeta.ec_to }. State encumbrance status: ${ lifecycle.encumbrance }. ${ lifecycle.summary }
 
 PART V structure:
-<hr><div class="ph">PART V - APPROVALS AND REGULATORY COMPLIANCE</div>
+        <hr><div class="ph" > PART V - APPROVALS AND REGULATORY COMPLIANCE </div>
 
-<div class="sph">Revenue Records</div>
-<table class="mt">
-<tr><td>Survey No.</td><td>:</td><td>[from VERIFIED FACTS revenue record]</td></tr>
-<tr><td>Khata No.</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-<tr><td>Name of Owner in Revenue Record</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-<tr><td>Area as per Revenue Record</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-<tr><td>Land Classification</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-</table>
+          < div class="sph" > Revenue Records </div>
+            < table class="mt" >
+              <tr><td>Survey No.< /td><td>:</td > <td>[from VERIFIED FACTS revenue record] < /td></tr >
+                <tr><td>Khata No.< /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                  <tr><td>Name of Owner in Revenue Record < /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                    <tr><td>Area as per Revenue Record < /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                      <tr><td>Land Classification < /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                        </table>
 
-<div class="sph">Mutation Entries</div>
-[INSERT MUTATION TABLE HERE - use pre-built HTML]
+                        < div class="sph" > Mutation Entries </div>
+                        [INSERT MUTATION TABLE HERE - use pre - built HTML]
 
-<div class="sph">Regulatory Approvals</div>
-<table class="mt">
-<tr><td>NA Order</td><td>:</td><td>[from VERIFIED FACTS approvals]</td></tr>
-<tr><td>Development Permission / Layout Approval</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-<tr><td>Building Plan / Sanctioned Plan</td><td>:</td><td>[from VERIFIED FACTS or NOT PROVIDED]</td></tr>
-<tr><td>RERA Registration</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-<tr><td>OC / BCC / Completion Certificate</td><td>:</td><td>[from VERIFIED FACTS]</td></tr>
-</table>
+        <div class="sph" > Regulatory Approvals </div>
+          < table class="mt" >
+            <tr><td>NA Order < /td><td>:</td > <td>[from VERIFIED FACTS approvals] < /td></tr >
+              <tr><td>Development Permission / Layout Approval < /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                <tr><td>Building Plan / Sanctioned Plan < /td><td>:</td > <td>[from VERIFIED FACTS or NOT PROVIDED] < /td></tr >
+                  <tr><td>RERA Registration < /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                    <tr><td>OC / BCC / Completion Certificate < /td><td>:</td > <td>[from VERIFIED FACTS] < /td></tr >
+                      </table>
 
-<div class="sph">Encumbrance Certificate Analysis</div>
-<p>Encumbrance Certificate bearing E-App No. <strong>${ecMeta.ec_app_number}</strong> dated ${ecMeta.ec_date} for period ${ecMeta.ec_from} to ${ecMeta.ec_to} issued by Sub-Registrar office. Total <strong>${ecMeta.row_count}</strong> transaction/s registered during the period:</p>
-[INSERT EC TABLE HERE - use pre-built HTML]
-<p><strong>Encumbrance Status: ${lifecycle.encumbrance}.</strong> ${lifecycle.summary}</p>
+                      < div class="sph" > Encumbrance Certificate Analysis </div>
+                        < p > Encumbrance Certificate bearing E - App No. < strong > ${ ecMeta.ec_app_number } </strong> dated ${ecMeta.ec_date} for period ${ecMeta.ec_from} to ${ecMeta.ec_to} issued by Sub-Registrar office. Total <strong>${ecMeta.row_count}</strong > transaction / s registered during the period: </p>
+                        [INSERT EC TABLE HERE - use pre - built HTML]
+        <p><strong>Encumbrance Status: ${ lifecycle.encumbrance }.</strong> ${lifecycle.summary}</p >
 
-Start your output with: <hr><div class="ph">PART IV`
+          Start your output with: <hr><div class="ph" > PART IV`
         }]
       }),
 
@@ -778,47 +854,49 @@ Start your output with: <hr><div class="ph">PART IV`
         system: 'You are a legal report writer for Indian property due diligence. Generate HTML report sections using ONLY verified facts. No markdown. Pure HTML.',
         messages: [{
           role: 'user',
-          content: `${groundTruth}
+          content: `${ groundTruth }
 
 Generate PART VI, PART VII, PART VIII as HTML.
 
 PART VI structure:
-<hr><div class="ph">PART VI - ALERTS AND RISK OBSERVATIONS</div>
-RULES:
-- Maximum 5-6 alerts
-- Base alerts ONLY on RISK FINDINGS in VERIFIED FACTS
-- NEVER flag released mortgage as active (if encumbrance=CLEAR_WITH_PRIOR_RELEASE)
-- NEVER flag cleared EC entries as risks
-- For each finding use: <div class="ib"><span class="sh">CRITICAL</span> or <span class="sh">HIGH</span> or <span class="sm">MEDIUM</span> or <span class="sl">LOW</span><div class="it">[Alert Title]</div><p>[Detailed description citing evidence]</p></div>
-- If no major risks: add one LOW alert saying "No major encumbrances or title defects found. Property appears marketable subject to standard conditions."
+        <hr><div class="ph" > PART VI - ALERTS AND RISK OBSERVATIONS </div>
+        RULES:
+        - Maximum 5 - 6 alerts
+          - Base alerts ONLY on RISK FINDINGS in VERIFIED FACTS
+            - NEVER flag released mortgage as active (if encumbrance = CLEAR_WITH_PRIOR_RELEASE)
+          - NEVER flag cleared EC entries as risks
+            - For each finding use: <div class="ib" > <span class="sh" > CRITICAL < /span> or <span class="sh">HIGH</span > or < span class="sm" > MEDIUM < /span> or <span class="sl">LOW</span > <div class="it" > [Alert Title] < /div><p>[Detailed description citing evidence]</p > </div>
+              - If no major risks: add one LOW alert saying "No major encumbrances or title defects found. Property appears marketable subject to standard conditions."
 
 PART VII structure:
-<hr><div class="ph">PART VII - DOCUMENT DEFICIENCY REPORT</div>
-<div class="sph">A. Documents Available and Scrutinized</div><ol>[From DOCUMENTS FOUND in VERIFIED FACTS plus what was submitted]</ol>
-<div class="sph">B. Critical Documents Missing / Required</div><ol>[Based on case type "${caseType}" - list what is typically required but NOT PROVIDED per VERIFIED FACTS approvals section. If all provided: write "NIL"]</ol>
-<div class="sph">C. Documents Requiring Verification</div><ol>[Any documents needing additional verification - or NIL]</ol>
-<div class="sph">D. Illegible or Incomplete Documents</div><ol>[If any - or NIL]</ol>
-<div class="sph">E. Overall Risk Assessment</div>
-<table class="mt">
-<tr><td>Risk Score</td><td>:</td><td>${riskResult.score} / 100</td></tr>
-<tr><td>Risk Rating</td><td>:</td><td>${riskResult.rating}</td></tr>
-<tr><td>Encumbrance Status</td><td>:</td><td>${lifecycle.encumbrance}</td></tr>
-<tr><td>Mortgageability</td><td>:</td><td>[Mortgageable / Conditionally Mortgageable / Not Mortgageable]</td></tr>
-<tr><td>SARFAESI Enforceability</td><td>:</td><td>[Enforceable / Conditionally Enforceable]</td></tr>
-<tr><td>Lending Suitability</td><td>:</td><td>[Suitable / Conditionally Suitable / Not Suitable]</td></tr>
-</table>
+        <hr><div class="ph" > PART VII - DOCUMENT DEFICIENCY REPORT </div>
+          < div class="sph" > A.Documents Available and Scrutinized < /div><ol>[From DOCUMENTS FOUND in VERIFIED FACTS plus what was submitted]</ol >
+            <div class="sph" > B.Critical Documents Missing / Required < /div><ol>[Based on case type "${caseType}" - list what is typically required but NOT PROVIDED per VERIFIED FACTS approvals section. If all provided: write "NIL"]</ol >
+              <div class="sph" > C.Documents Requiring Verification < /div><ol>[Any documents needing additional verification - or NIL]</ol >
+                <div class="sph" > D.Illegible or Incomplete Documents < /div><ol>[If any - or NIL]</ol >
+                  <div class="sph" > E.Overall Risk Assessment </div>
+                    < table class="mt" >
+                      <tr><td>Risk Score < /td><td>:</td > <td>${ riskResult.score } / 100</td > </tr>
+                        < tr > <td>Risk Rating < /td><td>:</td > <td>${ riskResult.rating } </td></tr >
+                          <tr><td>Encumbrance Status < /td><td>:</td > <td>${ lifecycle.encumbrance } </td></tr >
+                            <tr><td>Mortgageability < /td><td>:</td > <td>[Mortgageable / Conditionally Mortgageable / Not Mortgageable] < /td></tr >
+                            <tr><td>SARFAESI Enforceability < /td><td>:</td > <td>[Enforceable / Conditionally Enforceable] < /td></tr >
+                              <tr><td>Lending Suitability < /td><td>:</td > <td>[Suitable / Conditionally Suitable / Not Suitable] < /td></tr >
+                                </table>
 
 PART VIII structure:
-<hr><div class="ph">PART VIII - LEGAL OPINION AND VERDICT</div>
-<p style="text-align:justify;">${legalOpinion}</p>
-[Then add verdict box:]
-${riskResult.rating === 'GREEN'
-              ? '<div class="vc"><div class="vt">Verdict: Clear and Marketable Title</div><p>[2-3 lines: property has clear title, no encumbrances, safe for lending]</p></div>'
-              : riskResult.rating === 'AMBER'
-                ? '<div class="vs"><div class="vt">Verdict: Clear Title Subject to Conditions</div><p>[Conditions based on risk findings above]</p></div>'
-                : '<div class="vnc"><div class="vt">Verdict: Title Not Clear</div><p>[Reasons from ACTIVE MORTGAGE or other critical risks in VERIFIED FACTS]</p></div>'}
+        <hr><div class="ph" > PART VIII - LEGAL OPINION AND VERDICT </div>
+          < p style = "text-align:justify;" > ${ legalOpinion } </p>
+          [Then add verdict box:]
+${
+          riskResult.rating === 'GREEN'
+          ? '<div class="vc"><div class="vt">Verdict: Clear and Marketable Title</div><p>[2-3 lines: property has clear title, no encumbrances, safe for lending]</p></div>'
+          : riskResult.rating === 'AMBER'
+            ? '<div class="vs"><div class="vt">Verdict: Clear Title Subject to Conditions</div><p>[Conditions based on risk findings above]</p></div>'
+            : '<div class="vnc"><div class="vt">Verdict: Title Not Clear</div><p>[Reasons from ACTIVE MORTGAGE or other critical risks in VERIFIED FACTS]</p></div>'
+        }
 
-Start your output with: <hr><div class="ph">PART VI`
+Start your output with: <hr><div class="ph" > PART VI`
         }]
       }),
 
@@ -830,44 +908,44 @@ Start your output with: <hr><div class="ph">PART VI`
         system: 'You are a legal report writer for Indian property due diligence. Generate HTML report sections. No markdown. Pure HTML.',
         messages: [{
           role: 'user',
-          content: `${groundTruth}
+          content: `${ groundTruth }
 
 Generate PART IX, PART X, PART XI as HTML.
 
 PART IX structure:
-<hr><div class="ph">PART IX - PRE-DISBURSEMENT DOCUMENTS REQUIRED</div>
-<ol>
-[List documents required BEFORE loan disbursement. Customize for case type "${caseType}":
-- builder_purchase: Registered Sale Deed, Allotment Letter, Builder NOC, OC/BCC, Society Formation NOC, Property Tax Receipt
-- resale: Registered Sale Deed, Original Title Documents, Society NOC, OC, Tax Receipts
-- bt: Release Deed from existing lender ${existingBank}, NOC from existing lender, Registered Sale Deed
-- seller_bt: Release Deed from ${existingBank}, Tripartite Agreement, Registered Sale Deed
-- lap: Original Title Documents, Property Tax Receipts, Society NOC if applicable]
-</ol>
+        <hr><div class="ph" > PART IX - PRE - DISBURSEMENT DOCUMENTS REQUIRED </div>
+          <ol>
+        [List documents required BEFORE loan disbursement.Customize for case type "${caseType}":
+        - builder_purchase: Registered Sale Deed, Allotment Letter, Builder NOC, OC / BCC, Society Formation NOC, Property Tax Receipt
+          - resale: Registered Sale Deed, Original Title Documents, Society NOC, OC, Tax Receipts
+            - bt: Release Deed from existing lender ${ existingBank }, NOC from existing lender, Registered Sale Deed
+              - seller_bt: Release Deed from ${ existingBank }, Tripartite Agreement, Registered Sale Deed
+                - lap: Original Title Documents, Property Tax Receipts, Society NOC if applicable]
+        </ol>
 
 PART X structure:
-<hr><div class="ph">PART X - POST-DISBURSEMENT DOCUMENTS REQUIRED</div>
-<ol>
-[List documents required AFTER disbursement:
-- Registered Mortgage Deed (original)
-- Note of Intimation of Mortgage to CRS/SRO
-- Insurance Policy (property + borrower life)
-- Share Certificate / Allotment Copy if applicable
-- Society Transfer Receipt
-- Original Property Tax Receipts
-- CERSAI registration confirmation]
-</ol>
+        <hr><div class="ph" > PART X - POST - DISBURSEMENT DOCUMENTS REQUIRED </div>
+          <ol>
+        [List documents required AFTER disbursement:
+        - Registered Mortgage Deed(original)
+          - Note of Intimation of Mortgage to CRS / SRO
+            - Insurance Policy(property + borrower life)
+              - Share Certificate / Allotment Copy if applicable
+                - Society Transfer Receipt
+                  - Original Property Tax Receipts
+                    - CERSAI registration confirmation]
+        </ol>
 
 PART XI structure:
-<hr><div class="ph">PART XI - FINAL RECOMMENDATION</div>
-<div class="final-rec">
-<div class="fr-title">Final Title Status</div>
-<div class="fr-value">${riskResult.rating === 'GREEN' ? 'CLEAR AND MARKETABLE TITLE' : riskResult.rating === 'AMBER' ? 'CLEAR TITLE SUBJECT TO CONDITIONS' : 'TITLE NOT CLEAR - REQUIRES RESOLUTION'}</div>
-</div>
-<p>[3-4 sentence summary. Must include: property identified as ${finalAddress} belonging to ${finalOwner}. Encumbrance status: ${lifecycle.summary}. Risk rating ${riskResult.rating} (score ${riskResult.score}/100). Recommendation for ${finalBank} lending.]</p>
-${riskResult.rating !== 'GREEN' ? '<div class="sph">Conditions / Actions Required</div><ol>[list from risk findings]</ol>' : ''}
+        <hr><div class="ph" > PART XI - FINAL RECOMMENDATION </div>
+          < div class="final-rec" >
+            <div class="fr-title" > Final Title Status </div>
+              < div class="fr-value" > ${ riskResult.rating === 'GREEN' ? 'CLEAR AND MARKETABLE TITLE' : riskResult.rating === 'AMBER' ? 'CLEAR TITLE SUBJECT TO CONDITIONS' : 'TITLE NOT CLEAR - REQUIRES RESOLUTION' } </div>
+                </div>
+                < p > [3 - 4 sentence summary.Must include: property identified as ${ finalAddress } belonging to ${ finalOwner }.Encumbrance status: ${ lifecycle.summary }.Risk rating ${ riskResult.rating }(score ${ riskResult.score } / 100).Recommendation for ${ finalBank } lending.]</p>
+${ riskResult.rating !== 'GREEN' ? '<div class="sph">Conditions / Actions Required</div><ol>[list from risk findings]</ol>' : '' }
 
-Start your output with: <hr><div class="ph">PART IX`
+Start your output with: <hr><div class="ph" > PART IX`
         }]
       })
     ])
