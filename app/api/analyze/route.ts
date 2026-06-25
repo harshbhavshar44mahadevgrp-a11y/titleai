@@ -2,7 +2,7 @@
 
 export const maxDuration = 180
 
-const API_KEY = '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'
+const API_KEY = process.env.ANTHROPIC_API_KEY || ''
 const HAIKU = 'claude-haiku-4-5-20251001'
 const SONNET = 'claude-sonnet-4-6'
 
