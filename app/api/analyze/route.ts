@@ -429,8 +429,15 @@ Output ONLY valid JSON. No markdown. No explanation. No preamble:
           messages: [{ role: 'user', content: extractContent }]
         })
         const rawText = extractRes.content[0].type === 'text' ? extractRes.content[0].text : '{}'
-        const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-        const extracted = JSON.parse(cleaned)
+        let extracted: any = {}
+        const attempts = [
+          rawText.trim(),
+          rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim(),
+          (rawText.match(/\{[\s\S]*\}/) || ['{}'])[0]
+        ]
+        for (const attempt of attempts) {
+          try { extracted = JSON.parse(attempt); break } catch { }
+        }
 
         ecRows = extracted.ec_rows || []
         ecMeta = {
@@ -648,14 +655,14 @@ ABSOLUTE RULES - NEVER VIOLATE:
         model: 'claude-sonnet-4-6',
         max_tokens: 3500,
         temperature: 0,
-        system: 'You are a legal report writer for Indian property due diligence. Generate HTML report sections using ONLY the verified facts provided. Use exact CSS class names: ph, sph, mt, prop-para. No markdown. Pure HTML only.',
+        system: `You are a legal report writer for Indian property due diligence. Generate HTML using ONLY verified facts. STRICT RULES: (1) Part I Borrower table must contain EXACTLY these 3 rows only - Name of Borrower, Co-Applicant, Constitution. NO extra rows like Bank or App ID or Date in borrower table. (2) Co-Applicant value is "${finalCoApp}" - copy it EXACTLY, never replace with applicant name. (3) No markdown. Pure HTML only.`,
         messages: [{
           role: 'user',
           content: `${groundTruth}
 
 Generate PART I, PART II, PART III as HTML.
 
-PART I structure:
+PART I - output this EXACT HTML (fill only [bracketed] parts, do NOT add extra rows):
 <hr><div class="ph">PART I - BORROWER / MORTGAGOR / CURRENT OWNERSHIP</div>
 <div class="sph">A. Borrower Details</div>
 <table class="mt">
@@ -663,14 +670,19 @@ PART I structure:
 <tr><td>Co-Applicant</td><td>:</td><td>${finalCoApp}</td></tr>
 <tr><td>Constitution</td><td>:</td><td>Individual</td></tr>
 </table>
-<div class="sph">B. Mortgagor Details</div>
+<div class="sph">B. Mortgagor / Current Owner Details</div>
 <table class="mt">
 <tr><td>Name of Mortgagor</td><td>:</td><td>${finalOwner}</td></tr>
-<tr><td>Relation to Applicant</td><td>:</td><td>[Self / Owner / As applicable]</td></tr>
+<tr><td>Relation to Borrower</td><td>:</td><td>[Owner / Self / Builder as applicable from VERIFIED FACTS]</td></tr>
+<tr><td>Type of Transaction</td><td>:</td><td>${loanTypeMap[caseType] || 'LAP'}</td></tr>
 </table>
 <div class="sph">C. Current Ownership</div>
 <table class="mt">
-[Use latest sale deed from VERIFIED FACTS to fill: Current Owner, Mode of Acquisition (Sale Deed), Registration Details (Reg No and Date), Sub-Registrar Office]
+<tr><td>Current Owner</td><td>:</td><td>${finalOwner}</td></tr>
+<tr><td>Mode of Acquisition</td><td>:</td><td>[Sale Deed / Gift Deed / from VERIFIED FACTS sale deeds]</td></tr>
+<tr><td>Registration Details</td><td>:</td><td>[Reg No and Date from latest sale deed in VERIFIED FACTS]</td></tr>
+<tr><td>Sub-Registrar Office</td><td>:</td><td>[from VERIFIED FACTS sale deeds]</td></tr>
+<tr><td>Proposed Purchaser / Mortgagor</td><td>:</td><td>${finalApplicant}</td></tr>
 </table>
 
 PART II structure:
