@@ -1,4 +1,8 @@
+﻿<<<<<<< HEAD
 // ================================================================
+=======
+﻿// ================================================================
+>>>>>>> aaf4496 (FINAL: complete route all prompts EC focused)
 // TITLEMATRIXAI -- /api/analyze/route.ts  FINAL COMPLETE VERSION
 // All Prompts 2-6 | Steps 1-7 | EC Focused | Release Deed Fix
 // temperature=0 = Same perfect report every time
@@ -18,12 +22,21 @@ const DB = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_
 // BANK DETECTION -- CODE decides, never AI. 100% correct always.
 // ================================================================
 const BANKS = [
+<<<<<<< HEAD
   'BANK','FINANCE','HOUSING FINANCE','FINANCIAL SERVICES','NBFC',
   'CAPITAL','FINCORP','BAJAJ','HDFC','SBI','AXIS','ICICI','KOTAK',
   'PNB','BOI','CANARA','UNION BANK','INDIABULLS','LIC','LICHFL',
   'REPCO','PIRAMAL','MUTHOOT','TATA CAPITAL','ADITYA BIRLA',
   'FULLERTON','AAVAS','HOME FIRST','APTUS','SHRIRAM','GRUH',
   'MANAPPURAM','INDIA BULLS','HOME FINANCE','GOLD LOAN','CREDIT',
+=======
+  'BANK', 'FINANCE', 'HOUSING FINANCE', 'FINANCIAL SERVICES', 'NBFC',
+  'CAPITAL', 'FINCORP', 'BAJAJ', 'HDFC', 'SBI', 'AXIS', 'ICICI', 'KOTAK',
+  'PNB', 'BOI', 'CANARA', 'UNION BANK', 'INDIABULLS', 'LIC', 'LICHFL',
+  'REPCO', 'PIRAMAL', 'MUTHOOT', 'TATA CAPITAL', 'ADITYA BIRLA',
+  'FULLERTON', 'AAVAS', 'HOME FIRST', 'APTUS', 'SHRIRAM', 'GRUH',
+  'MANAPPURAM', 'INDIA BULLS', 'HOME FINANCE', 'GOLD LOAN', 'CREDIT',
+>>>>>>> aaf4496 (FINAL: complete route all prompts EC focused)
 ]
 function isBank(n: string): boolean {
   if (!n) return false
@@ -738,7 +751,11 @@ ${ctx}`
     ])
 
     let p123 = r4a.content[0].type === 'text' ? r4a.content[0].text : '<p>Error generating Parts I-III</p>'
+<<<<<<< HEAD
     let p45  = r4b.content[0].type === 'text' ? r4b.content[0].text : '<p>Error generating Parts IV-V</p>'
+=======
+    let p45 = r4b.content[0].type === 'text' ? r4b.content[0].text : '<p>Error generating Parts IV-V</p>'
+>>>>>>> aaf4496 (FINAL: complete route all prompts EC focused)
     let p678 = r4c.content[0].type === 'text' ? r4c.content[0].text : '<p>Error generating Parts VI-VIII</p>'
     const p911 = r4d.content[0].type === 'text' ? r4d.content[0].text : '<p>Error generating Parts IX-XI</p>'
 
