@@ -131,15 +131,15 @@ export default function UploadPage() {
                     // Scanned page -- render as image (small size)
                     const baseVp = page.getViewport({ scale: 1.0 })
                     const maxPx = 800
-                    const scale = Math.min(1.2, maxPx / Math.max(baseVp.width, baseVp.height))
+                    const scale = 3.0
                     const vp = page.getViewport({ scale })
                     const cv = document.createElement('canvas')
                     cv.width = vp.width
                     cv.height = vp.height
                     await page.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
                     imgArr.push({
-                        base64: cv.toDataURL('image/jpeg', 0.45).split(',')[1],
-                        mediaType: 'image/jpeg',
+                        base64: cv.toDataURL('image/png').split(',')[1],
+                        mediaType: 'image/png',
                         name: file.name + '_p' + pageNum
                     })
                 }
