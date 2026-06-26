@@ -622,6 +622,85 @@ export async function POST(req: NextRequest) {
             } catch (e) { console.log('EC P3 error:', e) }
         }
 
+
+        // ---- PASS 4: DEDICATED RELEASE DEED VERIFIER ----
+        // Runs after rows extracted. Finds any missed Release Deeds.
+        // Uses cross-reference logic: mortgage entry + matching release entry
+        if (ecRows.length > 0) {
+            try {
+                const p4Prompt = `You are an expert EC analyst. Review these EC images.
+Your ONLY job: Find if any Mortgage/Charge has a matching Release Deed.
+
+STEP 1: Find ALL mortgage/charge entries (bank in claimant column).
+STEP 2: For each mortgage, search for matching Release Deed, Discharge, Cancellation.
+STEP 3: Match by: same bank name OR same deed number OR same parties.
+
+Keywords for Release: Release Deed, Discharge, Satisfaction, Vacated, Extinguished, ગ.ફ., ગ.મૂ.ફ., ગ.ફ.ખ., ગ.ફ.ત., Mortgage Release, Reconveyance, No Dues, Full Satisfaction.
+
+For each mortgage found, output JSON array:
+[{"original_deed_no":"","original_date":"","original_lender":"","is_released":true,"release_deed_no":"","release_date":"","release_by":"","confidence":"HIGH/MEDIUM/LOW"}]
+
+If no mortgage found: []
+If mortgage found but no release: [{"original_deed_no":"X","original_lender":"Bank","is_released":false,"release_deed_no":null,"release_date":null,"release_by":null,"confidence":"HIGH"}]`
+
+                const r4ec = await AI.messages.create({
+                    model: 'claude-sonnet-4-6', max_tokens: 2000, temperature: 0,
+                    messages: [{ role: 'user', content: [...imgContent, { type: 'text', text: p4Prompt }] }]
+                })
+                const p4Raw = r4ec.content[0].type === 'text' ? r4ec.content[0].text : '[]'
+                const p4Clean = p4Raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+                const p4f = p4Clean.indexOf('['); const p4l = p4Clean.lastIndexOf(']')
+                const p4Results = JSON.parse(p4f >= 0 && p4l >= 0 ? p4Clean.substring(p4f, p4l + 1) : '[]')
+
+                if (Array.isArray(p4Results) && p4Results.length > 0) {
+                    for (const r of p4Results) {
+                        if (r.is_released && r.release_deed_no && r.original_lender) {
+                            // Check if lifecycle already has this as released
+                            const alreadyReleased = lifecycle.released.some(rel =>
+                                rel.lender.toLowerCase().includes(r.original_lender.toLowerCase().split(' ')[0]) ||
+                                rel.release_deed_no === r.release_deed_no
+                            )
+                            if (!alreadyReleased) {
+                                // Move from active to released
+                                const activeIdx = lifecycle.active.findIndex(a =>
+                                    a.lender.toLowerCase().includes(r.original_lender.toLowerCase().split(' ')[0])
+                                )
+                                if (activeIdx >= 0) {
+                                    const m = lifecycle.active.splice(activeIdx, 1)[0]
+                                    m.release_deed_no = r.release_deed_no || ''
+                                    m.release_date = r.release_date || ''
+                                    lifecycle.released.push(m)
+                                    console.log('EC P4: RELEASE FOUND! ' + r.original_lender + ' -> Released vide ' + r.release_deed_no)
+                                } else {
+                                    // Add as new released entry
+                                    lifecycle.released.push({
+                                        row: 0,
+                                        lender: r.original_lender,
+                                        deed_no: r.original_deed_no || '',
+                                        date: r.original_date || '',
+                                        release_deed_no: r.release_deed_no || '',
+                                        release_date: r.release_date || ''
+                                    })
+                                    console.log('EC P4: NEW RELEASE ADDED: ' + r.original_lender)
+                                }
+                            }
+                        }
+                    }
+                    // Recalculate encumbrance after P4
+                    const newEnc = lifecycle.active.length > 0 ? 'ENCUMBERED'
+                        : lifecycle.released.length > 0 ? 'CLEAR WITH PRIOR RELEASE' : 'CLEAR'
+                    const newSum = lifecycle.active.length === 0 && lifecycle.released.length === 0
+                        ? 'NIL encumbrance'
+                        : lifecycle.active.length > 0
+                            ? 'ACTIVE: ' + lifecycle.active.map(a => a.lender + ' (Deed No.' + a.deed_no + ' dated ' + a.date + ')').join(' | ')
+                            : 'RELEASED: ' + lifecycle.released.map(r => r.lender + ' DISCHARGED vide Release Deed No.' + r.release_deed_no + ' dated ' + r.release_date).join(' | ')
+                    lifecycle.encumbrance = newEnc
+                    lifecycle.summary = newSum
+                    console.log('EC P4 FINAL: status=' + lifecycle.encumbrance + ' | ' + lifecycle.summary)
+                }
+            } catch (e) { console.log('EC P4 error:', e) }
+        }
+
         console.log('EC FINAL: app=' + (ecMeta.ec_app_number || 'MISSING') + ' rows=' + ecRows.length + ' status=' + lifecycle.encumbrance)
 
         const existingBank = lifecycle.active.length > 0
