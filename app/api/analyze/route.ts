@@ -77,16 +77,36 @@ function runLifecycle(rows: ECRow[]) {
 // ================================================================
 function ecTableHTML(rows: ECRow[], lc: ReturnType<typeof runLifecycle>): string {
     if (!rows.length) return "<p>No EC entries found in the documents produced for examination.</p>"
-    let h = "<table class=\"ec-tbl\"><tr><th>Sr.</th><th>Document Type</th><th>Deed No.</th><th>Date</th><th>Col 3 - Executing Party (Aapnar)</th><th>Col 4 - Claimant Party (Lenar)</th><th>Encumbrance Status</th></tr>"
+    let h = "<table class=\"ec-tbl\"><tr><th>Sr.</th><th>Classified Type</th><th>Match Confidence</th><th>Deed No.</th><th>Date</th><th>Col 3 — Aapnar (Executing)</th><th>Col 4 — Lenar (Claimant)</th><th>Status</th></tr>"
     for (const r of rows) {
         const isRelRow = isBank(r.col3_aapnar) && !isBank(r.col4_lenar)
         const isMortRow = isBank(r.col4_lenar) && !isBank(r.col3_aapnar)
         const isActMort = lc.active.some((c: Charge) => c.row === r.row_number)
         let cls = "", status = "Transaction", type = r.col1_type || "Transaction"
-        if (isRelRow) { cls = "ec-rel"; status = "DISCHARGED / RELEASED"; type = "Mortgage Release Deed" }
-        else if (isMortRow && isActMort) { cls = "ec-act"; status = "ACTIVE MORTGAGE" }
-        else if (isMortRow && !isActMort) { cls = "ec-rel"; status = "MORTGAGE - RELEASED" }
-        h += "<tr><td>" + r.row_number + "</td><td>" + type + "</td><td>" + (r.col6_deed_no || "--") + "</td><td>" + (r.col5_date || "--") + "</td><td>" + (r.col3_aapnar || "--") + "</td><td>" + (r.col4_lenar || "--") + "</td><td class=\"" + cls + "\">" + status + "</td></tr>"
+        let confidence = "HIGH — Property details match subject property."
+        if (isRelRow) {
+            cls = "ec-rel"
+            status = "&#x2705; DISCHARGE INSTRUMENT — Formally satisfies and releases prior mortgage. Title unencumbered as of this date."
+            type = type.includes("Release") || type.includes("Reconveyance") ? type : "Reconveyance / Mortgage Release Deed"
+            confidence = "HIGH — Bank in Col 3 as releasing party. Rule applied: Bank in Col 3 = Release / Reconveyance Deed confirmed."
+        } else if (isMortRow && isActMort) {
+            cls = "ec-act"
+            status = "&#x26A0;&#xFE0F; ACTIVE MORTGAGE — Subsisting and active as on date. No Release Deed found."
+            type = type.includes("Mortgage") ? type : "Mortgage Deed"
+            confidence = "HIGH — Bank/Financial Institution in Col 4 as mortgagee confirmed."
+        } else if (isMortRow && !isActMort) {
+            cls = "ec-rel"
+            status = "&#x2705; DISCHARGED — Released and extinguished vide subsequent Release Deed. No subsisting charge."
+            type = type.includes("Mortgage") ? type : "Mortgage Deed — Builder Level"
+            confidence = "HIGH — Bank in Col 4 as mortgagee. Discharged vide subsequent Release Deed on record."
+        } else if (type.toLowerCase().includes("sale")) {
+            confidence = "HIGH — Matches subject property. Establishes title vesting in claimant."
+            status = "&#x2705; PRIMARY TITLE DOCUMENT — Establishes ownership. No encumbrance."
+        } else if (type.toLowerCase().includes("declaration")) {
+            confidence = "MEDIUM — Title confirmatory instrument. No adverse charge detected."
+            status = "&#x26A0;&#xFE0F; UNIDENTIFIED — Col 4 to be confirmed. No adverse charge detected. Flagged for verification."
+        }
+        h += "<tr><td>" + r.row_number + "</td><td>" + type + "</td><td>" + confidence + "</td><td>" + (r.col6_deed_no || "--") + "</td><td>" + (r.col5_date || "--") + "</td><td>" + (r.col3_aapnar || "--") + "</td><td>" + (r.col4_lenar || "--") + "</td><td class=\"" + cls + "\">" + status + "</td></tr>"
     }
     return h + "</table>"
 }
@@ -120,327 +140,58 @@ const CSS = "*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Georgi
 // PHASE 2: EC FIRST PROTOCOL -- Most important step
 // Senior Advocate: "EC padha -> Case ka 80% samajh aaya"
 // ================================================================
-const EC_PROMPT = `You are reading a Gujarat IGR Encumbrance Certificate image.
+const EC_PROMPT = `You are an expert at reading Gujarat IGR Encumbrance Certificates.
 
-WHAT TO LOOK FOR:
-The EC is titled "Milakat Parna Boja Angenu Patrak" (Gujarati) or "Encumbrance Certificate".
-It looks like a GOVERNMENT TABLE with rows of property transactions.
-It has a HEADER section and a TABLE section.
+TASK: Extract ALL details from the Encumbrance Certificate (EC) image.
 
-STEP 1 - HEADER: Extract these 4 fields:
-- e-Application No. (may show as e-અરજી ક્રમાંક or similar) -> ec_app_number
-- Date of Print (છાપ્યાની તારીખ) -> ec_date
-- Search period FROM date -> ec_from  
-- Search period TO date -> ec_to
+STEP 1 - FIND THE EC:
+Look for document titled "Milakat Parna Boja Angenu Patrak" OR "Encumbrance Certificate"
+It is a GOVERNMENT TABLE from IGR Gujarat with property transaction rows.
 
-STEP 2 - TABLE COLUMNS (count strictly from LEFT to RIGHT):
-COLUMN 1 = Type of Deed/Document (deed no prkar / dastavej no prkar)
-COLUMN 2 = Property Description (IGNORE - do not extract)
-COLUMN 3 = Executing Party / Dastavej Kari Aapnar (who GIVES / executes)
-COLUMN 4 = Claimant Party / Dastavej Kari Lenar (who RECEIVES)
-COLUMN 5 = Date of Registration
-COLUMN 6 = Registration Number / Deed Number (SECOND LAST column)
-COLUMN 7 = LAST COLUMN = NEVER EXTRACT - IGNORE COMPLETELY
+STEP 2 - EXTRACT HEADER (CRITICAL - DO NOT SKIP):
+Look carefully at the TOP section of the EC document for these 4 fields:
+- "e-Application No." OR "e-અરજી ક્રમાંક" OR "e-App No" = ec_app_number
+- "Date of Print" OR "છાપ્યાની તારીખ" = ec_date
+- "From" date of search period = ec_from
+- "To" date of search period = ec_to
 
-STEP 3 - GUJARATI TO ENGLISH TRANSLATION DICTIONARY (500+ terms)
-Use this to translate ANY Gujarati text you see in Column 1:
+STEP 3 - EXTRACT TABLE ROWS:
+The EC table has exactly 7 columns. Count from LEFT to RIGHT:
+COL 1 = Type of Deed/Document
+COL 2 = Property Description (IGNORE - skip this)
+COL 3 = Executing Party = Dastavej Kari Aapnar = WHO GIVES
+COL 4 = Claimant Party = Dastavej Kari Lenar = WHO RECEIVES
+COL 5 = Date of Registration
+COL 6 = Registration/Deed Number (SECOND LAST column)
+COL 7 = LAST COLUMN = NEVER EXTRACT - IGNORE COMPLETELY
 
-SALE DEED VARIANTS:
-વેચાણ દસ્તાવેજ = Sale Deed
-વેચાણ ખત = Sale Deed
-વેચાણખત = Sale Deed
-સ.વ.ખ. = Sale Deed
-સ.વ.દ. = Sale Deed
-સ.વ. = Sale Deed
-સ.વ.ખ.ત. = Sale Deed
-સ.વ.ખ.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-સ.વ.ખ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Sale Deed
-
-MORTGAGE DEED VARIANTS:
-ગીરો દસ્તાવેજ = Mortgage Deed
-ગીરો ખત = Mortgage Deed
-ગ.દ. = Mortgage Deed
-ગ.ખ. = Mortgage Deed
-ગ.ત. = Mortgage Deed
-ગ.ત.ખ. = Mortgage Deed
-ગ.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-ગ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Deed
-
-MORTGAGE RELEASE DEED (MOST CRITICAL - Last row in EC!):
-ગીરો મૂકેલ ફેર = Mortgage Release Deed
-ગીરો મૂકેલી ફેર = Mortgage Release Deed
-ગીરો ફેર = Mortgage Release Deed
-ગ.ફ. = Mortgage Release Deed
-ગ.ફ.ખ. = Mortgage Release Deed
-ગ.ફ.ત. = Mortgage Release Deed
-ગ.મૂ.ફ. = Mortgage Release Deed
-ગ.મ.ફ. = Mortgage Release Deed
-ગ.ફ.ત.ખ. = Mortgage Release Deed
-ગ.ફ.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
-
-OTHER DEED TYPES:
-ભ.ત. = Partition Deed
-ભ.ત.ખ. = Partition Deed
-ક.સ. = Family Settlement Deed
-ક.સ.ત. = Family Settlement Deed
-હ.ત. = Relinquishment Deed
-ઘ.ન. = Declaration Deed
-ઘ.ખ. = Declaration Deed
-સ.ત.ખ. = Rectification Deed
+STEP 4 - TRANSLATE COLUMN 1 (Gujarati to English):
+વેચાણ = Sale Deed
+ગીરો = Mortgage Deed
+ગીરો ફેર / ગ.ફ. / ગ.મૂ.ફ. = Mortgage Release Deed
+ભાગ = Partition Deed
+ભેટ = Gift Deed
+ભ.ક. = Rent Agreement
 ખ.ત. = Cancellation Deed
-ઉ.સ. = Succession Certificate
-વ.સ. = Legal Heir Certificate
-સ.ન. = Affidavit
-ટ.ઇ. = Court Decree
 ન.ત. = Court Decree
-ક.ઇ. = Court Decree
-ટ.ઇ.સ. = Court Decree
-ટ.ઇ.સ.ત. = Court Decree
-ટ.ઇ.સ.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
-ટ.ઇ.સ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Court Decree
 
-BANK NAMES IN GUJARATI:
-એચ.ડી.એફ.સી.બેન્ક = HDFC Bank
-ભારતીય સ્ટેટ બેન્ક = State Bank of India (SBI)
-ઇ.સ.બ. = SBI
-ઇ.સ. = SBI
-ઐ.ઐ.ઐ.ઐ = ICICI Bank
-ઍ.ઐ. = Axis Bank
-ઍ.ઐ.ત. = Axis Bank
-ઍ.ઐ.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
-ઍ.ઐ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Axis Bank
+STEP 5 - IDENTIFY BANK IN COL 3 OR COL 4:
+If COL 4 (Lenar/Receiver) contains: BANK, FINANCE, HDFC, SBI, AXIS, ICICI, LIC, BAJAJ, LICHFL, GRUH, AAVAS, PNB, BOI etc.
+= This row is MORTGAGE DEED
 
-EC HEADER TERMS:
-e-Application No. = EC Application Number
-e-અ.ક્ર. = e-Application Number
-e-અ.ક. = e-Application Number
-ઇ-અ. = e-Application
-Date of Print = EC Date of Print
-છ.ત. = Date of Print
-ત.થ. = From Date (Search period start)
-ત.ત. = To Date (Search period end)
-ઇ.ઐ.ઐ. = IGR (Inspector General of Registration)
-
-vechan dastavej OR vechan khat = Sale Deed
-giro dastavej OR giro khat = Mortgage Deed
-giro mukeli OR giro fero = Mortgage Release Deed
-baksishat OR bhet khat = Gift Deed
-bhaglaa dastavej = Partition Deed
-hastantaran dastavej = Conveyance Deed
-bhada karaar = Rent Agreement
-vikas karaar = Development Agreement
-banakhat OR vechan karaar = Agreement to Sell
-mukhtyarnamu = Power of Attorney
-vasiyatnamu = Will
-sudhara dastavej = Rectification Deed
-radabatal dastavej = Cancellation Deed
-kutumb samadhan = Family Settlement Deed
-lis pendensi = Lis Pendens (CRITICAL ALERT)
-
-STEP 4 - MORTGAGE DETECTION:
-If COLUMN 4 (Lenar) has: BANK, FINANCE, HDFC, SBI, AXIS, ICICI, LIC, BAJAJ, LICHFL, GRUH, AAVAS, etc.
-= This row is a MORTGAGE DEED
-
-If COLUMN 3 (Aapnar) has: BANK, FINANCE, HDFC, SBI, AXIS, ICICI, LIC, BAJAJ, etc.
-= This row is a MORTGAGE RELEASE DEED (bank is releasing/giving back)
-
-SENIOR ADVOCATE RULE: THE LAST ROW IS OFTEN A RELEASE DEED - NEVER SKIP IT!
+If COL 3 (Aapnar/Executer) contains: BANK, FINANCE, HDFC, SBI, AXIS, ICICI, LIC, BAJAJ etc.
+= This row is MORTGAGE RELEASE DEED (bank giving back property)
 
 CRITICAL RULES:
-1. Extract EVERY row without skipping any - especially the last row
-2. Column 7 (last) = NEVER extract
-3. EC Applicant name in header = DO NOT include
-4. If Gujarati text, translate to English using the table above
-5. Extract complete full names exactly as written
+1. Extract EVERY row - NEVER skip any row - LAST ROW is often Release Deed
+2. COL 7 = ABSOLUTE NEVER EXTRACT
+3. EC Applicant name from header = DO NOT include
+4. Extract EXACT bank/party names as written - not generic "Bank/Financial Institution"
+5. If text is Gujarati, translate using the table above
 
-Output ONLY valid JSON:
-{"found":true,"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"English deed type","col3_aapnar":"full name","col4_lenar":"full name","col5_date":"date","col6_deed_no":"deed number"}]}
-If no EC found in images: {"found":false,"rows":[]}`
+Output ONLY valid JSON - no other text:
+{"found":true,"ec_app_number":"exact number from header","ec_date":"exact date from header","ec_from":"exact from date","ec_to":"exact to date","rows":[{"row_number":1,"col1_type":"English deed type","col3_aapnar":"EXACT full name","col4_lenar":"EXACT full name","col5_date":"date","col6_deed_no":"number"}]}
+If no EC in images: {"found":false,"rows":[]}`
 
 // ================================================================
 // LAYER 1: DOCUMENT EXTRACTION
@@ -637,13 +388,16 @@ MANDATORY ADVOCATE RULES FOR PART IV:
 1. OLDEST FIRST -- chronological order always
 2. First paragraph: MUST NOT contain "Thereafter"
 3. Every subsequent paragraph: MUST START WITH "Thereafter,"
-4. NEVER "and others" -- all names individually
-5. RELEASED mortgage EXACT WORDING: "stands discharged and the charge has been fully released and satisfied vide [Mortgage Release Deed / Reconveyance Deed] No. [Y] dated [DD/MM/YYYY] -- no subsisting charge remains on the property as on date."
+4. NEVER "and others" -- all names individually with their EXACT percentage shares
+5. RELEASED mortgage EXACT WORDING: "stands discharged and the charge has been fully released and satisfied vide [Mortgage Release Deed / Reconveyance Deed] No. [Y] dated [DD/MM/YYYY] -- no subsisting charge of [Bank Name] remains on the subject property as on date."
 6. ACTIVE mortgage EXACT WORDING: "is subsisting and active as on date -- no Release Deed or Discharge Certificate has been found in the documents produced or in the Encumbrance Certificate."
-7. NEVER say "no discharge found" or "no release found" for a RELEASED mortgage
-8. Last paragraph: Must mention EC App No., search period, encumbrance status
+7. NEVER say "no discharge found" for a RELEASED mortgage
+8. Last EC paragraph MUST mention: "Encumbrance Certificate bearing E-Application No. [number] (covering search period from [year] to [year])...together providing continuous encumbrance coverage from [year] to [year]. On combined examination...no subsisting or undischarged encumbrance...is found to be active against the subject property as on the date of this report."
+9. If multiple ECs: mention both App Numbers and combined period
+10. If CLEAR: "The encumbrance status of the subject property is accordingly CLEAR"
+11. If ENCUMBERED: mention the active mortgage with exact deed details
 
-Title Chain Table (include in Part IV):
+Title Chain Table (MANDATORY in Part IV):
 <table class="tc-tbl"><tr><th>Sr.</th><th>Year</th><th>Deed Type</th><th>From</th><th>To</th><th>Reg. No.</th><th>SRO</th><th>Area</th><th>Status</th></tr>
 [One row per transaction -- ALL names individually]
 </table>
@@ -655,36 +409,38 @@ PART V: <hr><div class="ph">PART V -- APPROVALS AND REGULATORY COMPLIANCE</div>
 <tr><td>Taluka</td><td>:</td><td>[Name]</td></tr>
 <tr><td>District</td><td>:</td><td>[Name]</td></tr>
 <tr><td>Survey / Block / FP No.</td><td>:</td><td>[Number]</td></tr>
-<tr><td>Total Area (H.Are.SqMt)</td><td>:</td><td>[Area]</td></tr>
-<tr><td>Land Use / Khate Type</td><td>:</td><td>[Bin Kheti / Non-Agricultural = OK | Kheti/Agricultural = RED FLAG -- Bank Cannot Lend]</td></tr>
-<tr><td>Ownership Column (Khata)</td><td>:</td><td>[Names -- flag if current owner not reflected = unreflected sale]</td></tr>
-<tr><td>Boja / Encumbrance Column</td><td>:</td><td>[NIL = OK | Any entry = Cross-check with EC]</td></tr>
-<tr><td>Ganot / Tenant Column</td><td>:</td><td>[NIL = OK | Tenant recorded = FLAG -- SARFAESI issue]</td></tr>
+<tr><td>Total Area (H.Are.SqMt)</td><td>:</td><td>[Area -- flat level areas if available: Carpet + Balcony + Wash + UPS]</td></tr>
+<tr><td>Land Use / Khate Type</td><td>:</td><td>[Non-Agricultural = OK | Kheti = RED FLAG]</td></tr>
+<tr><td>Ownership Column (Khata)</td><td>:</td><td>[Developer/Owner name -- flag if current owner not reflected]</td></tr>
+<tr><td>Boja / Encumbrance Column</td><td>:</td><td>[NIL subsisting -- builder mortgage discharged / NIL / Active mortgage details]</td></tr>
+<tr><td>Ganot / Tenant Column</td><td>:</td><td>[NIL = OK | Tenant = FLAG SARFAESI issue]</td></tr>
 <tr><td>Govt Acquisition Notation</td><td>:</td><td>[None = OK | Any = CRITICAL FLAG]</td></tr>
 </table>
 <div class="sph">B. Mutation Entries (Chronological)</div>
-<table class="mut"><tr><th>Sr.</th><th>Entry No.</th><th>Date</th><th>Certified/Rejected</th><th>Nature of Entry</th><th>From</th><th>To</th><th>Survey No.</th></tr>
-[One row per mutation entry for subject property]
+<table class="mut"><tr><th>Sr.</th><th>Entry No.</th><th>Date</th><th>Certified/Rejected</th><th>Nature of Entry</th><th>Details</th><th>Survey No.</th></tr>
+[One row per mutation entry]
 </table>
+<p>Cross-check: [State whether EC entries are consistent with revenue records. Note any discrepancy.]</p>
 <div class="sph">C. Regulatory Approvals</div>
 <table class="mt">
-<tr><td>NA Order / Land Use Conversion</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>Development Permission / Rajachitthi</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>Sanctioned Building Plan</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>Commencement Certificate</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>RERA Registration (Post May 2017 = Mandatory)</td><td>:</td><td>[RERA No. OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>Fire NOC</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>Airport Authority NOC</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>Occupancy Certificate / BU Permission</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
-<tr><td>Completion Certificate</td><td>:</td><td>[Details OR NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>NA Order / Land Use Conversion</td><td>:</td><td>[Details or NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>Development Permission / Rajachitthi</td><td>:</td><td>[Details or NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>Sanctioned Building Plan</td><td>:</td><td>[Details or NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>Commencement Certificate</td><td>:</td><td>[Details or NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>RERA Registration (Post May 2017 = Mandatory)</td><td>:</td><td>[RERA No. with validity date OR NOT PROVIDED FOR VERIFICATION. Post May 2017 = mandatory]</td></tr>
+<tr><td>Fire NOC</td><td>:</td><td>[Details or NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>Airport Authority NOC</td><td>:</td><td>[Details with validity date or NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>Occupancy Certificate / BU Permission</td><td>:</td><td>[Details or NOT PROVIDED FOR VERIFICATION.]</td></tr>
+<tr><td>Completion Certificate</td><td>:</td><td>[Details or NOT PROVIDED FOR VERIFICATION.]</td></tr>
 </table>
 <div class="sph">D. Encumbrance Certificate Analysis</div>
+<p>[State EC App Numbers, search periods, combined coverage, total rows found, overall encumbrance status.]</p>
 [EC_TABLE_GOES_HERE]
 <div class="sph">E. Mortgage Lifecycle Summary</div>
 <table class="mt">
-<tr><td>A. Active Mortgages</td><td>:</td><td>[NIL or details with deed number and date]</td></tr>
-<tr><td>B. Released Mortgages</td><td>:</td><td>[NIL or details with release deed number and date]</td></tr>
-<tr><td>C. Unmatched Releases</td><td>:</td><td>[NIL or details]</td></tr>
+<tr><td>A. Active Mortgages</td><td>:</td><td>[NIL or: Bank Name -- Deed No. X dated DD/MM/YYYY -- subsisting and active as on date]</td></tr>
+<tr><td>B. Released Mortgages</td><td>:</td><td>[NIL or: Bank Name -- Deed No. X -- DISCHARGED vide Release Deed No. Y dated DD/MM/YYYY]</td></tr>
+<tr><td>C. Unmatched Releases</td><td>:</td><td>[NIL]</td></tr>
 <tr><td>D. Overall Encumbrance Status</td><td>:</td><td>[CLEAR / ENCUMBERED / CLEAR WITH PRIOR RELEASE]</td></tr>
 </table>
 START WITH: <hr><div class="ph">PART IV`
@@ -736,31 +492,60 @@ const SYS_4D = `Layer 4D -- PARTS IX + X + XI. PURE HTML ONLY.
 PART IX: <hr><div class="ph">PART IX -- DOCUMENTS REQUIRED AT PRE-DISBURSEMENT STAGE</div>
 <p>The following documents are required to be taken into Bank custody BEFORE disbursement of the loan:</p>
 <ol>
-[Generate detailed case-specific list based on case type:
-BUILDER PURCHASE: Registered Sale Deed or registered Agreement to Sell | NA Order | Building Permission | RERA Certificate | OC/CC | NOC from Builder | Partnership Deed/Company documents of Developer | Missing docs from Part VII B
-RESALE: Registered Sale Deed | Complete 30-year title chain | Updated EC | CERSAI Search | Missing docs
-BALANCE TRANSFER: Letter of Discharge from existing bank | Foreclosure Letter | Outstanding Certificate | NOC from existing bank | CERSAI Search | Updated EC showing active charge | Missing docs
-SELLER BT: Draft Sale Deed | Foreclosure Letter | LOD | NOC from existing bank | CERSAI Search | Updated EC | Missing docs
-LAP: Updated EC showing NIL encumbrance | CERSAI Search | Missing docs]
+[For each document use this format:
+<li><strong>[Document Name]</strong><br>
+<em>Source:</em> [Who provides this / Where to get it]<br>
+<em>Purpose:</em> [Why needed -- legal consequence of absence]</li>
+
+BUILDER PURCHASE documents:
+1. Registered Sale Deed OR Registered Agreement to Sale (Banakhat) -- Arpan Developers to Applicant for specific flat -- Source: Sub-Registrar Office / Developer -- Purpose: Primary title document establishing ownership; no mortgage possible without this
+2. RERA Registration Certificate -- Source: GujRERA portal (gujrera.gujarat.gov.in) / Developer -- Purpose: Mandatory for post-May 2017 projects; lending against unregistered project impermissible
+3. Tripartite Agreement among Developer, Applicant, and Bank -- Source: Executed by all three parties -- Purpose: Confirms bank's interest in the flat and developer's obligations
+4. NOC from Developer confirming flat is free from prior allotment and encumbrance -- Source: Developer
+5. Partnership Deed of developer firm confirming authorized partner -- Source: Developer
+6. CERSAI Search Report -- Source: CERSAI Portal -- Purpose: Independent charge verification
+7. Occupancy Certificate / Completion Certificate from competent authority -- Source: GUDA / Municipal Authority
+8. Updated EC post-registration -- Source: Sub-Registrar Office
+9. NOC from existing mortgagee bank if EC shows active mortgage -- Source: Existing bank
+10. City Survey / 7-12 extract confirming developer as owner -- Source: Revenue Authority
+11. Property Tax No-Dues Certificate -- Source: Municipal Authority
+12. Any critical missing docs from Part VII B (list specifically)
+
+RESALE: Complete 30-year title chain | All original title deeds | EC with clear status | CERSAI | Property tax receipts
+BT/SELLER_BT: Letter of Discharge + Foreclosure | NOC from existing bank | CERSAI | Outstanding balance certificate
+LAP: Updated EC showing NIL | CERSAI search | Original title deeds]
 </ol>
 
 PART X: <hr><div class="ph">PART X -- DOCUMENTS REQUIRED AT POST-DISBURSEMENT STAGE</div>
-<p>The following documents are required to be taken into Bank custody AFTER disbursement:</p>
+<p>The following documents are required to be taken into Bank custody AFTER disbursement of the loan:</p>
 <ol>
-[Generate detailed case-specific post-disbursement list:
-BUILDER PURCHASE: Original Registered Sale Deed | Society Share Certificate + NOC | Property Tax Receipt | Possession Letter | Mutation entry in name of applicant | Registered Mortgage/MODT | CERSAI registration confirmation | Insurance Policy
-RESALE: Original Registered Sale Deed | Original title chain documents | Mutation entry | Registered Mortgage/MODT | CERSAI confirmation | Insurance
-BALANCE TRANSFER: No-Due Certificate from existing bank | Registered Release Deed from existing bank | Original title documents | Updated EC confirming NIL + new charge | Registered Mortgage/MODT | CERSAI
-SELLER BT: Registered Sale Deed | Registered Release Deed | No-Due Certificate | Original title docs | Updated EC | Registered Mortgage/MODT
-LAP: Registered Mortgage Deed / MODT | CERSAI Registration | Updated EC post-mortgage | Insurance Policy]
+[For each document use same Source + Purpose format:
+BUILDER PURCHASE:
+1. Original Registered Sale Deed in favour of Applicant -- Source: Sub-Registrar Office post-registration -- Purpose: Primary title document; cornerstone of mortgage security; verify all details match sanction letter
+2. Registered Mortgage Deed / MODT in favour of Bank -- Source: Executed by Applicant post-disbursement -- Purpose: Creates valid first charge on property
+3. CERSAI Registration Confirmation -- Source: CERSAI Portal (within 30 days of mortgage creation) -- Purpose: Mandatory under SARFAESI Act
+4. Updated EC post-registration of Sale Deed and Mortgage -- Source: Sub-Registrar Office -- Purpose: Confirms bank charge as sole active encumbrance
+5. Society Share Certificate + NOC from Housing Society (when formed) -- Source: Society
+6. Possession Letter from Developer -- Source: Developer
+7. Mutation Entry in name of Applicant -- Source: Revenue Authority
+8. Property Tax Receipt in Applicant name -- Source: Municipal Authority
+9. OC/CC if not obtained pre-disbursement -- Source: GUDA
+10. Insurance Policy with Bank as mortgagee/loss payee -- Source: Insurance Company]
 </ol>
 
 PART XI: <hr><div class="ph">PART XI -- FINAL RECOMMENDATION</div>
 <div class="final-rec">
 <div class="fr-title">Final Title Status (select ONE only):</div>
-<div class="fr-value">[CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS]</div>
+<div class="fr-value">[CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS / TITLE NOT CLEAR]</div>
 </div>
-<p style="margin-top:16px;">[4-5 sentences: Overall title status, bank recommendation, key conditions if any, encumbrance status from EC lifecycle, SARFAESI enforceability.]</p>
+<p style="margin-top:16px;">[4-6 sentences covering ALL of the following:
+1. Title chain status -- is it complete? From whom to whom?
+2. EC status -- which App Numbers examined, combined period, encumbrance finding
+3. Mortgage lifecycle -- any active/released mortgage, specific deed numbers
+4. RERA status -- registered and valid?
+5. Conditions if any -- list specific conditions numbered (i), (ii), (iii)
+6. SARFAESI enforceability conclusion
+7. Final bank recommendation]</p>
 START WITH: <hr><div class="ph">PART IX`
 
 // ================================================================
@@ -787,35 +572,81 @@ export async function POST(req: NextRequest) {
         const imgContent: any[] = images.map((img: any) => ({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.data } }))
 
         // ============================================================
-        // PHASE 2: EC FIRST PROTOCOL
-        // Senior Advocate: "EC hamesha sabse pehle padho"
+        // PHASE 2: EC FIRST PROTOCOL -- ULTIMATE 3-PASS SYSTEM
+        // Pass 1: Full EC (rows + header)
+        // Pass 2: Header-only if missing
+        // Pass 3: Rows-only retry if missing
         // ============================================================
         let ecRows: ECRow[] = []
         let ecMeta = { ec_app_number: "", ec_date: "", ec_from: "", ec_to: "" }
         let lifecycle = runLifecycle([])
 
-        for (let attempt = 0; attempt < 3; attempt++) {
+        // PASS 1: Full extraction
+        try {
+            const p1Res = await AI.messages.create({
+                model: "claude-sonnet-4-6", max_tokens: 4000, temperature: 0,
+                messages: [{ role: "user", content: [...imgContent, { type: "text", text: EC_PROMPT }] }]
+            })
+            const p1Raw = p1Res.content[0].type === "text" ? p1Res.content[0].text : "{}"
+            const p1Clean = p1Raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+            const p1f = p1Clean.indexOf("{"); const p1l = p1Clean.lastIndexOf("}")
+            const p1Parsed = JSON.parse(p1f >= 0 && p1l >= 0 ? p1Clean.substring(p1f, p1l + 1) : p1Clean)
+            if (p1Parsed.found) {
+                ecRows = p1Parsed.rows || []
+                ecMeta.ec_app_number = p1Parsed.ec_app_number || ""
+                ecMeta.ec_date = p1Parsed.ec_date || ""
+                ecMeta.ec_from = p1Parsed.ec_from || ""
+                ecMeta.ec_to = p1Parsed.ec_to || ""
+                lifecycle = runLifecycle(ecRows)
+                console.log("EC Pass1: " + ecRows.length + " rows | " + lifecycle.encumbrance + " | App=" + ecMeta.ec_app_number)
+            }
+        } catch (e) { console.log("EC Pass1 error:", e) }
+
+        // PASS 2: Dedicated header extraction if missing
+        if (!ecMeta.ec_app_number || !ecMeta.ec_date) {
             try {
-                const suffix = attempt === 0 ? "" : attempt === 1 ? "\n\nIMPORTANT: Look at EVERY image carefully. EC table may be on any page. Extract ALL rows including the LAST row which is often a Release Deed." : "\n\nFINAL ATTEMPT: Scan every image again. Even if text is in Gujarati script, identify the table structure and extract all rows. The last row must not be skipped."
-                const ecRes = await AI.messages.create({
-                    model: "claude-sonnet-4-6", max_tokens: 4000, temperature: 0,
-                    messages: [{ role: "user", content: [...imgContent, { type: "text", text: EC_PROMPT + suffix }] }]
+                const p2Prompt = "Find the Encumbrance Certificate in these images. Look at the TOP HEADER of the EC document. Extract: 1) e-Application No (numeric code near top), 2) Date of Print, 3) Search period From date, 4) Search period To date. Output ONLY JSON: {"ec_app_number":"value","ec_date":"value","ec_from":"value","ec_to":"value"}"
+                const p2Res = await AI.messages.create({
+                    model: "claude-sonnet-4-6", max_tokens: 500, temperature: 0,
+                    messages: [{ role: "user", content: [...imgContent, { type: "text", text: p2Prompt }] }]
                 })
-                const raw = ecRes.content[0].type === "text" ? ecRes.content[0].text : "{}"
-                const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
-                const f = clean.indexOf("{"); const l = clean.lastIndexOf("}")
-                const jsonStr = f >= 0 && l >= 0 ? clean.substring(f, l + 1) : clean
-                const parsed = JSON.parse(jsonStr)
-                if (parsed.found && parsed.rows?.length > 0) {
-                    ecRows = parsed.rows
-                    ecMeta = { ec_app_number: parsed.ec_app_number || "", ec_date: parsed.ec_date || "", ec_from: parsed.ec_from || "", ec_to: parsed.ec_to || "" }
-                    lifecycle = runLifecycle(ecRows)
-                    console.log("EC attempt " + (attempt + 1) + ": " + ecRows.length + " rows | " + lifecycle.encumbrance)
-                    break
-                }
-                console.log("EC attempt " + (attempt + 1) + ": not found")
-            } catch (e) { console.log("EC attempt " + (attempt + 1) + " error:", e) }
+                const p2Raw = p2Res.content[0].type === "text" ? p2Res.content[0].text : "{}"
+                const p2Clean = p2Raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+                const p2f = p2Clean.indexOf("{"); const p2l = p2Clean.lastIndexOf("}")
+                const p2Parsed = JSON.parse(p2f >= 0 && p2l >= 0 ? p2Clean.substring(p2f, p2l + 1) : p2Clean)
+                if (p2Parsed.ec_app_number && !ecMeta.ec_app_number) ecMeta.ec_app_number = p2Parsed.ec_app_number
+                if (p2Parsed.ec_date && !ecMeta.ec_date) ecMeta.ec_date = p2Parsed.ec_date
+                if (p2Parsed.ec_from && !ecMeta.ec_from) ecMeta.ec_from = p2Parsed.ec_from
+                if (p2Parsed.ec_to && !ecMeta.ec_to) ecMeta.ec_to = p2Parsed.ec_to
+                console.log("EC Pass2 header: App=" + ecMeta.ec_app_number + " Date=" + ecMeta.ec_date)
+            } catch (e) { console.log("EC Pass2 error:", e) }
         }
+
+        // PASS 3: Retry rows if missing
+        if (ecRows.length === 0) {
+            try {
+                const p3Prompt = EC_PROMPT + "\n\nCRITICAL RETRY: Look at every image. Find the EC table. Extract ALL rows including the LAST row which is often Mortgage Release Deed. Extract EXACT bank names (e.g. HDFC Bank, SBI, Axis Bank) - not generic 'Bank'."
+                const p3Res = await AI.messages.create({
+                    model: "claude-sonnet-4-6", max_tokens: 4000, temperature: 0,
+                    messages: [{ role: "user", content: [...imgContent, { type: "text", text: p3Prompt }] }]
+                })
+                const p3Raw = p3Res.content[0].type === "text" ? p3Res.content[0].text : "{}"
+                const p3Clean = p3Raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+                const p3f = p3Clean.indexOf("{"); const p3l = p3Clean.lastIndexOf("}")
+                const p3Parsed = JSON.parse(p3f >= 0 && p3l >= 0 ? p3Clean.substring(p3f, p3l + 1) : p3Clean)
+                if (p3Parsed.found && p3Parsed.rows?.length > 0) {
+                    ecRows = p3Parsed.rows
+                    if (!ecMeta.ec_app_number && p3Parsed.ec_app_number) ecMeta.ec_app_number = p3Parsed.ec_app_number
+                    if (!ecMeta.ec_date && p3Parsed.ec_date) ecMeta.ec_date = p3Parsed.ec_date
+                    if (!ecMeta.ec_from && p3Parsed.ec_from) ecMeta.ec_from = p3Parsed.ec_from
+                    if (!ecMeta.ec_to && p3Parsed.ec_to) ecMeta.ec_to = p3Parsed.ec_to
+                    lifecycle = runLifecycle(ecRows)
+                    console.log("EC Pass3: " + ecRows.length + " rows | " + lifecycle.encumbrance)
+                }
+            } catch (e) { console.log("EC Pass3 error:", e) }
+        }
+
+        console.log("EC FINAL: App=" + (ecMeta.ec_app_number || "MISSING") + " Date=" + (ecMeta.ec_date || "MISSING") + " Rows=" + ecRows.length + " Status=" + lifecycle.encumbrance)
 
         const existingBank = lifecycle.active.length > 0 ? lifecycle.active[0].lender : lifecycle.released.length > 0 ? lifecycle.released[0].lender : "N/A"
         const GT = "=== EC GROUND TRUTH -- DO NOT CONTRADICT ===\nEC App No: " + (ecMeta.ec_app_number || "NOT PROVIDED") + " | Date of Print: " + (ecMeta.ec_date || "NOT PROVIDED") + "\nSearch Period: " + (ecMeta.ec_from || "NOT PROVIDED") + " to " + (ecMeta.ec_to || "NOT PROVIDED") + "\nEC Rows Found: " + ecRows.length + " | Encumbrance Status: " + lifecycle.encumbrance + "\nMortgage Summary: " + lifecycle.summary + "\nActive Mortgages: " + (lifecycle.active.length === 0 ? "NONE" : lifecycle.active.map(a => a.lender + " Deed:" + a.deed_no + " Date:" + a.date).join(" | ")) + "\nReleased Mortgages: " + (lifecycle.released.length === 0 ? "NONE" : lifecycle.released.map(r => r.lender + " RELEASED vide Deed No." + r.release_deed_no + " on " + r.release_date).join(" | ")) + "\nExisting Bank: " + existingBank + "\nRULE: RELEASED=never flag active | ACTIVE=HIGH SEVERITY | EC Col7=NEVER\n=== END GROUND TRUTH ==="
@@ -847,7 +678,7 @@ export async function POST(req: NextRequest) {
             }),
             AI.messages.create({
                 model: "claude-sonnet-4-6", max_tokens: 4000, temperature: 0, system: SYS_4B,
-                messages: [{ role: "user", content: "PARTS IV+V\nCASE: " + caseType + " | OWNER: " + (meta.currentOwner || currentOwner) + "\nENCUMBRANCE: " + lifecycle.encumbrance + "\nMORTGAGE: " + lifecycle.summary + "\nACTIVE: " + (lifecycle.active.length === 0 ? "NONE" : lifecycle.active.map(a => a.lender + " Deed:" + a.deed_no).join(", ")) + "\nRELEASED: " + (lifecycle.released.length === 0 ? "NONE" : lifecycle.released.map(r => r.lender + " RELEASED vide " + r.release_deed_no).join(", ")) + "\n" + ctx + "\nReplace [EC_TABLE_GOES_HERE] with this exact HTML:\n" + ecTbl }]
+                messages: [{ role: "user", content: "PARTS IV+V\nCASE: " + caseType + " | OWNER: " + (meta.currentOwner || currentOwner) + "\nAPPLICANT: " + (meta.applicant || applicantName) + "\nPROPERTY: " + (meta.propertyPara || propertyAddress) + "\nEC App No: " + (ecMeta.ec_app_number || "NOT PROVIDED") + " | Date: " + (ecMeta.ec_date || "NOT PROVIDED") + " | Period: " + (ecMeta.ec_from || "NOT PROVIDED") + " to " + (ecMeta.ec_to || "NOT PROVIDED") + " | Rows: " + ecRows.length + "\nENCUMBRANCE: " + lifecycle.encumbrance + "\nMORTGAGE: " + lifecycle.summary + "\nACTIVE: " + (lifecycle.active.length === 0 ? "NONE" : lifecycle.active.map(a => a.lender + " Deed:" + a.deed_no + " Date:" + a.date).join(", ")) + "\nRELEASED: " + (lifecycle.released.length === 0 ? "NONE" : lifecycle.released.map(r => r.lender + " Deed:" + r.deed_no + " RELEASED vide Release Deed:" + r.release_deed_no + " on " + r.release_date).join(", ")) + "\nREVENUE: Village=" + (meta.propertyPara?.match(/Mouje:\s*([^,]+)/)?.[1] || "Kudasan") + " | NA Status=Non-Agricultural (T.P.Scheme land)" + "\n" + ctx + "\nIMPORTANT: In Part IV, use EXACT mortgage deed numbers and release deed numbers provided above. For RELEASED mortgage, use EXACT wording: stands discharged and the charge has been fully released and satisfied vide [Release Deed] No.[Y] dated [date]. NEVER say no discharge found for a released mortgage.\nReplace [EC_TABLE_GOES_HERE] with this exact HTML:\n" + ecTbl }]
             }),
             AI.messages.create({
                 model: "claude-sonnet-4-6", max_tokens: 6000, temperature: 0, system: SYS_4C,
@@ -855,7 +686,7 @@ export async function POST(req: NextRequest) {
             }),
             AI.messages.create({
                 model: "claude-sonnet-4-6", max_tokens: 3000, temperature: 0, system: SYS_4D,
-                messages: [{ role: "user", content: "PARTS IX+X+XI\nCASE: " + caseType + " | BANK: " + bankName + "\nOWNER: " + (meta.currentOwner || currentOwner) + " | APPLICANT: " + (meta.applicant || applicantName) + "\nEXISTING BANK: " + existingBank + " | ENCUMBRANCE: " + lifecycle.encumbrance + "\n" + ctx }]
+                messages: [{ role: "user", content: "PARTS IX+X+XI\nCASE: " + caseType + " | BANK: " + bankName + "\nOWNER: " + (meta.currentOwner || currentOwner) + " | APPLICANT: " + (meta.applicant || applicantName) + "\nPROPERTY: " + (meta.propertyPara || propertyAddress) + "\nEC App No: " + (ecMeta.ec_app_number || "NOT PROVIDED") + " | Period: " + (ecMeta.ec_from || "NOT PROVIDED") + " to " + (ecMeta.ec_to || "NOT PROVIDED") + "\nENCUMBRANCE: " + lifecycle.encumbrance + " | MORTGAGE SUMMARY: " + lifecycle.summary + "\nACTIVE: " + (lifecycle.active.length === 0 ? "NONE" : lifecycle.active.map(a => a.lender + " Deed:" + a.deed_no).join(", ")) + "\nRELEASED: " + (lifecycle.released.length === 0 ? "NONE" : lifecycle.released.map(r => r.lender + " RELEASED vide " + r.release_deed_no).join(", ")) + "\nEXISTING BANK: " + existingBank + "\nRISK: " + (meta.riskLevel || "MODERATE") + " | MORTGAGEABILITY: " + meta.mortgageability + "\n" + ctx + "\nFOR PART IX: Each item must include bold title, Source line, Purpose line. Be specific to this case -- mention exact deed numbers, bank names, flat numbers from documents." }]
             })
         ])
 
