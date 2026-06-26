@@ -5,40 +5,53 @@ import Sidebar from '@/components/Sidebar'
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
 const CASE_TYPES = [
-    { id: 'builder_purchase', label: 'Builder Purchase', icon: 'ðŸ—ï¸', desc: 'New flat/plot from developer', color: '#f59e0b' },
-    { id: 'resale',           label: 'Resale',           icon: 'ðŸ”‘', desc: 'Resale property purchase',   color: '#6366f1' },
-    { id: 'bt',               label: 'Balance Transfer',  icon: 'ðŸ”„', desc: 'BT from another bank',       color: '#3b82f6' },
-    { id: 'seller_bt',        label: 'Seller BT',         icon: 'ðŸ’¼', desc: 'Seller side Balance Transfer',color: '#8b5cf6' },
-    { id: 'lap',              label: 'LAP / Mortgage',    icon: 'ðŸ¦', desc: 'Loan Against Property',      color: '#10b981' },
+    { id: 'builder_purchase', label: 'Builder Purchase', icon: '🏗️', desc: 'New flat/plot from developer', color: '#f59e0b' },
+    { id: 'resale', label: 'Resale', icon: '🔑', desc: 'Resale property purchase', color: '#6366f1' },
+    { id: 'bt', label: 'Balance Transfer', icon: '🔄', desc: 'BT from another bank', color: '#3b82f6' },
+    { id: 'seller_bt', label: 'Seller BT', icon: '💼', desc: 'Seller side Balance Transfer', color: '#8b5cf6' },
+    { id: 'lap', label: 'LAP / Mortgage', icon: '🏦', desc: 'Loan Against Property', color: '#10b981' },
 ]
 
 const loanTypeMap: Record<string, string> = {
-    'builder_purchase': 'Builder Purchase',
-    'resale':           'Resale Property',
-    'bt':               'Balance Transfer',
-    'seller_bt':        'Seller Balance Transfer',
-    'lap':              'LAP (Loan Against Property)',
+    builder_purchase: 'Builder Purchase',
+    resale: 'Resale Property',
+    bt: 'Balance Transfer',
+    seller_bt: 'Seller Balance Transfer',
+    lap: 'LAP (Loan Against Property)',
 }
 
 interface DocFile { name: string; size: string; type: string; fileRef?: File }
 
 export default function UploadPage() {
-    const [dragging, setDragging]         = useState(false)
-    const [files, setFiles]               = useState<DocFile[]>([])
+    const [dragging, setDragging] = useState(false)
+    const [files, setFiles] = useState<DocFile[]>([])
     const [selectedType, setSelectedType] = useState('')
-    const [caseType, setCaseType]         = useState('')
-    const [caseSelected, setCaseSelected] = useState(false)   // NEW â€” case chuna ya nahi
-    const [errorMsg, setErrorMsg]         = useState('')
-    const [generating, setGenerating]     = useState(false)
-    const [reportData, setReportData]     = useState<any>(null)
-    const [step, setStep]                 = useState(0)
-    const inputRef  = useRef<HTMLInputElement>(null)
+    const [caseType, setCaseType] = useState('')
+    const [caseSelected, setCaseSelected] = useState(false)
+    const [errorMsg, setErrorMsg] = useState('')
+    const [generating, setGenerating] = useState(false)
+    const [reportData, setReportData] = useState<any>(null)
+    const [step, setStep] = useState(0)
+    const [progress, setProgress] = useState('')
+
+    // Form fields
+    const [bankName, setBankName] = useState('')
+    const [applicantName, setApplicantName] = useState('')
+    const [coApplicant, setCoApplicant] = useState('')
+    const [currentOwner, setCurrentOwner] = useState('')
+    const [propertyAddress, setPropertyAddress] = useState('')
+    const [boundaryEast, setBoundaryEast] = useState('')
+    const [boundaryWest, setBoundaryWest] = useState('')
+    const [boundaryNorth, setBoundaryNorth] = useState('')
+    const [boundarySouth, setBoundarySouth] = useState('')
+
+    const inputRef = useRef<HTMLInputElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
     const steps = [
-        { step: '01', title: 'Reading documents...', desc: 'Extracting text from PDFs' },
-        { step: '02', title: 'Extracting facts...', desc: 'Haiku identifying all data' },
-        { step: '03', title: 'Analysing title chain...', desc: 'Sonnet deep legal analysis' },
+        { step: '01', title: 'Reading documents...', desc: 'Extracting from PDFs' },
+        { step: '02', title: 'EC extraction...', desc: '3-pass EC header + rows' },
+        { step: '03', title: 'Title chain analysis...', desc: 'Deep legal verification' },
         { step: '04', title: 'Checking EC and 7/12...', desc: 'Cross-verifying documents' },
         { step: '05', title: 'Writing legal opinion...', desc: 'Generating final report' },
     ]
@@ -70,39 +83,56 @@ export default function UploadPage() {
     }, [])
 
     const addFiles = (newFiles: File[]) => {
-        setFiles(prev => [...prev, ...newFiles.map(f => ({
-            name: f.name,
-            size: (f.size / 1024).toFixed(1) + ' KB',
-            type: selectedType || 'Auto Detect',
-            fileRef: f
-        }))])
+        setFiles(prev => {
+            const existing = new Set(prev.map(f => f.name + f.size))
+            const toAdd = newFiles.filter(f => !existing.has(f.name + f.size))
+            return [...prev, ...toAdd.map(f => ({
+                name: f.name,
+                size: (f.size / 1024).toFixed(1) + ' KB',
+                type: selectedType || 'Auto Detect',
+                fileRef: f
+            }))]
+        })
         setErrorMsg('')
         setReportData(null)
     }
 
+    // ================================================================
+    // PDF TO IMAGE -- FIXED
+    // MAX 3 pages per file | Scale 1.6 | MaxPx 1200 | JPEG 0.85
+    // This keeps total size under 4.5MB Vercel limit
+    // ================================================================
     const extractTextFromPDF = async (file: File, imgArr: any[]): Promise<string> => {
         try {
             const pdfjsLib = await import('pdfjs-dist')
             pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
             const arrayBuffer = await file.arrayBuffer()
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-            let fullText = `\n===== DOCUMENT: ${file.name} =====\n`
-            for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 10); pageNum++) {
+
+            // MAX 3 PAGES PER FILE -- prevents 413 error
+            const pagesToProcess = Math.min(pdf.numPages, 3)
+            let fullText = '\n===== DOCUMENT: ' + file.name + ' =====\n'
+
+            for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
                 const page = await pdf.getPage(pageNum)
                 const textContent = await page.getTextContent()
                 const pageText = textContent.items.map((item: any) => item.str).join(' ').trim()
-                fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`
-                if (true) {
-                    const baseVp = page.getViewport({ scale: 1.0 })
-                    const maxPx  = 1500
-                    const scale  = Math.min(2.0, maxPx / Math.max(baseVp.width, baseVp.height))
-                    const vp     = page.getViewport({ scale })
-                    const cv     = document.createElement('canvas')
-                    cv.width     = vp.width
-                    cv.height    = vp.height
-                    await page.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
-                    imgArr.push({ base64: cv.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg', name: file.name + '_p' + pageNum })
-                }
+                fullText += '\n--- Page ' + pageNum + ' ---\n' + pageText + '\n'
+
+                // ALWAYS render as image -- no text length check
+                const baseVp = page.getViewport({ scale: 1.0 })
+                const maxPx = 1200
+                const scale = Math.min(1.6, maxPx / Math.max(baseVp.width, baseVp.height))
+                const vp = page.getViewport({ scale })
+                const cv = document.createElement('canvas')
+                cv.width = vp.width
+                cv.height = vp.height
+                await page.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
+                imgArr.push({
+                    base64: cv.toDataURL('image/jpeg', 0.85).split(',')[1],
+                    mediaType: 'image/jpeg',
+                    name: file.name + '_p' + pageNum
+                })
             }
             return fullText
         } catch (e) { return '' }
@@ -110,50 +140,84 @@ export default function UploadPage() {
 
     const handleGenerate = async () => {
         if (files.length === 0) { setErrorMsg('Pehle documents upload karo!'); return }
-        setGenerating(true); setReportData(null); setStep(0); setErrorMsg('')
+        if (!applicantName.trim()) { setErrorMsg('Applicant Name bharo!'); return }
+        if (!bankName.trim()) { setErrorMsg('Bank Name bharo!'); return }
+        if (!currentOwner.trim()) { setErrorMsg('Current Owner / Mortgagor bharo!'); return }
+
+        setGenerating(true); setReportData(null); setStep(0); setErrorMsg(''); setProgress('')
+
         let s = 0
         const iv = setInterval(() => { s++; setStep(s); if (s >= steps.length) clearInterval(iv) }, 8000)
+
         try {
             let allText = ''; const imageFiles: any[] = []
+
             for (const f of files.filter(f => f.fileRef)) {
                 const file = f.fileRef!
+                setProgress('Processing: ' + file.name)
+
                 if (file.type === 'application/pdf') {
                     allText += await extractTextFromPDF(file, imageFiles)
-                } else {
+                } else if (file.type.startsWith('image/')) {
                     const base64 = await new Promise<string>((resolve, reject) => {
                         const reader = new FileReader()
-                        reader.onload  = () => resolve((reader.result as string).split(',')[1])
+                        reader.onload = () => resolve((reader.result as string).split(',')[1])
                         reader.onerror = reject
                         reader.readAsDataURL(file)
                     })
                     imageFiles.push({ base64, mediaType: file.type || 'image/jpeg', name: file.name })
                 }
             }
+
+            if (imageFiles.length === 0) {
+                throw new Error('PDF process nahi hua. PDF ya image files upload karo.')
+            }
+
+            setProgress('AI analysis chal raha hai -- 3-5 minutes...')
+
             const res = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    documentText: allText,
-                    images: imageFiles.map((img: any) => ({ data: img.base64, mediaType: img.mediaType, name: img.name })),
+                    images: imageFiles.map((img: any) => ({
+                        data: img.base64,
+                        mediaType: img.mediaType,
+                        name: img.name
+                    })),
                     caseType,
-                    appId:           'AUTO-' + Date.now().toString().slice(-6),
-                    bankName:        'Axis Bank Ltd., Ambawadi, Ahmedabad',
-                    loanType:        loanTypeMap[caseType] || 'LAP',
-                    loanAmount:      'As per Application',
-                    applicantName:   'As per Triggering Form',
-                    coApplicant:     'As per Triggering Form',
-                    propertyAddress: 'As per Documents',
+                    appId: 'AUTO-' + Date.now().toString().slice(-6),
+                    bankName: bankName.trim(),
+                    loanType: loanTypeMap[caseType] || 'LAP',
+                    applicantName: applicantName.trim(),
+                    coApplicant: coApplicant.trim(),
+                    currentOwner: currentOwner.trim(),
+                    propertyAddress: propertyAddress.trim(),
+                    boundaryEast: boundaryEast.trim(),
+                    boundaryWest: boundaryWest.trim(),
+                    boundaryNorth: boundaryNorth.trim(),
+                    boundarySouth: boundarySouth.trim(),
+                    userId: null,
                 })
             })
+
+            if (!res.ok) {
+                const errText = await res.text()
+                throw new Error('Server error ' + res.status + ': ' + errText.substring(0, 100))
+            }
+
             const data = await res.json()
             clearInterval(iv); setStep(steps.length)
+
             if (data.success) {
-                setTimeout(() => { setReportData({ htmlReport: data.report }); setGenerating(false) }, 300)
-            } else { throw new Error(data.error || 'Analysis failed') }
+                setTimeout(() => { setReportData({ htmlReport: data.report }); setGenerating(false); setProgress('') }, 300)
+            } else {
+                throw new Error(data.error || 'Analysis failed')
+            }
         } catch (err: any) {
             clearInterval(iv)
             setErrorMsg('Error: ' + (err.message || 'Unknown error'))
             setGenerating(false)
+            setProgress('')
         }
     }
 
@@ -169,9 +233,6 @@ export default function UploadPage() {
         if (w) { w.document.write(reportData.htmlReport); w.document.close() }
     }
 
-    // ================================================================
-    // CASE SELECT FUNCTION
-    // ================================================================
     const handleCaseSelect = (id: string) => {
         setCaseType(id)
         setCaseSelected(true)
@@ -182,6 +243,20 @@ export default function UploadPage() {
         setCaseType('')
         setFiles([])
         setReportData(null)
+    }
+
+    // ================================================================
+    // INPUT STYLE
+    // ================================================================
+    const inp: React.CSSProperties = {
+        width: '100%', background: 'rgba(10,10,20,0.8)',
+        border: '1px solid rgba(99,102,241,0.25)', borderRadius: '10px',
+        padding: '10px 14px', color: '#e2e8f0', fontSize: '13px',
+        outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+    }
+    const lbl: React.CSSProperties = {
+        fontSize: '11px', color: '#475569', fontWeight: '700',
+        letterSpacing: '1px', textTransform: 'uppercase', display: 'block', marginBottom: '6px'
     }
 
     return (
@@ -195,14 +270,14 @@ export default function UploadPage() {
                 <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)' }}>
                     <div>
                         <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Document <span style={{ color: '#6366f1' }}>Upload & Report</span></div>
-                        <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}>UPLOAD â€” AI ANALYSE â€” LEGAL SCRUTINY REPORT</div>
+                        <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}>UPLOAD — AI ANALYSE — LEGAL SCRUTINY REPORT</div>
                     </div>
                     {caseSelected && (
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                             <div onClick={handleChangeCaseType} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '100px', padding: '8px 16px', cursor: 'pointer' }}>
                                 <span>{selectedCase.icon}</span>
                                 <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '700' }}>{selectedCase.label}</span>
-                                <span style={{ fontSize: '10px', color: '#6366f1' }}>âœŽ</span>
+                                <span style={{ fontSize: '10px', color: '#6366f1' }}>✎ Change</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '100px', padding: '8px 18px' }}>
                                 <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }}></div>
@@ -214,88 +289,59 @@ export default function UploadPage() {
 
                 <div style={{ padding: '32px' }}>
 
-                    {/* ============================================================
-                        STEP 1 â€” CASE TYPE SELECTION (jab tak select na ho)
-                    ============================================================ */}
+                    {/* ====================================================
+              STEP 1 -- CASE TYPE SELECTION
+          ==================================================== */}
                     {!caseSelected && !generating && !reportData && (
                         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-
-                            {/* HEADING */}
                             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                                 <div style={{ fontSize: '13px', color: '#6366f1', letterSpacing: '3px', fontWeight: '700', marginBottom: '12px' }}>STEP 1 OF 2</div>
-                                <div style={{ fontSize: '28px', fontWeight: '900', color: '#fff', marginBottom: '10px' }}>
-                                    Kaunsa Case Hai?
-                                </div>
-                                <div style={{ fontSize: '13px', color: '#475569' }}>
-                                    Case type select karo â€” AI us hisaab se deep legal thinking karega
-                                </div>
+                                <div style={{ fontSize: '28px', fontWeight: '900', color: '#fff', marginBottom: '10px' }}>Kaunsa Case Hai?</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}>Case type select karo — AI us hisaab se deep legal thinking karega</div>
                             </div>
-
-                            {/* 5 CASE TYPE CARDS */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {CASE_TYPES.map(ct => (
-                                    <div
-                                        key={ct.id}
-                                        onClick={() => handleCaseSelect(ct.id)}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: '20px',
-                                            padding: '20px 24px', borderRadius: '16px', cursor: 'pointer',
-                                            background: 'rgba(10,10,20,0.8)',
-                                            border: `1px solid rgba(99,102,241,0.15)`,
-                                            transition: 'all 0.2s',
-                                        }}
-                                        onMouseEnter={e => {
-                                            (e.currentTarget as HTMLDivElement).style.border = `1px solid ${ct.color}`
-                                            ;(e.currentTarget as HTMLDivElement).style.background = 'rgba(99,102,241,0.08)'
-                                        }}
-                                        onMouseLeave={e => {
-                                            (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(99,102,241,0.15)'
-                                            ;(e.currentTarget as HTMLDivElement).style.background = 'rgba(10,10,20,0.8)'
-                                        }}
+                                    <div key={ct.id} onClick={() => handleCaseSelect(ct.id)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 24px', borderRadius: '16px', cursor: 'pointer', background: 'rgba(10,10,20,0.8)', border: '1px solid rgba(99,102,241,0.15)', transition: 'all 0.2s' }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = `1px solid ${ct.color}`; (e.currentTarget as HTMLDivElement).style.background = 'rgba(99,102,241,0.08)' }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(99,102,241,0.15)'; (e.currentTarget as HTMLDivElement).style.background = 'rgba(10,10,20,0.8)' }}
                                     >
-                                        {/* ICON */}
-                                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `rgba(99,102,241,0.1)`, border: `1px solid rgba(99,102,241,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>
-                                            {ct.icon}
-                                        </div>
-
-                                        {/* TEXT */}
+                                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>{ct.icon}</div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '3px' }}>{ct.label}</div>
                                             <div style={{ fontSize: '12px', color: '#475569' }}>{ct.desc}</div>
                                         </div>
-
-                                        {/* ARROW */}
-                                        <div style={{ fontSize: '18px', color: '#334155' }}>â†’</div>
+                                        <div style={{ fontSize: '18px', color: '#334155' }}>→</div>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* ============================================================
-                        STEP 2 â€” UPLOAD (sirf case select hone ke baad)
-                    ============================================================ */}
+                    {/* ====================================================
+              STEP 2 -- UPLOAD + FORM
+          ==================================================== */}
                     {caseSelected && !generating && !reportData && (
                         <>
-                            {/* STEP INDICATOR */}
+                            {/* Step indicator */}
                             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
                                 <div style={{ fontSize: '13px', color: '#6366f1', letterSpacing: '3px', fontWeight: '700', marginBottom: '8px' }}>STEP 2 OF 2</div>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: `rgba(99,102,241,0.1)`, border: `1px solid rgba(99,102,241,0.3)`, borderRadius: '100px', padding: '8px 20px' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '100px', padding: '8px 20px' }}>
                                     <span style={{ fontSize: '20px' }}>{selectedCase.icon}</span>
                                     <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>{selectedCase.label}</span>
-                                    <span style={{ fontSize: '11px', color: '#6366f1', cursor: 'pointer', marginLeft: '4px' }} onClick={handleChangeCaseType}>â† Change</span>
+                                    <span style={{ fontSize: '11px', color: '#6366f1', cursor: 'pointer', marginLeft: '4px' }} onClick={handleChangeCaseType}>← Change</span>
                                 </div>
                             </div>
 
-                            {/* ERROR */}
+                            {/* Error */}
                             {errorMsg && (
                                 <div style={{ marginBottom: '20px', padding: '14px 20px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '12px', color: '#fca5a5', fontSize: '13px', fontWeight: '600' }}>
-                                    âœ— {errorMsg}
+                                    ✗ {errorMsg}
                                 </div>
                             )}
 
                             {/* DOC TYPE */}
-                            <div style={{ marginBottom: '24px' }}>
+                            <div style={{ marginBottom: '20px' }}>
                                 <div style={{ fontSize: '11px', color: '#334155', letterSpacing: '2px', fontWeight: '700', marginBottom: '12px' }}>SELECT DOCUMENT TYPE</div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                     {DOC_TYPES.map(type => (
@@ -311,16 +357,16 @@ export default function UploadPage() {
                                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
                                 onDragLeave={() => setDragging(false)}
                                 onDrop={e => { e.preventDefault(); setDragging(false); addFiles(Array.from(e.dataTransfer.files)) }}
-                                style={{ border: dragging ? '2px solid #6366f1' : '2px dashed rgba(99,102,241,0.3)', borderRadius: '20px', padding: '50px 40px', textAlign: 'center', background: dragging ? 'rgba(99,102,241,0.08)' : 'rgba(2,2,8,0.6)', marginBottom: '28px', position: 'relative', cursor: 'pointer' }}
+                                style={{ border: dragging ? '2px solid #6366f1' : '2px dashed rgba(99,102,241,0.3)', borderRadius: '20px', padding: '50px 40px', textAlign: 'center', background: dragging ? 'rgba(99,102,241,0.08)' : 'rgba(2,2,8,0.6)', marginBottom: '20px', position: 'relative', cursor: 'pointer' }}
                                 onClick={() => inputRef.current?.click()}
                             >
                                 <div style={{ position: 'absolute', top: '12px', left: '12px', width: '20px', height: '20px', borderTop: '2px solid rgba(99,102,241,0.6)', borderLeft: '2px solid rgba(99,102,241,0.6)' }} />
                                 <div style={{ position: 'absolute', top: '12px', right: '12px', width: '20px', height: '20px', borderTop: '2px solid rgba(99,102,241,0.6)', borderRight: '2px solid rgba(99,102,241,0.6)' }} />
                                 <div style={{ position: 'absolute', bottom: '12px', left: '12px', width: '20px', height: '20px', borderBottom: '2px solid rgba(99,102,241,0.6)', borderLeft: '2px solid rgba(99,102,241,0.6)' }} />
                                 <div style={{ position: 'absolute', bottom: '12px', right: '12px', width: '20px', height: '20px', borderBottom: '2px solid rgba(99,102,241,0.6)', borderRight: '2px solid rgba(99,102,241,0.6)' }} />
-                                <div style={{ fontSize: '40px', marginBottom: '12px' }}>ðŸ“„</div>
+                                <div style={{ fontSize: '40px', marginBottom: '12px' }}>📄</div>
                                 <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>Drop property documents here</div>
-                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '20px' }}>PDF Â· Sale Deed, EC, 7/12, NA Order â€” multiple files allowed</div>
+                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '20px' }}>PDF · Sale Deed, EC, 7/12, NA Order — multiple files allowed</div>
                                 <button onClick={e => { e.stopPropagation(); inputRef.current?.click() }} style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 28px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
                                     + SELECT FILES
                                 </button>
@@ -331,22 +377,85 @@ export default function UploadPage() {
                             {files.length > 0 && (
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>
-                                        â–£ DOCUMENTS â€” <span style={{ color: '#6366f1' }}>{files.length} files</span>
+                                        ▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span>
+                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Max 3 pages per PDF processed)</span>
                                     </div>
                                     {files.map((f, i) => (
                                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', borderRadius: '10px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', marginBottom: '8px' }}>
-                                            <div style={{ fontSize: '20px' }}>ðŸ“„</div>
+                                            <div style={{ fontSize: '20px' }}>📄</div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#e2e8f0' }}>{f.name}</div>
-                                                <div style={{ fontSize: '11px', color: '#334155' }}>{f.size} Â· {f.type}</div>
+                                                <div style={{ fontSize: '11px', color: '#334155' }}>{f.size} · {f.type}</div>
                                             </div>
-                                            <div onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ fontSize: '16px', color: '#ef4444', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>âœ•</div>
+                                            <div onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ fontSize: '16px', color: '#ef4444', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>✕</div>
                                         </div>
                                     ))}
-                                    <button onClick={handleGenerate} style={{ width: '100%', marginTop: '20px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', border: 'none', borderRadius: '12px', padding: '16px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>
-                                        ðŸ“‹ GENERATE REPORT â€” {selectedCase.icon} {selectedCase.label}
-                                    </button>
                                 </div>
+                            )}
+
+                            {/* ================================================
+                  CASE DETAILS FORM -- REQUIRED FIELDS
+              ================================================ */}
+                            <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '28px', marginBottom: '24px' }}>
+                                <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '20px', letterSpacing: '1px' }}>
+                                    📋 CASE DETAILS SHEET
+                                    <span style={{ fontSize: '11px', color: '#475569', fontWeight: '400', marginLeft: '10px' }}>Yeh sab report mein print hoga — sahi bharo</span>
+                                </div>
+
+                                {/* Row 1: Bank + Applicant */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                                    <div>
+                                        <label style={lbl}>Bank Name *</label>
+                                        <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Axis Bank Ltd., Ambawadi, Ahmedabad" style={inp} />
+                                    </div>
+                                    <div>
+                                        <label style={lbl}>Applicant Name *</label>
+                                        <input value={applicantName} onChange={e => setApplicantName(e.target.value)} placeholder="Full name as in documents" style={inp} />
+                                    </div>
+                                </div>
+
+                                {/* Row 2: Co-Applicant + Current Owner */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                                    <div>
+                                        <label style={lbl}>Co-Applicant Name (if any)</label>
+                                        <input value={coApplicant} onChange={e => setCoApplicant(e.target.value)} placeholder="Optional" style={inp} />
+                                    </div>
+                                    <div>
+                                        <label style={lbl}>Current Owner / Mortgagor *</label>
+                                        <input value={currentOwner} onChange={e => setCurrentOwner(e.target.value)} placeholder="Owner name as in documents" style={inp} />
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Property Address */}
+                                <div style={{ marginBottom: '16px' }}>
+                                    <label style={lbl}>Property Address / Description</label>
+                                    <textarea value={propertyAddress} onChange={e => setPropertyAddress(e.target.value)} placeholder="e.g. Flat No. 404, Radhe Infinity, Kudasan, Gandhinagar" rows={2} style={{ ...inp, resize: 'vertical' }} />
+                                </div>
+
+                                {/* Row 4: Boundaries */}
+                                <div style={{ marginBottom: '8px' }}>
+                                    <label style={{ ...lbl, marginBottom: '10px' }}>Property Boundaries (4 Dishayen) — Optional</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                        {[
+                                            { label: '↑ East (Purva)', val: boundaryEast, set: setBoundaryEast },
+                                            { label: '↑ West (Pashchim)', val: boundaryWest, set: setBoundaryWest },
+                                            { label: '↑ North (Uttar)', val: boundaryNorth, set: setBoundaryNorth },
+                                            { label: '↓ South (Dakshin)', val: boundarySouth, set: setBoundarySouth },
+                                        ].map(b => (
+                                            <div key={b.label}>
+                                                <label style={{ fontSize: '11px', color: '#475569', display: 'block', marginBottom: '4px' }}>{b.label}</label>
+                                                <input value={b.val} onChange={e => b.set(e.target.value)} placeholder="As per documents" style={inp} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* GENERATE BUTTON */}
+                            {files.length > 0 && (
+                                <button onClick={handleGenerate} style={{ width: '100%', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', border: 'none', borderRadius: '12px', padding: '18px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>
+                                    📋 GENERATE REPORT — {selectedCase.icon} {selectedCase.label}
+                                </button>
                             )}
                         </>
                     )}
@@ -354,17 +463,14 @@ export default function UploadPage() {
                     {/* GENERATING */}
                     {generating && (
                         <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '20px', padding: '48px 32px', textAlign: 'center' }}>
-                            <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px', letterSpacing: '2px' }}>
-                                âš¡ GENERATING LEGAL SCRUTINY REPORT...
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '32px' }}>
-                                {selectedCase.icon} {selectedCase.label} â€” Deep legal analysis in progress
-                            </div>
+                            <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px', letterSpacing: '2px' }}>⚡ GENERATING LEGAL SCRUTINY REPORT...</div>
+                            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '8px' }}>{selectedCase.icon} {selectedCase.label} — Deep legal analysis in progress</div>
+                            {progress && <div style={{ fontSize: '12px', color: '#6366f1', marginBottom: '24px', fontWeight: '600' }}>{progress}</div>}
                             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
                                 {steps.map((s, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', marginBottom: '10px', background: i < step ? 'rgba(245,158,11,0.08)' : 'rgba(10,10,20,0.5)', border: `1px solid ${i < step ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.04)'}`, borderRadius: '12px', transition: 'all 0.3s' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: i < step ? '#f59e0b' : 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: i < step ? '#000' : '#6b7280', fontWeight: '900', flexShrink: 0 }}>
-                                            {i < step ? 'âœ“' : s.step}
+                                            {i < step ? '✓' : s.step}
                                         </div>
                                         <div style={{ textAlign: 'left' }}>
                                             <div style={{ fontSize: '13px', fontWeight: '700', color: i < step ? '#f59e0b' : '#4b5563' }}>{s.title}</div>
@@ -373,9 +479,7 @@ export default function UploadPage() {
                                     </div>
                                 ))}
                             </div>
-                            <div style={{ marginTop: '24px', fontSize: '11px', color: '#334155' }}>
-                                This may take 3-5 minutes â€” deep legal analysis in progress...
-                            </div>
+                            <div style={{ marginTop: '24px', fontSize: '11px', color: '#334155' }}>This may take 3-5 minutes — deep legal analysis in progress...</div>
                         </div>
                     )}
 
@@ -383,15 +487,9 @@ export default function UploadPage() {
                     {reportData && !generating && (
                         <div>
                             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                <button onClick={() => { setReportData(null); setFiles([]); setCaseSelected(false); setCaseType('') }} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', padding: '10px 20px', color: '#f59e0b', fontSize: '13px', cursor: 'pointer', fontWeight: '700' }}>
-                                    â†º NEW REPORT
-                                </button>
-                                <button onClick={handleOpenTab} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', color: '#6366f1' }}>
-                                    ðŸ”— OPEN IN NEW TAB
-                                </button>
-                                <button onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
-                                    â†“ DOWNLOAD PDF
-                                </button>
+                                <button onClick={() => { setReportData(null); setFiles([]); setCaseSelected(false); setCaseType('') }} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', padding: '10px 20px', color: '#f59e0b', fontSize: '13px', cursor: 'pointer', fontWeight: '700' }}>← NEW REPORT</button>
+                                <button onClick={handleOpenTab} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', color: '#6366f1' }}>🔗 OPEN IN NEW TAB</button>
+                                <button onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>↓ DOWNLOAD PDF</button>
                             </div>
                             <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(99,102,241,0.3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                                 <iframe srcDoc={reportData.htmlReport} style={{ width: '100%', height: '950px', border: 'none', display: 'block' }} title="Legal Scrutiny Report" />
@@ -404,4 +502,3 @@ export default function UploadPage() {
         </div>
     )
 }
-
