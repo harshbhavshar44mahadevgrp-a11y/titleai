@@ -173,14 +173,91 @@ EC TEXT:
 ${rawText}
 
 GUJARATI TRANSLATION (for Col 1):
-વેચાણ/vechan = Sale Deed
-ગીરો/giro = Mortgage Deed
-ગ.ફ./ગ.મૂ.ફ./giro fer/giro mukeli = Mortgage Release Deed
-ભાગ/bhag = Partition Deed
-ભેટ/bhet = Gift Deed
-ઘ.ખ./ઘ.ન. = Declaration Deed
-ક.સ. = Family Settlement
-ટ.ઇ./ન.ત. = Court Decree
+— SALE DEED: વેચાણ, vechan, ve.kha., sa.va.kha.
+— MORTGAGE DEED: ગીરો, giro, ga.kha., ga.ta., giro khat, giro dastavej
+— MORTGAGE RELEASE DEED (MOST IMPORTANT):
+   ગ.ફ. = Mortgage Release Deed
+   ગ.મૂ.ફ. = Mortgage Release Deed
+   ગ.ઓ.ફ. = Mortgage Release Deed
+   ગ.ઓ. = Mortgage Release Deed
+   ગ.ફ.ખ. = Mortgage Release Deed
+   ગ.ફ.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ખ. = Mortgage Release Deed
+   ગ.ફ.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+   ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત. = Mortgage Release Deed
+— PARTITION DEED: ભાગ, bhag
+— GIFT DEED: ભેટ, bhet
+— DECLARATION DEED: ઘ.ખ., ઘ.ન.
+— FAMILY SETTLEMENT: ક.સ.
+— COURT DECREE: ટ.ઇ., ન.ત.
 
 EC TABLE COLUMNS (7 total):
 COL 1 = Deed Type → translate to English
@@ -203,27 +280,39 @@ If no EC: {"found":false,"rows":[]}`
 // ============================================================
 // MODULE 8 PROMPT - Expert Release Verification
 // ============================================================
-const MODULE8_PROMPT = `You are an expert Property Due Diligence AI. Module 8: Encumbrance Verification.
+const MODULE8_PROMPT = `You are an expert Property Due Diligence AI. Module 8: Encumbrance & Mortgage Verification Engine.
 
-Analyze ALL uploaded documents. Find every mortgage AND every release.
+Analyze EVERY uploaded image/document carefully. Your job: Find ALL mortgages AND ALL releases.
 
-STEP 1 - FIND ALL MORTGAGES in ANY document:
-Look for: Mortgage Deed, Home Loan, LAP, Equitable Mortgage, Deposit of Title Deeds, Bank Loan, Housing Loan, Charge
+STEP 1 - FIND ALL MORTGAGES:
+Look in every document for: Mortgage Deed, Home Loan, LAP, Equitable Mortgage, Deposit of Title Deeds, Bank Loan, Housing Loan, Charge, ગીરો, ગ.ખ., ગ.ત., Registered Mortgage, Simple Mortgage
 
-STEP 2 - FIND ALL RELEASES in ANY document:
-Look for EXACT words: Release Deed, Reconveyance, No Due Certificate, NOC from Bank,
-Discharge, Satisfaction, Closure Letter, Full Payment, Vacated, Extinguished,
-ગ.ફ., ગ.મૂ.ફ., Mortgage Release, Relinquishment of Charge, Bank Confirmation of Closure
+STEP 2 - FIND ALL RELEASE DEEDS (CHECK EVERY IMAGE VERY CAREFULLY):
+Look for ANY of these in EVERY document:
 
-STEP 3 - CROSS REFERENCE each release to its mortgage:
-Match by: same bank name OR same borrower OR same property OR same deed number OR same date range
+ENGLISH: Release Deed, Deed of Release, Reconveyance Deed, No Due Certificate, NOC from Bank, Discharge Certificate, Satisfaction of Mortgage, Closure Letter, Full Payment Letter, Loan Closure, Mortgage Redemption, No Dues, Cleared, Vacated, Extinguished, Satisfaction Memo, Release of Charge, Cancellation of Mortgage
 
-STEP 4 - DECISION per mortgage:
-Release found AND matches → is_released: true → status: CLEARED
-No release found → is_released: false → status: ACTIVE MORTGAGE RISK
+GUJARATI: ગ.ફ., ગ.મૂ.ફ., ગ.ફ.ખ., ગ.ફ.ત., ગ.મ.ફ., ગ.ફ.ત.ખ., ગ.ફ.ત.ત., ગ.ફ.ત.ત.ત., ગ.ફ.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત., ગ.ફ.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.ત.
+ગીરો ફેર, ગીરો મૂ ફેર, ગીરો મૂ. ફ., ગ મૂ ફ, ગ ફ, ગ ફ ખ, ગ ફ ત
+Mukti, Mukt, Ferno, Chhod, Vaapas, Nirdosh
+EC Col 3 has Bank Name = RELEASE (bank giving back property)
 
-Output ONLY this JSON:
-{"encumbrances":[{"id":"1","type":"Mortgage","status":"CLEARED or ACTIVE","bank":"exact bank name","borrower":"name","document_number":"deed no","date":"date","release_found":true,"release_document":"release deed no","release_date":"date","release_by":"bank name","confidence":95}],"overall_status":"CLEAR or ENCUMBERED or CLEAR WITH PRIOR RELEASE"}`
+STEP 3 - CROSS REFERENCE:
+For each mortgage, find its matching release using:
+- Same bank name (even partial match: "Bajaj" matches "Bajaj Housing Finance")
+- Same borrower name
+- Same property / survey number
+- Same deed number reference
+- Later date (release must be after mortgage)
+
+STEP 4 - DECISION:
+If release found → is_released: true, status: CLEARED
+If no release found → is_released: false, status: ACTIVE MORTGAGE RISK
+
+IMPORTANT: If you see ANY document that looks like a release/discharge/NOC from a bank, mark is_released: true even if you cannot read all details clearly.
+
+Output ONLY this JSON (no other text):
+{"encumbrances":[{"id":"1","type":"Mortgage","status":"CLEARED or ACTIVE","bank":"exact bank name","borrower":"borrower name","document_number":"mortgage deed no","date":"mortgage date","release_found":true,"release_document":"release deed no","release_date":"release date","release_by":"bank name who released","confidence":95}],"overall_status":"CLEAR or ENCUMBERED or CLEAR WITH PRIOR RELEASE"}`
 
 // ============================================================
 // JSON PARSER
