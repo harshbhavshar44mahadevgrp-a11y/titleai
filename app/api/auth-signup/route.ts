@@ -605,7 +605,7 @@ export async function POST(req: NextRequest) {
         // PASS 2: Dedicated header extraction if missing
         if (!ecMeta.ec_app_number || !ecMeta.ec_date) {
             try {
-                const p2Prompt = "Find the Encumbrance Certificate in these images. Look at the TOP HEADER of the EC document. Extract: 1) e-Application No (numeric code near top), 2) Date of Print, 3) Search period From date, 4) Search period To date. Output ONLY JSON: {"ec_app_number":"value","ec_date":"value","ec_from":"value","ec_to":"value"}"
+                const p2Prompt = "Find the Encumbrance Certificate in these images. Look at the TOP HEADER of the EC document. Extract: 1) e-Application No (numeric code near top), 2) Date of Print, 3) Search period From date, 4) Search period To date. Output ONLY JSON with keys: ec_app_number, ec_date, ec_from, ec_to. Use empty string if not found."
                 const p2Res = await AI.messages.create({
                     model: "claude-sonnet-4-6", max_tokens: 500, temperature: 0,
                     messages: [{ role: "user", content: [...imgContent, { type: "text", text: p2Prompt }] }]
