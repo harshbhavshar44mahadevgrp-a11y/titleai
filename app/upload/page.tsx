@@ -1,15 +1,15 @@
-"use client"
+﻿"use client"
 import { useState, useRef, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
 const CASE_TYPES = [
-    { id: 'builder_purchase', label: 'Builder Purchase', icon: '🏗️', desc: 'New flat/plot from developer', color: '#f59e0b' },
-    { id: 'resale',           label: 'Resale',           icon: '🔑', desc: 'Resale property purchase',   color: '#6366f1' },
-    { id: 'bt',               label: 'Balance Transfer',  icon: '🔄', desc: 'BT from another bank',       color: '#3b82f6' },
-    { id: 'seller_bt',        label: 'Seller BT',         icon: '💼', desc: 'Seller side Balance Transfer',color: '#8b5cf6' },
-    { id: 'lap',              label: 'LAP / Mortgage',    icon: '🏦', desc: 'Loan Against Property',      color: '#10b981' },
+    { id: 'builder_purchase', label: 'Builder Purchase', icon: 'ðŸ—ï¸', desc: 'New flat/plot from developer', color: '#f59e0b' },
+    { id: 'resale',           label: 'Resale',           icon: 'ðŸ”‘', desc: 'Resale property purchase',   color: '#6366f1' },
+    { id: 'bt',               label: 'Balance Transfer',  icon: 'ðŸ”„', desc: 'BT from another bank',       color: '#3b82f6' },
+    { id: 'seller_bt',        label: 'Seller BT',         icon: 'ðŸ’¼', desc: 'Seller side Balance Transfer',color: '#8b5cf6' },
+    { id: 'lap',              label: 'LAP / Mortgage',    icon: 'ðŸ¦', desc: 'Loan Against Property',      color: '#10b981' },
 ]
 
 const loanTypeMap: Record<string, string> = {
@@ -27,7 +27,7 @@ export default function UploadPage() {
     const [files, setFiles]               = useState<DocFile[]>([])
     const [selectedType, setSelectedType] = useState('')
     const [caseType, setCaseType]         = useState('')
-    const [caseSelected, setCaseSelected] = useState(false)   // NEW — case chuna ya nahi
+    const [caseSelected, setCaseSelected] = useState(false)   // NEW â€” case chuna ya nahi
     const [errorMsg, setErrorMsg]         = useState('')
     const [generating, setGenerating]     = useState(false)
     const [reportData, setReportData]     = useState<any>(null)
@@ -92,7 +92,7 @@ export default function UploadPage() {
                 const textContent = await page.getTextContent()
                 const pageText = textContent.items.map((item: any) => item.str).join(' ').trim()
                 fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`
-                if (pageText.length < 80) {
+                if (true) {
                     const baseVp = page.getViewport({ scale: 1.0 })
                     const maxPx  = 1500
                     const scale  = Math.min(2.0, maxPx / Math.max(baseVp.width, baseVp.height))
@@ -195,14 +195,14 @@ export default function UploadPage() {
                 <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)' }}>
                     <div>
                         <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Document <span style={{ color: '#6366f1' }}>Upload & Report</span></div>
-                        <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}>UPLOAD — AI ANALYSE — LEGAL SCRUTINY REPORT</div>
+                        <div style={{ fontSize: '10px', color: '#334155', marginTop: '3px', letterSpacing: '2px', fontWeight: '600' }}>UPLOAD â€” AI ANALYSE â€” LEGAL SCRUTINY REPORT</div>
                     </div>
                     {caseSelected && (
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                             <div onClick={handleChangeCaseType} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '100px', padding: '8px 16px', cursor: 'pointer' }}>
                                 <span>{selectedCase.icon}</span>
                                 <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: '700' }}>{selectedCase.label}</span>
-                                <span style={{ fontSize: '10px', color: '#6366f1' }}>✎</span>
+                                <span style={{ fontSize: '10px', color: '#6366f1' }}>âœŽ</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '100px', padding: '8px 18px' }}>
                                 <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }}></div>
@@ -215,7 +215,7 @@ export default function UploadPage() {
                 <div style={{ padding: '32px' }}>
 
                     {/* ============================================================
-                        STEP 1 — CASE TYPE SELECTION (jab tak select na ho)
+                        STEP 1 â€” CASE TYPE SELECTION (jab tak select na ho)
                     ============================================================ */}
                     {!caseSelected && !generating && !reportData && (
                         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
@@ -227,7 +227,7 @@ export default function UploadPage() {
                                     Kaunsa Case Hai?
                                 </div>
                                 <div style={{ fontSize: '13px', color: '#475569' }}>
-                                    Case type select karo — AI us hisaab se deep legal thinking karega
+                                    Case type select karo â€” AI us hisaab se deep legal thinking karega
                                 </div>
                             </div>
 
@@ -265,7 +265,7 @@ export default function UploadPage() {
                                         </div>
 
                                         {/* ARROW */}
-                                        <div style={{ fontSize: '18px', color: '#334155' }}>→</div>
+                                        <div style={{ fontSize: '18px', color: '#334155' }}>â†’</div>
                                     </div>
                                 ))}
                             </div>
@@ -273,7 +273,7 @@ export default function UploadPage() {
                     )}
 
                     {/* ============================================================
-                        STEP 2 — UPLOAD (sirf case select hone ke baad)
+                        STEP 2 â€” UPLOAD (sirf case select hone ke baad)
                     ============================================================ */}
                     {caseSelected && !generating && !reportData && (
                         <>
@@ -283,14 +283,14 @@ export default function UploadPage() {
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: `rgba(99,102,241,0.1)`, border: `1px solid rgba(99,102,241,0.3)`, borderRadius: '100px', padding: '8px 20px' }}>
                                     <span style={{ fontSize: '20px' }}>{selectedCase.icon}</span>
                                     <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>{selectedCase.label}</span>
-                                    <span style={{ fontSize: '11px', color: '#6366f1', cursor: 'pointer', marginLeft: '4px' }} onClick={handleChangeCaseType}>← Change</span>
+                                    <span style={{ fontSize: '11px', color: '#6366f1', cursor: 'pointer', marginLeft: '4px' }} onClick={handleChangeCaseType}>â† Change</span>
                                 </div>
                             </div>
 
                             {/* ERROR */}
                             {errorMsg && (
                                 <div style={{ marginBottom: '20px', padding: '14px 20px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '12px', color: '#fca5a5', fontSize: '13px', fontWeight: '600' }}>
-                                    ✗ {errorMsg}
+                                    âœ— {errorMsg}
                                 </div>
                             )}
 
@@ -318,9 +318,9 @@ export default function UploadPage() {
                                 <div style={{ position: 'absolute', top: '12px', right: '12px', width: '20px', height: '20px', borderTop: '2px solid rgba(99,102,241,0.6)', borderRight: '2px solid rgba(99,102,241,0.6)' }} />
                                 <div style={{ position: 'absolute', bottom: '12px', left: '12px', width: '20px', height: '20px', borderBottom: '2px solid rgba(99,102,241,0.6)', borderLeft: '2px solid rgba(99,102,241,0.6)' }} />
                                 <div style={{ position: 'absolute', bottom: '12px', right: '12px', width: '20px', height: '20px', borderBottom: '2px solid rgba(99,102,241,0.6)', borderRight: '2px solid rgba(99,102,241,0.6)' }} />
-                                <div style={{ fontSize: '40px', marginBottom: '12px' }}>📄</div>
+                                <div style={{ fontSize: '40px', marginBottom: '12px' }}>ðŸ“„</div>
                                 <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>Drop property documents here</div>
-                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '20px' }}>PDF · Sale Deed, EC, 7/12, NA Order — multiple files allowed</div>
+                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '20px' }}>PDF Â· Sale Deed, EC, 7/12, NA Order â€” multiple files allowed</div>
                                 <button onClick={e => { e.stopPropagation(); inputRef.current?.click() }} style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 28px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
                                     + SELECT FILES
                                 </button>
@@ -331,20 +331,20 @@ export default function UploadPage() {
                             {files.length > 0 && (
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>
-                                        ▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span>
+                                        â–£ DOCUMENTS â€” <span style={{ color: '#6366f1' }}>{files.length} files</span>
                                     </div>
                                     {files.map((f, i) => (
                                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', borderRadius: '10px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', marginBottom: '8px' }}>
-                                            <div style={{ fontSize: '20px' }}>📄</div>
+                                            <div style={{ fontSize: '20px' }}>ðŸ“„</div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#e2e8f0' }}>{f.name}</div>
-                                                <div style={{ fontSize: '11px', color: '#334155' }}>{f.size} · {f.type}</div>
+                                                <div style={{ fontSize: '11px', color: '#334155' }}>{f.size} Â· {f.type}</div>
                                             </div>
-                                            <div onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ fontSize: '16px', color: '#ef4444', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>✕</div>
+                                            <div onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ fontSize: '16px', color: '#ef4444', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>âœ•</div>
                                         </div>
                                     ))}
                                     <button onClick={handleGenerate} style={{ width: '100%', marginTop: '20px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', border: 'none', borderRadius: '12px', padding: '16px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>
-                                        📋 GENERATE REPORT — {selectedCase.icon} {selectedCase.label}
+                                        ðŸ“‹ GENERATE REPORT â€” {selectedCase.icon} {selectedCase.label}
                                     </button>
                                 </div>
                             )}
@@ -355,16 +355,16 @@ export default function UploadPage() {
                     {generating && (
                         <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '20px', padding: '48px 32px', textAlign: 'center' }}>
                             <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px', letterSpacing: '2px' }}>
-                                ⚡ GENERATING LEGAL SCRUTINY REPORT...
+                                âš¡ GENERATING LEGAL SCRUTINY REPORT...
                             </div>
                             <div style={{ fontSize: '12px', color: '#475569', marginBottom: '32px' }}>
-                                {selectedCase.icon} {selectedCase.label} — Deep legal analysis in progress
+                                {selectedCase.icon} {selectedCase.label} â€” Deep legal analysis in progress
                             </div>
                             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
                                 {steps.map((s, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', marginBottom: '10px', background: i < step ? 'rgba(245,158,11,0.08)' : 'rgba(10,10,20,0.5)', border: `1px solid ${i < step ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.04)'}`, borderRadius: '12px', transition: 'all 0.3s' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: i < step ? '#f59e0b' : 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: i < step ? '#000' : '#6b7280', fontWeight: '900', flexShrink: 0 }}>
-                                            {i < step ? '✓' : s.step}
+                                            {i < step ? 'âœ“' : s.step}
                                         </div>
                                         <div style={{ textAlign: 'left' }}>
                                             <div style={{ fontSize: '13px', fontWeight: '700', color: i < step ? '#f59e0b' : '#4b5563' }}>{s.title}</div>
@@ -374,7 +374,7 @@ export default function UploadPage() {
                                 ))}
                             </div>
                             <div style={{ marginTop: '24px', fontSize: '11px', color: '#334155' }}>
-                                This may take 3-5 minutes — deep legal analysis in progress...
+                                This may take 3-5 minutes â€” deep legal analysis in progress...
                             </div>
                         </div>
                     )}
@@ -384,13 +384,13 @@ export default function UploadPage() {
                         <div>
                             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                 <button onClick={() => { setReportData(null); setFiles([]); setCaseSelected(false); setCaseType('') }} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', padding: '10px 20px', color: '#f59e0b', fontSize: '13px', cursor: 'pointer', fontWeight: '700' }}>
-                                    ↺ NEW REPORT
+                                    â†º NEW REPORT
                                 </button>
                                 <button onClick={handleOpenTab} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', color: '#6366f1' }}>
-                                    🔗 OPEN IN NEW TAB
+                                    ðŸ”— OPEN IN NEW TAB
                                 </button>
                                 <button onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>
-                                    ↓ DOWNLOAD PDF
+                                    â†“ DOWNLOAD PDF
                                 </button>
                             </div>
                             <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(99,102,241,0.3)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
@@ -404,3 +404,4 @@ export default function UploadPage() {
         </div>
     )
 }
+
