@@ -534,11 +534,7 @@ export async function POST(req: NextRequest) {
 
         for (let attempt = 0; attempt < 3; attempt++) {
             try {
-                const suffix = attempt === 0 ? "" : attempt === 1 ? "
-
-IMPORTANT: Look at EVERY image carefully.EC table may be on any page.Extract ALL rows including the LAST row which is often a Release Deed." : "
-
-FINAL ATTEMPT: Scan every image again.Even if text is in Gujarati script, identify the table structure and extract all rows.The last row must not be skipped."
+                const suffix = attempt === 0 ? "" : attempt === 1 ? "\n\nIMPORTANT: Look at EVERY image carefully. EC table may be on any page. Extract ALL rows including the LAST row which is often a Release Deed." : "\n\nFINAL ATTEMPT: Scan every image again. Even if text is in Gujarati script, identify the table structure and extract all rows. The last row must not be skipped."
                 const ecRes = await AI.messages.create({
                     model: "claude-sonnet-4-6", max_tokens: 4000, temperature: 0,
                     messages: [{ role: "user", content: [...imgContent, { type: "text", text: EC_PROMPT + suffix }] }]
