@@ -171,17 +171,22 @@ USE ALL TOKENS. MISS NOTHING.`
 // STEP 3A — PART I SYSTEM
 // ================================================================
 const S3A = `Generate HTML for PART I ONLY — Schedule of Documents Reviewed.
-LATEST document FIRST — OLDEST LAST.
+LATEST document FIRST. OLDEST LAST.
 
-EC FORMAT (exact):
-<div class="di"><p><span class="dn">N. Encumbrance Certificate — E-App. No.: [APP_NO] | Dated: [DATE] | Period: [FROM] to [TO]</span><br>EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination. [Brief summary of key entries — mortgage released? active? sale deed?]</p></div>
+EC FORMAT — WRITE EVERY SINGLE ENTRY FOUND INSIDE THE EC:
+<div class="di"><p><span class="dn">N. Encumbrance Certificate — E-App. No.: [APP_NO] | Dated: [DATE] | Period: [FROM] to [TO]</span><br>
+EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination. Entries reflect: (i) [Row 1 — deed type, deed number, date, exact parties from→to, key finding]; (ii) [Row 2 — same detail]; (iii) [Row 3 if exists — same detail including if mortgage is active or discharged and by which release deed]. [Final sentence on overall encumbrance status.]</p></div>
 
-RELEASE DEED FORMAT:
-<div class="di"><p><span class="dn">N. Reconveyance / Mortgage Release Deed — Deed No. [X] | Dated: [DATE]</span><br>[Bank] unto and in favour of [Owner]. This Release Deed formally discharges and extinguishes Mortgage Deed No. [X] dated [DATE]. No residual charge survives as of [date].</p></div>
+EC ENTRY DETAIL RULE — MANDATORY:
+For EACH row inside EC write: deed type | deed number | date | who executed (Aapnar) | in whose favour (Lenar) | what it achieved.
+If mortgage row: add "which stands discharged vide Release Deed No.[X] dated [date]" OR "which is subsisting and active as on date".
+If release row: add "confirming formal discharge of builder-level mortgage / Mortgage Deed No.[X] dated [date]".
+NEVER write just a generic one-line EC summary. EVERY row must be described.
 
-RULES:
-NEVER "and others". NEVER mutation entries. NEVER stamp paper numbers.
-EC-confirmed deed (copy not submitted): list naturally — no remark.
+RELEASE DEED FORMAT (if submitted as separate document):
+<div class="di"><p><span class="dn">N. Reconveyance / Mortgage Release Deed — Deed No. [X] | Dated: [DATE]</span><br>[Bank] unto and in favour of [Owner] through [Authorised Partner]. SRO: [SRO]. This Release Deed formally discharges and extinguishes Mortgage Deed No. [X] dated [DATE] created by [mortgagor] in respect of [property]. Upon registration of this deed, the mortgage stands fully satisfied and released. No residual charge or encumbrance survives from the said mortgage as of [date].</p></div>
+
+RULES: NEVER "and others". NEVER mutation entries in Part I. NEVER stamp paper numbers.
 START: <hr><div class="ph">PART I — LIST OF SCRUTINIZED DOCUMENTS</div>
 <p>The following documents have been produced for examination and scrutiny:</p>
 END: after last document entry.`
@@ -189,20 +194,28 @@ END: after last document entry.`
 // ================================================================
 // STEP 3B — PART II SYSTEM
 // ================================================================
-const S3B = `Generate HTML for PART II ONLY — Chronological Title Chain.
-OLDEST first. NEVER "and others". 
-First para = no "Thereafter". Every next para MUST start "Thereafter,"
-End each para with mutation entry if available.
+const S3B = `Generate HTML for PART II ONLY — Chronological Title Chain and History of Property.
+OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning.
 
-RELEASED MORTGAGE (exact wording):
-"The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [date] executed by [Bank] unto and in favour of [Owner] — no subsisting charge of [Bank] remains on the subject property as on date."
+OPENING PARAGRAPH (NO "Thereafter"):
+Begin with the earliest title holder. Describe: who held the property, with what shares or interest, exact land details (Survey No, TP Scheme No, FP No, village, taluka, district), area. Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. End with mutation if available.
 
-EC COVERAGE FINAL PARA:
-"...confirmed by the Encumbrance Certificate bearing E-Application No. [X] (covering search period from [Y] to [Z]) and E-Application No. [A] (covering search period from [B] to [C]), both dated [date], issued by the Inspector General of Registration, Revenue Department, Government of Gujarat, together providing continuous encumbrance coverage from [year] to [year]. On combined examination of both Encumbrance Certificates, no subsisting or undischarged encumbrance, charge, mortgage, attachment, or adverse claim is found to be active..."
+EACH SUBSEQUENT PARAGRAPH must start "Thereafter,":
+Every transaction = one full paragraph. Include: deed type | Registration No. | date | SRO | all party names individually | consideration | what this achieves legally. For declaration deeds: describe nature and whether any adverse charge was created. For mortgages: describe as builder/developer-level mortgage over [property] as security. Then immediately state whether discharged or active.
 
+RELEASED MORTGAGE — EXACT WORDING MANDATORY:
+"The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [DD/MM/YYYY] executed by [Bank full name] unto and in favour of [Owner], a Partnership Firm, through its Authorised Partner [Name] — no subsisting charge of [Bank] remains on the subject property as on date."
+
+FINAL STATUS PARAGRAPH:
+"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Encumbrance Certificate bearing E-Application No. [X] (covering search period from [Y] to [Z]) and E-Application No. [A] (covering search period from [B] to [C]), both dated [date], issued by the Inspector General of Registration, Revenue Department, Government of Gujarat, together providing continuous encumbrance coverage from the year [X] to the year [Y]. On combined examination of both Encumbrance Certificates, no subsisting or undischarged encumbrance, charge, mortgage, attachment, or adverse claim is found to be active against the subject property as on the date of this report, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor."
+
+RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter.
+Subject property ONLY. Every EC transaction = one paragraph minimum.
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END: after last paragraph.`
 
+// ================================================================
+// STEP 3C — PART III (ALERTS) SYSTEM
 // ================================================================
 // STEP 3C — PART III (ALERTS) SYSTEM
 // ================================================================
