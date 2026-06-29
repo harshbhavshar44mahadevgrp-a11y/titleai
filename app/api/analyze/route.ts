@@ -290,7 +290,17 @@ export async function POST(req: NextRequest) {
 
         const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
         const refNo = 'TITLEMATRIXAI/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-4)
+        // Separate EC-tagged images from other images
         const imgs: any[] = images.map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
+        const ecImgs: any[] = images
+            .filter((img: any) => img.docType && img.docType.toLowerCase().includes('ec') || img.docType && img.docType.toLowerCase().includes('encumbrance'))
+            .map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
+        const releaseImgs: any[] = images
+            .filter((img: any) => img.docType && (img.docType.toLowerCase().includes('release') || img.docType.toLowerCase().includes('reconveyance') || img.docType.toLowerCase().includes('mortgage')))
+            .map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
+        console.log('Images: total=' + imgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage-tagged=' + releaseImgs.length)
+        // Use EC-tagged images for pre-screen if available, otherwise use all images
+        const preScreenImgs = ecImgs.length > 0 ? [...ecImgs, ...releaseImgs] : imgs
         const loanMap: Record<string, string> = { builder_purchase: 'BUILDER PURCHASE', resale: 'RESALE PROPERTY', bt: 'BALANCE TRANSFER', seller_bt: 'SELLER BALANCE TRANSFER', lap: 'LOAN AGAINST PROPERTY' }
 
         // ============================================================
@@ -302,7 +312,7 @@ export async function POST(req: NextRequest) {
         let preReleases: Array<{ bank: string; deed_no: string; date: string }> = []
 
         try {
-            const ps = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...imgs, { type: 'text', text: EC_PRESCREEN }] }] })
+            const ps = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...preScreenImgs, { type: 'text', text: EC_PRESCREEN }] }] })
             const raw = ps.content[0].type === 'text' ? ps.content[0].text : '{}'
             const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
             const f = clean.indexOf('{'), l = clean.lastIndexOf('}')
