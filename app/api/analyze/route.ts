@@ -307,10 +307,10 @@ END: after last alert.`
 // ================================================================
 // STEP 3D — PARTS VII-XI SYSTEM
 // ================================================================
-const S3D = `Generate HTML for PARTS VII through XI ONLY.
+const S3D1 = `Generate HTML for PART VII and PART VIII ONLY — nothing else.
 
-MANDATORY — ALL FIVE PARTS MUST BE COMPLETED, EVERY TIME, NO EXCEPTIONS:
-This single response must contain Part VII, Part VIII, Part IX, Part X, AND Part XI in full — never stop after Part VII or partway through Part VIII. You have a generous token budget specifically because five full sections need to fit. Do NOT pad Part VII excessively at the expense of leaving no room for IX/X/XI — keep Part VII thorough but not bloated, write Part VIII's verdict paragraph completely (every numbered condition, never cut off mid-list), and ensure Part IX, Part X, and Part XI all appear before you finish. If you sense you are running low on room, tighten Part VII's prose rather than dropping Parts IX-XI entirely — those two are non-negotiable and must always be present.
+BOTH PARTS MUST BE COMPLETE, EVERY TIME:
+Write Part VII fully (all 5 sub-sections A-E), then Part VIII fully (legal opinion paragraph + complete verdict box with every numbered condition — never cut off mid-list). Keep Part VII thorough but not bloated so Part VIII has room to finish completely.
 
 PART VII DOCUMENTS FORMAT:
 <div class="sph">A. Documents Submitted and Available</div><ol>
@@ -338,17 +338,31 @@ NOT CLEAR: <div class="vnc"><div class="vt" style="color:#b91c1c;">TITLE NOT CLE
 CLEAR SUBJECT TO: <div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p>Mortgageable subject to: [list]</p></div>
 CLEAR: <div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p>[brief reason]</p></div>]
 
-PART IX PRE-DISBURSEMENT:
-Each item: <li><strong>[Document Name]</strong><br><em>Source:</em> [who/where]<br><em>Purpose:</em> [specific legal reason]</li>
+START: <hr><div class="ph">PART VII — DOCUMENT DEFICIENCY REPORT</div>
+END: after the verdict box closing div.`
 
-PART X POST-DISBURSEMENT: Standard 6-8 items.
+// ================================================================
+// STEP 3E — PART IX-XI SYSTEM (split from S3D for parallel speed)
+// ================================================================
+const S3D2 = `Generate HTML for PART IX, PART X, and PART XI ONLY — nothing else. Do NOT regenerate Part VII or Part VIII, they are handled separately.
+
+ALL THREE PARTS MUST BE COMPLETE, EVERY TIME — this is non-negotiable:
+
+PART IX PRE-DISBURSEMENT:
+<hr><div class="ph">PART IX — DOCUMENTS REQUIRED AT PRE-DISBURSEMENT STAGE</div>
+<ol>Each item: <li><strong>[Document Name]</strong><br><em>Source:</em> [who/where]<br><em>Purpose:</em> [specific legal reason]</li></ol>
+
+PART X POST-DISBURSEMENT:
+<hr><div class="ph">PART X — DOCUMENTS REQUIRED AT POST-DISBURSEMENT STAGE</div>
+<ol>Standard 6-8 items, same Source/Purpose format as Part IX.</ol>
 
 PART XI FINAL RECOMMENDATION:
-<div class="final-rec"><div class="fr-title">FINAL TITLE STATUS:</div><div class="fr-value">[CLEAR TITLE SUBJECT TO CONDITIONS / TITLE NOT CLEAR / CLEAR AND MARKETABLE]</div></div>
+<hr><div class="ph">PART XI — FINAL RECOMMENDATION</div>
+<div class="final-rec"><div class="fr-title">FINAL TITLE STATUS:</div><div class="fr-value">[CLEAR TITLE SUBJECT TO CONDITIONS / TITLE NOT CLEAR / CLEAR AND MARKETABLE — use the VERDICT given in context]</div></div>
 <p>[5-6 sentences covering: title chain summary | EC App numbers + period + status | mortgage lifecycle with deed numbers | RERA status | outstanding conditions | SARFAESI | bank recommendation]</p>
 
-START: <hr><div class="ph">PART VII — DOCUMENT DEFICIENCY REPORT</div>
-END: after Part XI paragraph.`
+START: <hr><div class="ph">PART IX
+END: after the Part XI paragraph.`
 
 
 // ================================================================
@@ -488,11 +502,18 @@ export async function POST(req: NextRequest) {
             console.log('STEP3 ' + label + ' err:', e?.message || e)
             return { content: [{ type: 'text', text: '<p style="color:#b91c1c;"><em>' + label + ' could not be generated (' + (e?.message ? String(e.message).substring(0, 150) : 'unknown error') + '). Please retry — other sections of this report are unaffected.</em></p>' }] }
         })
-        const [r3a, r3b, r3c, r3d] = await Promise.all([
+        // Split into 5 parallel calls instead of 4 — Part VII-XI used to be ONE call
+        // doing 5 sections at 8000 tokens (the single slowest call in the batch).
+        // Splitting it into two smaller parallel calls means neither half needs
+        // anywhere near 8000 tokens, so the SLOWEST call in this whole batch drops
+        // significantly — total wall-clock time for Step 3 falls even though there
+        // are now more calls, because they all still run concurrently.
+        const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
             safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
             safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 7000, system: S3B, messages: [{ role: 'user', content: ctx }] })),
             safeStep3('Part V/VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
-            safeStep3('Part VII-XI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, system: S3D, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
+            safeStep3('Part VII-VIII', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
+            safeStep3('Part IX-XI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
         ])
 
         const BT3 = String.fromCharCode(96).repeat(3)
@@ -508,7 +529,7 @@ export async function POST(req: NextRequest) {
         const p1 = stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : '')
         const p2 = stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : '')
         const p3 = stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : '')
-        const p4 = stripFences(r3d.content[0].type === 'text' ? r3d.content[0].text : '')
+        const p4 = stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : '')
 
         const finalApplicant = meta.applicant || applicantName
         const finalCoApp = meta.coApplicant || coApplicant || 'Not Applicable'
