@@ -115,7 +115,22 @@ Bank in LEFT EC column = RELEASED — NEVER report as active
 ALL 4 BOUNDARIES MANDATORY. Check every page including Gujarati "Khunt Charne Vigat".
 EC RULE 4A: Count ALL entries. EVERY entry matters. NEVER miss second or subsequent entry.
 RULE 30: EC-confirmed deed = include naturally — NO flag as missing.
-MUTATION ENTRIES: NEVER in Part I — only in Part II narration.`
+MUTATION ENTRIES: NEVER in Part I — only in Part II narration.
+
+20-25 YEAR TITLE HISTORY — MANDATORY DEEP SEARCH:
+Do NOT limit extraction to only the EC search period (e.g., if EC covers 2011-2026, do not stop there).
+ACTIVELY SEARCH every document for evidence of OLDER ownership history, including:
+- Old Survey Numbers referenced in any deed (e.g. "allotted in lieu of Survey No. 59/2, 60, 61, 62")
+- 7/12 (Satbara) / Village Form No. 7, 8-A, 12 extracts — these often show decades of mutation history
+- FERFAR / Mutation Register / Gamnamuna No. 6 entries — extract EVERY entry visible, however old
+- References inside any deed to "earlier owner", "ancestral property", "inherited from", "original allottee"
+- Any NA Order, Conversion Order, or T.P. Scheme allotment document — these typically reference the ORIGINAL agricultural survey number and original landholder before the scheme was formed
+- Partnership Deed clauses referencing how/when the firm acquired the land
+- Any document mentioning "Old Tenure" / "Juni Sharat" / "Ganot" history
+
+If a document references an OLDER survey number or an EARLIER transaction not shown in the EC period, EXTRACT IT — note the source document and approximate or exact date.
+Goal: reconstruct title history covering AT LEAST 20-25 years (ideally 30 years) wherever the documents allow it, not merely the EC search window.
+If genuinely no document references anything before the earliest EC entry, state that clearly — but only after confirming no such reference exists anywhere in the submitted documents.`
 
 // ================================================================
 // STEP 2 SYSTEMS — CASE SPECIFIC
@@ -153,6 +168,16 @@ First paragraph = NO "Thereafter"
 EVERY subsequent paragraph MUST start "Thereafter,"
 RELEASED mortgage: "stands discharged vide Reconveyance/Release Deed No.[X] dated [date]"
 ACTIVE mortgage: "is subsisting and active as on date — no Release Deed found"
+
+TITLE CHAIN DEPTH — MANDATORY 20-30 YEAR REQUIREMENT:
+Gujarat banking practice requires a minimum 20-25 year (ideally 30 year) title chain — NOT merely the EC search period.
+Before writing the chain, actively check the extracted facts for ANY reference to:
+- Old/original Survey Numbers (pre-TP Scheme allotment)
+- 7/12, Village Form 7/8-A/12, FERFAR/Mutation entries — even partial or old ones
+- Any deed recital mentioning prior ownership, inheritance, or earlier transactions
+If the EC itself only covers a shorter window (e.g. 2011-2026 = 15 years), but a deed or revenue record references the ORIGINAL agricultural landholding or an earlier survey number, the chain MUST start from THAT earliest traceable point — not from the first EC entry.
+Only state "chain limited to documents produced" if you have genuinely found zero references to anything earlier after checking all documents.
+Construct the fullest, deepest, most complete chronological chain the source documents support.
 
 EC ANALYSIS FORMAT (exactly like this):
 EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination.
@@ -197,8 +222,13 @@ END: after last document entry.`
 const S3B = `Generate HTML for PART II ONLY — Chronological Title Chain and History of Property.
 OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning.
 
+20-25 YEAR MINIMUM CHAIN — MANDATORY:
+Do NOT begin the chain at the first EC entry if the extracted facts contain ANY reference to an earlier survey number, older revenue record, FERFAR/Mutation entry, or prior ownership. The chain must reach back AT LEAST 20-25 years (ideally 30 years) from the report date wherever the source documents support it.
+Check the extracted facts carefully for: old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, FERFAR/Mutation Register entries, any recital of earlier/ancestral/inherited ownership — and START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND, not from the most recent EC window.
+
 OPENING PARAGRAPH (NO "Thereafter"):
-Begin with the earliest title holder. Describe: who held the property, with what shares or interest, exact land details (Survey No, TP Scheme No, FP No, village, taluka, district), area. Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. End with mutation if available.
+Begin with the EARLIEST title holder traceable from ALL documents (not just the EC). Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available. End with mutation if available.
+If revenue records (7/12, FERFAR) show prior owners/entries BEFORE this first deed, describe those briefly first, then proceed to the first registered conveyance.
 
 EACH SUBSEQUENT PARAGRAPH must start "Thereafter,":
 Every transaction = one full paragraph. Include: deed type | Registration No. | date | SRO | all party names individually | consideration | what this achieves legally. For declaration deeds: describe nature and whether any adverse charge was created. For mortgages: describe as builder/developer-level mortgage over [property] as security. Then immediately state whether discharged or active.
