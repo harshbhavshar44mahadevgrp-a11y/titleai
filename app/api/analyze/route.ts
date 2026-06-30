@@ -227,13 +227,18 @@ END: after last document entry.`
 // ================================================================
 // STEP 3B — PART II SYSTEM
 // ================================================================
-const S3B = `Generate HTML for PART II ONLY — Chronological Title Chain and History of Property.
+const S3B = `Generate HTML for PART IV ONLY — Chronological Title Chain and History of Property.
+(Note: Part I — Borrower/Mortgagor/Ownership, Part II — Property Description, and Part III — List of Scrutinized Documents are generated separately and already appear before this section. Do NOT regenerate them. Start directly with Part IV.)
 OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning.
 
 TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
 This chain is built from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth in context) and the actual registered deeds submitted. The Encumbrance Certificate is NEVER used as the source or anchor for this narrative — EC belongs only to Part V (encumbrance status), not Part IV (history).
 The chain must reach back AT LEAST 20-25 years (ideally 30 years) from the report date wherever Revenue Record / deed evidence supports it.
 Check the extracted facts and Revenue Record Ground Truth carefully for: old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, every FERFAR/Mutation Register entry, any recital of earlier/ancestral/inherited ownership — and START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND.
+
+REVENUE RECORD HONESTY RULE — MANDATORY — CHECK THE REVENUE_RECORD_PROVIDED FLAG IN CONTEXT:
+If REVENUE_RECORD_PROVIDED says YES: you MUST cite the ACTUAL Mutation/FERFAR Entry Number(s) and date(s) given in the Revenue Record Ground Truth — never write a generic phrase like "as evidenced from the Revenue Record" without naming the specific entry number. Pull real entry_no, entry_date, and nature values directly from the Revenue Record Ground Truth block and weave them into the relevant paragraph(s).
+If REVENUE_RECORD_PROVIDED says NO: do NOT write any sentence implying Revenue Record, 7/12, Village Form, or Mutation entries were examined — that would be fabricated. Instead, build the chain entirely from the registered deeds' own recitals (their stated parties, dates, and prior-title references), and in the final paragraph state plainly: "Revenue Record (7/12 / Village Form / Mutation extract) was not separately produced for verification in this matter; the chain set out above is accordingly based on the recitals contained in the registered deeds examined." This is the honest, advocate-correct way to handle absent revenue records — never paper over the gap with vague boilerplate.
 
 OPENING PARAGRAPH (NO "Thereafter"):
 Begin with the EARLIEST title holder traceable from ALL documents (not just the EC). Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available. End with mutation if available.
@@ -245,9 +250,15 @@ Every transaction = one full paragraph. Include: deed type | Registration No. | 
 RELEASED MORTGAGE — EXACT WORDING MANDATORY:
 "The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [DD/MM/YYYY] executed by [Bank full name] unto and in favour of [Owner], a Partnership Firm, through its Authorised Partner [Name] — no subsisting charge of [Bank] remains on the subject property as on date."
 
-FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC:
-"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [X] dated [date] certifying this transfer. [If mortgage exists/existed: As per the mortgage and release deeds examined, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor — no subsisting charge remains as on the date of this report.]"
-Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV — ownership continuity is confirmed by Revenue Record/Mutation entries, not by EC.
+FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC — TWO VERSIONS DEPENDING ON THE FLAG:
+
+If REVENUE_RECORD_PROVIDED=YES, use:
+"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [ACTUAL entry_no from Revenue Record Ground Truth] dated [ACTUAL entry_date from Revenue Record Ground Truth] certifying this transfer. [If mortgage exists/existed: As per the mortgage and release deeds examined, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor — no subsisting charge remains as on the date of this report.]"
+
+If REVENUE_RECORD_PROVIDED=NO, use instead:
+"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as evidenced by the recitals of the registered deeds examined above. Revenue Record (7/12 / Village Form / Mutation extract) was not separately produced for verification in this matter; independent confirmation of the Ownership Column against current Revenue Record is accordingly recommended prior to disbursement. [If mortgage exists/existed: As per the mortgage and release deeds examined, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor — no subsisting charge remains as on the date of this report.]"
+
+Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV — ownership continuity is confirmed by Revenue Record/Mutation entries (or honestly flagged as unconfirmed), never by EC.
 
 RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter.
 Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum. EC rows are NEVER the paragraph source.
@@ -458,7 +469,8 @@ export async function POST(req: NextRequest) {
         const lcSection = buildLifecycleSection(lc)
         const verdict = extractVerdict(analysis)
 
-        const ctx = FORM + '\n\n' + GT + '\n\nANALYSIS:\n' + analysis.substring(0, 3500) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
+        const revenueProvidedFlag = revData ? 'REVENUE_RECORD_PROVIDED: YES — ' + ((revData.mutation_entries || []).length) + ' Mutation/FERFAR entries deep-scanned, cite them specifically by entry number and date.' : 'REVENUE_RECORD_PROVIDED: NO — no 7/12 / Mutation / FERFAR document was tagged or scanned for this case. Do NOT claim Revenue Record was examined. State plainly that Revenue Record / Mutation extract was not separately produced for verification.'
+        const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 3500) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
         // ── STEP 3: Parallel HTML generation (4x Sonnet) ──
         const [r3a, r3b, r3c, r3d] = await Promise.all([
@@ -468,10 +480,20 @@ export async function POST(req: NextRequest) {
             AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })
         ])
 
-        const p1 = r3a.content[0].type === 'text' ? r3a.content[0].text : ''
-        const p2 = r3b.content[0].type === 'text' ? r3b.content[0].text : ''
-        const p3 = r3c.content[0].type === 'text' ? r3c.content[0].text : ''
-        const p4 = r3d.content[0].type === 'text' ? r3d.content[0].text : ''
+        const BT3 = String.fromCharCode(96).repeat(3)
+        const stripFences = (t: string): string => {
+            let s = t.trim()
+            const htmlFence = BT3 + 'html'
+            if (s.toLowerCase().startsWith(htmlFence)) s = s.slice(htmlFence.length)
+            else if (s.startsWith(BT3)) s = s.slice(BT3.length)
+            if (s.endsWith(BT3)) s = s.slice(0, -BT3.length)
+            s = s.split(BT3).join('')
+            return s.trim()
+        }
+        const p1 = stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : '')
+        const p2 = stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : '')
+        const p3 = stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : '')
+        const p4 = stripFences(r3d.content[0].type === 'text' ? r3d.content[0].text : '')
 
         const finalApplicant = meta.applicant || applicantName
         const finalCoApp = meta.coApplicant || coApplicant || 'Not Applicable'
