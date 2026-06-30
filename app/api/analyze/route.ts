@@ -113,8 +113,8 @@ Release Deed / Giro Mukeli / Reconveyance / NOC / Discharge
 Bank in LEFT EC column = RELEASED — NEVER report as active
 
 ALL 4 BOUNDARIES MANDATORY. Check every page including Gujarati "Khunt Charne Vigat".
-EC RULE 4A: Count ALL entries. EVERY entry matters. NEVER miss second or subsequent entry.
-RULE 30: EC-confirmed deed = include naturally — NO flag as missing.
+EC RULE 4A: Count ALL entries. EVERY entry matters. NEVER miss second or subsequent entry. (This is for Part V encumbrance verification only — EC is NOT used to build the chain.)
+RULE 30 (REVISED): If a transaction's actual deed copy was not submitted but it is confirmed by Revenue Record (Mutation/FERFAR entry) — include it naturally in the chain using the Revenue Record details, NO flag as missing. Do NOT use EC entries for this purpose — only Revenue Record / Mutation entries may fill a chain link when the deed itself is absent.
 MUTATION ENTRIES: NEVER in Part I — only in Part II narration.
 
 20-25 YEAR TITLE HISTORY — MANDATORY DEEP SEARCH:
@@ -174,15 +174,17 @@ EVERY subsequent paragraph MUST start "Thereafter,"
 RELEASED mortgage: "stands discharged vide Reconveyance/Release Deed No.[X] dated [date]"
 ACTIVE mortgage: "is subsisting and active as on date — no Release Deed found"
 
-TITLE CHAIN DEPTH — MANDATORY 20-30 YEAR REQUIREMENT:
-Gujarat banking practice requires a minimum 20-25 year (ideally 30 year) title chain — NOT merely the EC search period.
-Before writing the chain, actively check the extracted facts for ANY reference to:
-- Old/original Survey Numbers (pre-TP Scheme allotment)
-- 7/12, Village Form 7/8-A/12, FERFAR/Mutation entries — even partial or old ones
+TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
+The chronological title chain (Part IV) MUST be constructed from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth) and the actual registered deeds submitted (Sale Deed, Mortgage Deed, Release Deed, Declaration Deed, Partition Deed, etc).
+The Encumbrance Certificate (EC) is NEVER the source for this chain. EC rows are used ONLY for encumbrance/mortgage status verification (Part V) — they do not drive or anchor the historical narrative.
+Gujarat banking practice requires a minimum 20-25 year (ideally 30 year) title chain. Build it using:
+- Old/original Survey Numbers (pre-TP Scheme allotment) found in any deed or revenue record
+- 7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — every entry, even partial or old ones
+- Registered deeds themselves (their recitals, dates, parties, consideration)
 - Any deed recital mentioning prior ownership, inheritance, or earlier transactions
-If the EC itself only covers a shorter window (e.g. 2011-2026 = 15 years), but a deed or revenue record references the ORIGINAL agricultural landholding or an earlier survey number, the chain MUST start from THAT earliest traceable point — not from the first EC entry.
-Only state "chain limited to documents produced" if you have genuinely found zero references to anything earlier after checking all documents.
-Construct the fullest, deepest, most complete chronological chain the source documents support.
+Start the chain from the EARLIEST point established by Revenue Record / deed evidence — not from any EC entry, not from the EC search window.
+Only state "chain limited to documents produced" if you have genuinely found zero Revenue Record or deed references to anything earlier after checking all documents.
+Construct the fullest, deepest, most complete chronological chain the Revenue Record and registered deeds support.
 
 EC ANALYSIS FORMAT (exactly like this):
 EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination.
@@ -228,9 +230,10 @@ END: after last document entry.`
 const S3B = `Generate HTML for PART II ONLY — Chronological Title Chain and History of Property.
 OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning.
 
-20-25 YEAR MINIMUM CHAIN — MANDATORY:
-Do NOT begin the chain at the first EC entry if the extracted facts contain ANY reference to an earlier survey number, older revenue record, FERFAR/Mutation entry, or prior ownership. The chain must reach back AT LEAST 20-25 years (ideally 30 years) from the report date wherever the source documents support it.
-Check the extracted facts carefully for: old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, FERFAR/Mutation Register entries, any recital of earlier/ancestral/inherited ownership — and START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND, not from the most recent EC window.
+TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
+This chain is built from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth in context) and the actual registered deeds submitted. The Encumbrance Certificate is NEVER used as the source or anchor for this narrative — EC belongs only to Part V (encumbrance status), not Part IV (history).
+The chain must reach back AT LEAST 20-25 years (ideally 30 years) from the report date wherever Revenue Record / deed evidence supports it.
+Check the extracted facts and Revenue Record Ground Truth carefully for: old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, every FERFAR/Mutation Register entry, any recital of earlier/ancestral/inherited ownership — and START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND.
 
 OPENING PARAGRAPH (NO "Thereafter"):
 Begin with the EARLIEST title holder traceable from ALL documents (not just the EC). Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available. End with mutation if available.
@@ -242,11 +245,12 @@ Every transaction = one full paragraph. Include: deed type | Registration No. | 
 RELEASED MORTGAGE — EXACT WORDING MANDATORY:
 "The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [DD/MM/YYYY] executed by [Bank full name] unto and in favour of [Owner], a Partnership Firm, through its Authorised Partner [Name] — no subsisting charge of [Bank] remains on the subject property as on date."
 
-FINAL STATUS PARAGRAPH:
-"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Encumbrance Certificate bearing E-Application No. [X] (covering search period from [Y] to [Z]) and E-Application No. [A] (covering search period from [B] to [C]), both dated [date], issued by the Inspector General of Registration, Revenue Department, Government of Gujarat, together providing continuous encumbrance coverage from the year [X] to the year [Y]. On combined examination of both Encumbrance Certificates, no subsisting or undischarged encumbrance, charge, mortgage, attachment, or adverse claim is found to be active against the subject property as on the date of this report, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor."
+FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC:
+"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [X] dated [date] certifying this transfer. [If mortgage exists/existed: As per the mortgage and release deeds examined, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor — no subsisting charge remains as on the date of this report.]"
+Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV — ownership continuity is confirmed by Revenue Record/Mutation entries, not by EC.
 
 RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter.
-Subject property ONLY. Every EC transaction = one paragraph minimum.
+Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum. EC rows are NEVER the paragraph source.
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END: after last paragraph.`
 
