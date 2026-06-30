@@ -262,6 +262,7 @@ If REVENUE_RECORD_PROVIDED=NO: use the honesty-rule final paragraph described ab
 Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV.
 
 RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter. Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum, exhaustive not selective. EC rows are NEVER the paragraph source.
+You have a generous token budget for this section specifically because a complete 30-year chain with many entries needs real room — do NOT compress, summarize, or stop early to save space. If there are 15 Mutation entries and 5 deeds, write all 20 paragraphs in full. Use the space you need; running long here is correct, not a problem.
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END: after last paragraph.`
 
@@ -404,11 +405,16 @@ export async function POST(req: NextRequest) {
             })
             .catch(e => console.log('PS err:', e))
 
-        const revPrescreen = revImgs.length === 0 ? Promise.resolve() :
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...revImgs, { type: 'text', text: REV_PS }] }] })
+        // Same fallback pattern as EC: if a file was explicitly tagged 'revenue', scan
+        // just that (precise, cheaper). If NOT, still scan ALL uploaded images instead of
+        // skipping entirely — catches cases where a 7/12 was uploaded but never tagged.
+        const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
+        const revPrescreen =
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
                     const r = parseJSON(rs.content[0].type === 'text' ? rs.content[0].text : '{}')
-                    if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0)) }
+                    if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0) + ' (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
+                    else { console.log('REV P0: no revenue record found in scanned images (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
                 })
                 .catch(e => console.log('REV PS err:', e))
 
@@ -472,12 +478,12 @@ export async function POST(req: NextRequest) {
         const verdict = extractVerdict(analysis)
 
         const revenueProvidedFlag = revData ? 'REVENUE_RECORD_PROVIDED: YES — ' + ((revData.mutation_entries || []).length) + ' Mutation/FERFAR entries deep-scanned, cite them specifically by entry number and date.' : 'REVENUE_RECORD_PROVIDED: NO — no 7/12 / Mutation / FERFAR document was tagged or scanned for this case. Do NOT claim Revenue Record was examined. State plainly that Revenue Record / Mutation extract was not separately produced for verification.'
-        const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 3500) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
+        const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 8000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
         // ── STEP 3: Parallel HTML generation (4x Sonnet) ──
         const [r3a, r3b, r3c, r3d] = await Promise.all([
             AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] }),
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3B, messages: [{ role: 'user', content: ctx }] }),
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 7000, system: S3B, messages: [{ role: 'user', content: ctx }] }),
             AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] }),
             AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })
         ])
