@@ -335,6 +335,8 @@ END: after Part XI paragraph.`
 // ================================================================
 const EC_PS = 'Look at ALL uploaded images. Find Encumbrance Certificate (EC) table.\n\nCRITICAL RULE:\nCOL 3 = Aapnar = LEFT = WHO GIVES\nCOL 4 = Lenar = RIGHT = WHO RECEIVES\nBANK IN COL 3 = RELEASE DEED | BANK IN COL 4 = MORTGAGE DEED\n\nExtract EVERY EC row + header. Also check ALL docs for Release Deed / Giro Mukeli / Reconveyance.\n\nOutput ONLY JSON:\n{"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}],"pre_screen_releases":[{"bank":"","deed_no":"","date":"","source":""}]}'
 
+const REV_PS = 'Look at ALL uploaded images. Find Revenue Records: Village Form No. 7 (Satbara/7-12), Village Form No. 8-A, Village Form No. 12, Property Card, City Survey extract, and FERFAR / Mutation Register / Gamnamuna No. 6 entries.\n\nFor the SUBJECT PROPERTY land only, extract:\n- village (Mouje), taluka, district\n- survey_block_no (include OLD survey number if the document references one, e.g. \"allotted in lieu of Survey No. X\")\n- total_area (with unit, e.g. H.Are.SqMt or Sq.Mtrs.)\n- land_use (exact words seen — Bin Kheti / Kheti / Non-Agricultural / Agricultural)\n- tenure (e.g. Juni Sharat / Old Tenure / Naa Sharat / New Tenure — if mentioned)\n- ownership_column (current Kabjedar/Khatedar name exactly as written)\n- boja_column (exact wording of Boja/encumbrance entry, or \"NIL\" if blank/clear)\n- ganot_column (tenant entry, or \"NIL\" if blank)\n\nAlso extract EVERY visible FERFAR/Mutation entry, oldest to newest, however old:\nFor each entry give: entry_no, entry_date, status (Certified or Rejected if stated), nature (description of what changed — sale/inheritance/NA conversion/death of owner/etc), relevant_survey_no (only if explicitly tied to this entry).\n\nDo NOT skip old entries even if faded or partial — extract whatever is legible. This data will be used to build a 20-25 year title history, so completeness matters more than brevity.\n\nOutput ONLY JSON:\n{"village":"","taluka":"","district":"","survey_block_no":"","total_area":"","land_use":"","tenure":"","ownership_column":"","boja_column":"","ganot_column":"","mutation_entries":[{"entry_no":"","entry_date":"","status":"","nature":"","relevant_survey_no":""}]}\nIf no revenue record document found: {"found":false}'
+
 // ================================================================
 // MAIN API HANDLER
 // ================================================================
@@ -359,8 +361,9 @@ export async function POST(req: NextRequest) {
         const allImgs: any[] = images.map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
         const ecImgs: any[] = images.filter((img: any) => img.docType && img.docType === 'ec').map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
         const relImgs: any[] = images.filter((img: any) => img.docType && (img.docType === 'release' || img.docType === 'mortgage')).map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
+        const revImgs: any[] = images.filter((img: any) => img.docType && img.docType === 'revenue').map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
         const psImgs = ecImgs.length > 0 ? [...ecImgs, ...relImgs] : allImgs
-        console.log('Images: all=' + allImgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage=' + relImgs.length)
+        console.log('Images: all=' + allImgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage=' + relImgs.length + ' Revenue-tagged=' + revImgs.length)
 
         // ── STEP 0: EC PRE-SCREEN ──
         let ecRows: ECRow[] = [], ecMetas: ECMeta[] = [], lc = runLC([]), preReleases: any[] = []
@@ -374,6 +377,16 @@ export async function POST(req: NextRequest) {
                 console.log('EC P0: rows=' + ecRows.length + ' status=' + lc.status)
             }
         } catch (e) { console.log('PS err:', e) }
+
+        // ── STEP 0b: REVENUE RECORD PRE-SCREEN (only runs if a file is tagged 'revenue') ──
+        let revData: any = null
+        if (revImgs.length > 0) {
+            try {
+                const rs = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...revImgs, { type: 'text', text: REV_PS }] }] })
+                const r = parseJSON(rs.content[0].type === 'text' ? rs.content[0].text : '{}')
+                if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0)) }
+            } catch (e) { console.log('REV PS err:', e) }
+        }
 
         // Apply pre-screen releases
         if (preReleases.length > 0) {
@@ -390,7 +403,31 @@ export async function POST(req: NextRequest) {
         }
         console.log('FINAL LC:' + lc.status + '|' + lc.summary)
 
-        const GT = ['=== EC GROUND TRUTH ===', 'EC App No: ' + (ecMetas.map(m => m.ec_app_number).join(', ') || 'NOT PROVIDED'), 'EC Date: ' + (ecMetas.map(m => m.ec_date).join(' | ') || 'NOT PROVIDED'), 'EC Period: ' + (ecMetas.map(m => m.ec_from + ' to ' + m.ec_to).join(' | ') || 'NOT PROVIDED'), 'EC Rows: ' + ecRows.length, 'Status: ' + lc.status, 'Summary: ' + lc.summary, 'Active: ' + (lc.active.length === 0 ? 'NONE' : lc.active.map(a => a.lender + ' Deed:' + a.deed_no + ' Date:' + a.date).join(' | ')), 'Released: ' + (lc.released.length === 0 ? 'NONE' : lc.released.map(r => r.lender + ' RELEASED vide Deed No.' + r.release_deed_no + ' dated ' + r.release_date).join(' | ')), 'RULE: Released = NEVER flag as active. Bank in LEFT EC col = Release.', '==='].join('\n')
+        const ecGT = ['=== EC GROUND TRUTH ===', 'EC App No: ' + (ecMetas.map(m => m.ec_app_number).join(', ') || 'NOT PROVIDED'), 'EC Date: ' + (ecMetas.map(m => m.ec_date).join(' | ') || 'NOT PROVIDED'), 'EC Period: ' + (ecMetas.map(m => m.ec_from + ' to ' + m.ec_to).join(' | ') || 'NOT PROVIDED'), 'EC Rows: ' + ecRows.length, 'Status: ' + lc.status, 'Summary: ' + lc.summary, 'Active: ' + (lc.active.length === 0 ? 'NONE' : lc.active.map(a => a.lender + ' Deed:' + a.deed_no + ' Date:' + a.date).join(' | ')), 'Released: ' + (lc.released.length === 0 ? 'NONE' : lc.released.map(r => r.lender + ' RELEASED vide Deed No.' + r.release_deed_no + ' dated ' + r.release_date).join(' | ')), 'RULE: Released = NEVER flag as active. Bank in LEFT EC col = Release.', '==='].join('\n')
+
+        let revGT = ''
+        if (revData) {
+            const mutLines = (revData.mutation_entries || []).map((m: any, idx: number) => '  ' + (idx + 1) + '. Entry No.' + (m.entry_no || '?') + ' | Date:' + (m.entry_date || '?') + ' | Status:' + (m.status || '?') + ' | ' + (m.nature || '') + (m.relevant_survey_no ? (' | Survey:' + m.relevant_survey_no) : ''))
+            revGT = ['', '=== REVENUE RECORD GROUND TRUTH (deep-scanned 7/12 / Property Card / FERFAR) ===',
+                'Village: ' + (revData.village || 'NOT PROVIDED'),
+                'Taluka: ' + (revData.taluka || 'NOT PROVIDED'),
+                'District: ' + (revData.district || 'NOT PROVIDED'),
+                'Survey/Block No: ' + (revData.survey_block_no || 'NOT PROVIDED'),
+                'Total Area: ' + (revData.total_area || 'NOT PROVIDED'),
+                'Land Use: ' + (revData.land_use || 'NOT PROVIDED'),
+                'Tenure: ' + (revData.tenure || 'NOT PROVIDED'),
+                'Ownership Column: ' + (revData.ownership_column || 'NOT PROVIDED'),
+                'Boja/Encumbrance Column: ' + (revData.boja_column || 'NOT PROVIDED'),
+                'Ganot/Tenant Column: ' + (revData.ganot_column || 'NOT PROVIDED'),
+                'FERFAR/Mutation Entries (' + ((revData.mutation_entries || []).length) + ' found, oldest to newest):',
+                ...mutLines,
+                'RULE: Use these entries to extend the title chain as far back as possible (20-25+ years). Treat this as authoritative revenue record data.',
+                '==='
+            ].join('\n')
+            console.log('Revenue GT built: ' + (revData.mutation_entries?.length || 0) + ' mutation entries')
+        }
+
+        const GT = ecGT + revGT
 
         const FORM = ['=== FORM DATA (ALWAYS PRIORITY) ===', 'FORM_APPLICANT: ' + applicantName, 'FORM_CO: ' + (coApplicant || 'Not Applicable'), 'FORM_OWNER: ' + (currentOwner || applicantName), 'FORM_BANK: ' + bankName, 'FORM_PROPERTY: ' + propertyAddress, 'EAST: ' + boundaryEast, 'WEST: ' + boundaryWest, 'NORTH: ' + boundaryNorth, 'SOUTH: ' + boundarySouth, 'Applicant = FORM_APPLICANT always. Never advocate name.', '==='].join('\n')
 
