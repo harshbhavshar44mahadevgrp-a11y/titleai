@@ -369,28 +369,31 @@ export async function POST(req: NextRequest) {
         const psImgs = ecImgs.length > 0 ? [...ecImgs, ...relImgs] : allImgs
         console.log('Images: all=' + allImgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage=' + relImgs.length + ' Revenue-tagged=' + revImgs.length)
 
-        // ── STEP 0: EC PRE-SCREEN ──
+        // ── STEP 0: EC PRE-SCREEN + REVENUE PRE-SCREEN (PARALLEL — was sequential, fixes 504 timeout) ──
         let ecRows: ECRow[] = [], ecMetas: ECMeta[] = [], lc = runLC([]), preReleases: any[] = []
-        try {
-            const ps = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
-            const p = parseJSON(ps.content[0].type === 'text' ? ps.content[0].text : '{}')
-            if (p?.rows?.length > 0) {
-                ecRows = p.rows; lc = runLC(ecRows)
-                if (p.ec_app_number) ecMetas.push({ ec_app_number: p.ec_app_number, ec_date: p.ec_date || '', ec_from: p.ec_from || '', ec_to: p.ec_to || '' })
-                if (p.pre_screen_releases?.length > 0) preReleases = p.pre_screen_releases
-                console.log('EC P0: rows=' + ecRows.length + ' status=' + lc.status)
-            }
-        } catch (e) { console.log('PS err:', e) }
-
-        // ── STEP 0b: REVENUE RECORD PRE-SCREEN (only runs if a file is tagged 'revenue') ──
         let revData: any = null
-        if (revImgs.length > 0) {
-            try {
-                const rs = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...revImgs, { type: 'text', text: REV_PS }] }] })
-                const r = parseJSON(rs.content[0].type === 'text' ? rs.content[0].text : '{}')
-                if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0)) }
-            } catch (e) { console.log('REV PS err:', e) }
-        }
+
+        const ecPrescreen = AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
+            .then(ps => {
+                const p = parseJSON(ps.content[0].type === 'text' ? ps.content[0].text : '{}')
+                if (p?.rows?.length > 0) {
+                    ecRows = p.rows; lc = runLC(ecRows)
+                    if (p.ec_app_number) ecMetas.push({ ec_app_number: p.ec_app_number, ec_date: p.ec_date || '', ec_from: p.ec_from || '', ec_to: p.ec_to || '' })
+                    if (p.pre_screen_releases?.length > 0) preReleases = p.pre_screen_releases
+                    console.log('EC P0: rows=' + ecRows.length + ' status=' + lc.status)
+                }
+            })
+            .catch(e => console.log('PS err:', e))
+
+        const revPrescreen = revImgs.length === 0 ? Promise.resolve() :
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...revImgs, { type: 'text', text: REV_PS }] }] })
+                .then(rs => {
+                    const r = parseJSON(rs.content[0].type === 'text' ? rs.content[0].text : '{}')
+                    if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0)) }
+                })
+                .catch(e => console.log('REV PS err:', e))
+
+        await Promise.all([ecPrescreen, revPrescreen])
 
         // Apply pre-screen releases
         if (preReleases.length > 0) {
