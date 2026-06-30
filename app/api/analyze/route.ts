@@ -241,10 +241,10 @@ THE "THEREAFTER" RULE — FORMAT, UNCHANGED:
 First paragraph = NO "Thereafter". EVERY subsequent paragraph MUST start "Thereafter,". This prose-paragraph style is the only format for Part IV — do not switch to tables, timelines, or any other visual structure.
 
 EVERY YEAR'S DATA — MANDATORY, NO YEAR SKIPPED, WITHIN THE THEREAFTER FORMAT:
-If REVENUE_RECORD_PROVIDED=YES, the Revenue Record Ground Truth block in context lists every Mutation/FERFAR entry with its own Entry No. and entry_date (which gives its year). Every single one of those years/entries MUST get its own "Thereafter," paragraph — none skipped, none silently merged into a vague summary like "various mutation entries reflect the transfer history over the years." If two entries share the same year, they may be covered together within one "Thereafter," paragraph for that year, but no year that has a real entry may be left out. Cite the real Entry No. and date in each paragraph — never write "as evidenced from the Revenue Record" without naming the specific entry. If an entry's Nature is sparse or unclear, still give it its own paragraph stating "Mutation Entry No. [X] dated [date], the precise nature of which is not fully legible from the record produced, was effected during this period" rather than dropping it.
+If REVENUE_RECORD_PROVIDED says exactly "YES" (and only then), the Revenue Record Ground Truth block in context lists every Mutation/FERFAR entry with its own Entry No. and entry_date (which gives its year). Every single one of those years/entries MUST get its own "Thereafter," paragraph — none skipped, none silently merged into a vague summary like "various mutation entries reflect the transfer history over the years." If two entries share the same year, they may be covered together within one "Thereafter," paragraph for that year, but no year that has a real entry may be left out. Cite the real Entry No. and date in each paragraph — never write "as evidenced from the Revenue Record" without naming the specific entry. If an entry's Nature is sparse or unclear, still give it its own paragraph stating "Mutation Entry No. [X] dated [date], the precise nature of which is not fully legible from the record produced, was effected during this period" rather than dropping it.
 SELF-CHECK BEFORE FINALIZING: re-read the Revenue Record Ground Truth's entry list one more time. For each Entry No. listed there, confirm a "Thereafter," paragraph in your output covers it. If any is missing, add its paragraph before finishing. This runs every single time Revenue Record Ground Truth is present.
 
-If REVENUE_RECORD_PROVIDED=NO: do NOT write any "Thereafter," paragraph implying a Mutation/FERFAR entry was examined — that would be fabricated. Build the chain entirely from the registered deeds' own recitals instead, and in the final paragraph state plainly: "Revenue Record (7/12 / Village Form / Mutation extract) was not separately produced for verification in this matter; the chain set out above is accordingly based on the recitals contained in the registered deeds examined."
+If REVENUE_RECORD_PROVIDED does NOT say "YES" (it may say SCAN_ERROR, TAGGED_BUT_NOT_RECOGNIZED, or NOT_TAGGED — each is a genuinely different situation): do NOT write any "Thereafter," paragraph implying a Mutation/FERFAR entry was examined — that would be fabricated. Build the chain entirely from the registered deeds' own recitals instead. In the final paragraph, use the EXACT honest sentence given inside the REVENUE_RECORD_PROVIDED flag's own text for whichever specific case applies — that flag text already contains the precise wording for SCAN_ERROR vs TAGGED_BUT_NOT_RECOGNIZED vs NOT_TAGGED, do not substitute a generic line, read and use what it actually says.
 
 OPENING PARAGRAPH (NO "Thereafter"):
 Begin with the EARLIEST title holder traceable from Revenue Record / deed evidence. Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available.
@@ -257,8 +257,8 @@ RELEASED MORTGAGE — EXACT WORDING MANDATORY:
 "The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [DD/MM/YYYY] executed by [Bank full name] unto and in favour of [Owner], a Partnership Firm, through its Authorised Partner [Name] — no subsisting charge of [Bank] remains on the subject property as on date."
 
 FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC:
-If REVENUE_RECORD_PROVIDED=YES: "Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [ACTUAL entry_no] dated [ACTUAL entry_date] certifying this transfer."
-If REVENUE_RECORD_PROVIDED=NO: use the honesty-rule final paragraph described above instead.
+If REVENUE_RECORD_PROVIDED says exactly "YES": "Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [ACTUAL entry_no] dated [ACTUAL entry_date] certifying this transfer."
+If REVENUE_RECORD_PROVIDED does NOT say "YES": use the honesty-rule final paragraph described above instead (the exact wording from the flag's own text for that specific case).
 Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV.
 
 RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter. Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum, exhaustive not selective. EC rows are NEVER the paragraph source.
@@ -273,8 +273,8 @@ const S3C = `Generate HTML for PART V (Regulatory) + PART VI (Alerts) ONLY.
 
 PART V REGULATORY FORMAT — REVENUE RECORD TABLE MUST USE REAL SCANNED DATA:
 Check the REVENUE_RECORD_PROVIDED flag and the Revenue Record Ground Truth block in context.
-If REVENUE_RECORD_PROVIDED=YES: fill every row below using the ACTUAL values from Revenue Record Ground Truth (Village, Taluka, District, Survey/Block No, Total Area, Land Use, Tenure, Ownership Column, Boja/Encumbrance Column, Ganot/Tenant Column) — these are real deep-scanned fields, use them exactly, do not invent or guess values.
-If REVENUE_RECORD_PROVIDED=NO: write "NOT PROVIDED FOR VERIFICATION" honestly for each row below rather than guessing plausible-looking values — never fabricate Village/Taluka/District/Land Use details that were not actually scanned.
+If REVENUE_RECORD_PROVIDED says exactly "YES": fill every row below using the ACTUAL values from Revenue Record Ground Truth (Village, Taluka, District, Survey/Block No, Total Area, Land Use, Tenure, Ownership Column, Boja/Encumbrance Column, Ganot/Tenant Column) — these are real deep-scanned fields, use them exactly, do not invent or guess values.
+If REVENUE_RECORD_PROVIDED does NOT say "YES" (whatever specific reason it gives — scan error, tagged but unrecognized, or not tagged at all): write "NOT PROVIDED FOR VERIFICATION" honestly for each row below rather than guessing plausible-looking values — never fabricate Village/Taluka/District/Land Use details that were not actually scanned. If the flag indicates a scan error specifically, you may instead note "Verification pending — technical error during scan, retry recommended" for these rows rather than the standard NOT PROVIDED wording, since that more accurately reflects what happened.
 <div class="sph">A. Revenue Record (7/12 / Property Card)</div>
 <table class="mt">
 <tr><td>Village (Mouje)</td><td>:</td><td>[real value from Revenue Record Ground Truth, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
@@ -408,6 +408,7 @@ export async function POST(req: NextRequest) {
         // fire concurrently instead of one after another.
         let ecRows: ECRow[] = [], ecMetas: ECMeta[] = [], lc = runLC([]), preReleases: any[] = []
         let revData: any = null
+        let revScanError = false
         let facts = ''
 
         const ecPrescreen = AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
@@ -433,7 +434,7 @@ export async function POST(req: NextRequest) {
                     if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0) + ' (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
                     else { console.log('REV P0: no revenue record found in scanned images (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
                 })
-                .catch(e => console.log('REV PS err:', e))
+                .catch(e => { revScanError = true; console.log('REV PS err:', e?.message || e) })
 
         const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...allImgs, { type: 'text', text: FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
             .then(s1 => {
@@ -494,7 +495,19 @@ export async function POST(req: NextRequest) {
         const lcSection = buildLifecycleSection(lc)
         const verdict = extractVerdict(analysis)
 
-        const revenueProvidedFlag = revData ? 'REVENUE_RECORD_PROVIDED: YES — ' + ((revData.mutation_entries || []).length) + ' Mutation/FERFAR entries deep-scanned, cite them specifically by entry number and date.' : 'REVENUE_RECORD_PROVIDED: NO — no 7/12 / Mutation / FERFAR document was tagged or scanned for this case. Do NOT claim Revenue Record was examined. State plainly that Revenue Record / Mutation extract was not separately produced for verification.'
+        // Three genuinely different scenarios, each needs its own honest message —
+        // previously all three collapsed into one misleading "not tagged" sentence
+        // even when a file WAS tagged but the scan simply didn't recognize it.
+        let revenueProvidedFlag: string
+        if (revData) {
+            revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: YES — ' + ((revData.mutation_entries || []).length) + ' Mutation/FERFAR entries deep-scanned, cite them specifically by entry number and date.'
+        } else if (revScanError) {
+            revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: SCAN_ERROR — a Revenue Record scan was attempted but failed due to a technical error (not a content issue). Do NOT claim Revenue Record was examined or was absent. State plainly: "Revenue Record verification could not be completed due to a technical error during processing; please retry or verify manually before disbursement."'
+        } else if (revImgs.length > 0) {
+            revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: TAGGED_BUT_NOT_RECOGNIZED — a document WAS specifically tagged as Revenue Record/7-12, and was scanned, but the scan could not identify recognizable 7/12, Mutation, or FERFAR content in it. Do NOT say "not tagged or produced." Instead state plainly: "A Revenue Record document was submitted for this case; however, the content could not be positively identified as a Village Form 7/12, Property Card, or Mutation Register extract on automated review. Independent manual verification of the Revenue Record is recommended before disbursement."'
+        } else {
+            revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: NOT_TAGGED — no document was specifically tagged as Revenue Record, and a general scan of all uploaded documents did not identify a recognizable 7/12/Mutation/FERFAR document either. Do NOT claim Revenue Record was examined. State plainly that Revenue Record / Mutation extract was not separately produced for verification.'
+        }
         const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 8000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
         // ── STEP 3: Parallel HTML generation (4x Sonnet) — each call isolated so one failure can't sink the whole report ──
