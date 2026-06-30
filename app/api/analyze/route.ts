@@ -113,8 +113,8 @@ Release Deed / Giro Mukeli / Reconveyance / NOC / Discharge
 Bank in LEFT EC column = RELEASED — NEVER report as active
 
 ALL 4 BOUNDARIES MANDATORY. Check every page including Gujarati "Khunt Charne Vigat".
-EC RULE 4A: Count ALL entries. EVERY entry matters. NEVER miss second or subsequent entry. (This is for Part V encumbrance verification only — EC is NOT used to build the chain.)
-RULE 30 (REVISED): If a transaction's actual deed copy was not submitted but it is confirmed by Revenue Record (Mutation/FERFAR entry) — include it naturally in the chain using the Revenue Record details, NO flag as missing. Do NOT use EC entries for this purpose — only Revenue Record / Mutation entries may fill a chain link when the deed itself is absent.
+EC RULE 4A: Count ALL entries. EVERY entry matters. NEVER miss second or subsequent entry.
+RULE 30: EC-confirmed deed = include naturally — NO flag as missing.
 MUTATION ENTRIES: NEVER in Part I — only in Part II narration.
 
 20-25 YEAR TITLE HISTORY — MANDATORY DEEP SEARCH:
@@ -168,25 +168,21 @@ EC COLUMN RULE — PERMANENT:
 LEFT/Aapnar = WHO GIVES | RIGHT/Lenar = WHO RECEIVES
 BANK IN LEFT = RELEASE DEED | BANK IN RIGHT = MORTGAGE DEED
 
-PART IV "THEREAFTER" RULE:
+PART II — "THEREAFTER" RULE:
 First paragraph = NO "Thereafter"
 EVERY subsequent paragraph MUST start "Thereafter,"
 RELEASED mortgage: "stands discharged vide Reconveyance/Release Deed No.[X] dated [date]"
 ACTIVE mortgage: "is subsisting and active as on date — no Release Deed found"
 
-TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
-The chronological title chain (Part IV) MUST be constructed from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth) and the actual registered deeds submitted (Sale Deed, Mortgage Deed, Release Deed, Declaration Deed, Partition Deed, etc).
-The Encumbrance Certificate (EC) is NEVER the source for this chain. EC rows are used ONLY for encumbrance/mortgage status verification (Part V) — they do not drive or anchor the historical narrative.
-Gujarat banking practice requires a minimum 20-25 year (ideally 30 year) title chain. Build it using:
-- Old/original Survey Numbers (pre-TP Scheme allotment) found in any deed or revenue record
-- 7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — every entry, even partial or old ones
-- Registered deeds themselves (their recitals, dates, parties, consideration)
+TITLE CHAIN DEPTH — MANDATORY 20-30 YEAR REQUIREMENT:
+Gujarat banking practice requires a minimum 20-25 year (ideally 30 year) title chain — NOT merely the EC search period.
+Before writing the chain, actively check the extracted facts for ANY reference to:
+- Old/original Survey Numbers (pre-TP Scheme allotment)
+- 7/12, Village Form 7/8-A/12, FERFAR/Mutation entries — even partial or old ones
 - Any deed recital mentioning prior ownership, inheritance, or earlier transactions
-Start the chain from the EARLIEST point established by Revenue Record / deed evidence — not from any EC entry, not from the EC search window.
-Only state "chain limited to documents produced" if you have genuinely found zero Revenue Record or deed references to anything earlier after checking all documents.
-Construct the fullest, deepest, most complete chronological chain the Revenue Record and registered deeds support.
-
-EXHAUSTIVE ENTRY COVERAGE — MANDATORY, EVERY TIME: If Revenue Record Ground Truth lists Mutation/FERFAR entries, your analysis must walk through EVERY single one of them by Entry No. and Date — never compress several entries into a vague summary sentence. Count the entries listed, then confirm your analysis names each one individually before moving on. This feeds directly into how Part IV gets written downstream, so compressing here means the final report compresses too — do not let that happen.
+If the EC itself only covers a shorter window (e.g. 2011-2026 = 15 years), but a deed or revenue record references the ORIGINAL agricultural landholding or an earlier survey number, the chain MUST start from THAT earliest traceable point — not from the first EC entry.
+Only state "chain limited to documents produced" if you have genuinely found zero references to anything earlier after checking all documents.
+Construct the fullest, deepest, most complete chronological chain the source documents support.
 
 EC ANALYSIS FORMAT (exactly like this):
 EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination.
@@ -227,66 +223,52 @@ START: <hr><div class="ph">PART III — LIST OF SCRUTINIZED DOCUMENTS</div>
 END: after last document entry.`
 
 // ================================================================
-// STEP 3B — PART IV SYSTEM
+// STEP 3B — PART II SYSTEM
 // ================================================================
-const S3B = `Generate HTML for PART IV ONLY — Chronological Title Chain and History of Property.
-(Note: Part I — Borrower/Mortgagor/Ownership, Part II — Property Description, and Part III — List of Scrutinized Documents are generated separately and already appear before this section. Do NOT regenerate them. Start directly with Part IV.)
-OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning, as flowing prose paragraphs.
+const S3B = `Generate HTML for PART II ONLY — Chronological Title Chain and History of Property.
+OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning.
 
-TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
-This chain is built from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth in context) and the actual registered deeds submitted. The Encumbrance Certificate is NEVER used as the source or anchor for this narrative — EC belongs only to Part V (encumbrance status), not Part IV (history). Do NOT write "as confirmed by the Encumbrance Certificate bearing E-Application No." anywhere in this section.
-The chain must reach back up to 30 years from the report date wherever Revenue Record / deed evidence supports it. Check the extracted facts and Revenue Record Ground Truth carefully for old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, every FERFAR/Mutation Register entry, and any deed recital of earlier/ancestral/inherited ownership — START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND.
-
-THE "THEREAFTER" RULE — FORMAT, UNCHANGED:
-First paragraph = NO "Thereafter". EVERY subsequent paragraph MUST start "Thereafter,". This prose-paragraph style is the only format for Part IV — do not switch to tables, timelines, or any other visual structure.
-
-EVERY YEAR'S DATA — MANDATORY, NO YEAR SKIPPED, WITHIN THE THEREAFTER FORMAT:
-If REVENUE_RECORD_PROVIDED=YES, the Revenue Record Ground Truth block in context lists every Mutation/FERFAR entry with its own Entry No. and entry_date (which gives its year). Every single one of those years/entries MUST get its own "Thereafter," paragraph — none skipped, none silently merged into a vague summary like "various mutation entries reflect the transfer history over the years." If two entries share the same year, they may be covered together within one "Thereafter," paragraph for that year, but no year that has a real entry may be left out. Cite the real Entry No. and date in each paragraph — never write "as evidenced from the Revenue Record" without naming the specific entry. If an entry's Nature is sparse or unclear, still give it its own paragraph stating "Mutation Entry No. [X] dated [date], the precise nature of which is not fully legible from the record produced, was effected during this period" rather than dropping it.
-SELF-CHECK BEFORE FINALIZING: re-read the Revenue Record Ground Truth's entry list one more time. For each Entry No. listed there, confirm a "Thereafter," paragraph in your output covers it. If any is missing, add its paragraph before finishing. This runs every single time Revenue Record Ground Truth is present.
-
-If REVENUE_RECORD_PROVIDED=NO: do NOT write any "Thereafter," paragraph implying a Mutation/FERFAR entry was examined — that would be fabricated. Build the chain entirely from the registered deeds' own recitals instead, and in the final paragraph state plainly: "Revenue Record (7/12 / Village Form / Mutation extract) was not separately produced for verification in this matter; the chain set out above is accordingly based on the recitals contained in the registered deeds examined."
+20-25 YEAR MINIMUM CHAIN — MANDATORY:
+Do NOT begin the chain at the first EC entry if the extracted facts contain ANY reference to an earlier survey number, older revenue record, FERFAR/Mutation entry, or prior ownership. The chain must reach back AT LEAST 20-25 years (ideally 30 years) from the report date wherever the source documents support it.
+Check the extracted facts carefully for: old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, FERFAR/Mutation Register entries, any recital of earlier/ancestral/inherited ownership — and START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND, not from the most recent EC window.
 
 OPENING PARAGRAPH (NO "Thereafter"):
-Begin with the EARLIEST title holder traceable from Revenue Record / deed evidence. Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available.
-If Revenue Record shows prior owners/entries BEFORE this first deed, describe those briefly first, in their own "Thereafter," paragraph(s), then proceed to the first registered conveyance.
+Begin with the EARLIEST title holder traceable from ALL documents (not just the EC). Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available. End with mutation if available.
+If revenue records (7/12, FERFAR) show prior owners/entries BEFORE this first deed, describe those briefly first, then proceed to the first registered conveyance.
 
-EACH SUBSEQUENT PARAGRAPH starts "Thereafter,":
-Every transaction (whether a Mutation/FERFAR entry or a registered deed) = its own full paragraph. Include: type | Entry/Registration No. | date | all party names individually | consideration if a deed | what it achieves legally. For declaration deeds: describe nature and whether any adverse charge was created. For mortgages: describe as builder/developer-level mortgage over [property] as security, then immediately state whether discharged or active.
+EACH SUBSEQUENT PARAGRAPH must start "Thereafter,":
+Every transaction = one full paragraph. Include: deed type | Registration No. | date | SRO | all party names individually | consideration | what this achieves legally. For declaration deeds: describe nature and whether any adverse charge was created. For mortgages: describe as builder/developer-level mortgage over [property] as security. Then immediately state whether discharged or active.
 
 RELEASED MORTGAGE — EXACT WORDING MANDATORY:
 "The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [DD/MM/YYYY] executed by [Bank full name] unto and in favour of [Owner], a Partnership Firm, through its Authorised Partner [Name] — no subsisting charge of [Bank] remains on the subject property as on date."
 
-FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC:
-If REVENUE_RECORD_PROVIDED=YES: "Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [ACTUAL entry_no] dated [ACTUAL entry_date] certifying this transfer."
-If REVENUE_RECORD_PROVIDED=NO: use the honesty-rule final paragraph described above instead.
-Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV.
+FINAL STATUS PARAGRAPH:
+"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Encumbrance Certificate bearing E-Application No. [X] (covering search period from [Y] to [Z]) and E-Application No. [A] (covering search period from [B] to [C]), both dated [date], issued by the Inspector General of Registration, Revenue Department, Government of Gujarat, together providing continuous encumbrance coverage from the year [X] to the year [Y]. On combined examination of both Encumbrance Certificates, no subsisting or undischarged encumbrance, charge, mortgage, attachment, or adverse claim is found to be active against the subject property as on the date of this report, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor."
 
-RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter. Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum, exhaustive not selective. EC rows are NEVER the paragraph source.
-You have a generous token budget for this section specifically because a complete 30-year chain with many entries needs real room — do NOT compress, summarize, or stop early to save space. If there are 15 Mutation entries and 5 deeds, write all 20 paragraphs in full. Use the space you need; running long here is correct, not a problem.
+RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter.
+Subject property ONLY. Every EC transaction = one paragraph minimum.
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END: after last paragraph.`
 
 // ================================================================
-// STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
+// STEP 3C — PART III (ALERTS) SYSTEM
 // ================================================================
-const S3C = `Generate HTML for PART V (Regulatory) + PART VI (Alerts) ONLY.
+// STEP 3C — PART III (ALERTS) SYSTEM
+// ================================================================
+const S3C = `Generate HTML for PART III (Alerts) + PART V (Regulatory) ONLY.
 
-PART V REGULATORY FORMAT — REVENUE RECORD TABLE MUST USE REAL SCANNED DATA:
-Check the REVENUE_RECORD_PROVIDED flag and the Revenue Record Ground Truth block in context.
-If REVENUE_RECORD_PROVIDED=YES: fill every row below using the ACTUAL values from Revenue Record Ground Truth (Village, Taluka, District, Survey/Block No, Total Area, Land Use, Tenure, Ownership Column, Boja/Encumbrance Column, Ganot/Tenant Column) — these are real deep-scanned fields, use them exactly, do not invent or guess values.
-If REVENUE_RECORD_PROVIDED=NO: write "NOT PROVIDED FOR VERIFICATION" honestly for each row below rather than guessing plausible-looking values — never fabricate Village/Taluka/District/Land Use details that were not actually scanned.
+PART V REGULATORY FORMAT:
 <div class="sph">A. Revenue Record (7/12 / Property Card)</div>
 <table class="mt">
-<tr><td>Village (Mouje)</td><td>:</td><td>[real value from Revenue Record Ground Truth, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Taluka</td><td>:</td><td>[real value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>District</td><td>:</td><td>[real value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Survey / Block / FP No.</td><td>:</td><td>[real survey_block_no value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Total Area</td><td>:</td><td>[real total_area value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Tenure</td><td>:</td><td>[real tenure value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Land Use</td><td>:</td><td>[real land_use value — note if it confirms Non-Agricultural — or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Ownership Column</td><td>:</td><td>[real ownership_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Boja / Encumbrance</td><td>:</td><td>[real boja_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Ganot / Tenant</td><td>:</td><td>[real ganot_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Village (Mouje)</td><td>:</td><td>[name]</td></tr>
+<tr><td>Taluka</td><td>:</td><td>[name]</td></tr>
+<tr><td>District</td><td>:</td><td>[name]</td></tr>
+<tr><td>Survey / Block / FP No.</td><td>:</td><td>[exact details]</td></tr>
+<tr><td>Total Area</td><td>:</td><td>[area with flat details]</td></tr>
+<tr><td>Land Use</td><td>:</td><td>Non-Agricultural — confirmed via EC and RERA. [note if any]</td></tr>
+<tr><td>Ownership Column</td><td>:</td><td>[owner name] — vested via [deed details]</td></tr>
+<tr><td>Boja / Encumbrance</td><td>:</td><td>[NIL subsisting / ACTIVE details]</td></tr>
+<tr><td>Ganot / Tenant</td><td>:</td><td>NIL</td></tr>
 </table>
 
 RERA: Include exact RERA registration number if mentioned.
@@ -353,8 +335,6 @@ END: after Part XI paragraph.`
 // ================================================================
 const EC_PS = 'Look at ALL uploaded images. Find Encumbrance Certificate (EC) table.\n\nCRITICAL RULE:\nCOL 3 = Aapnar = LEFT = WHO GIVES\nCOL 4 = Lenar = RIGHT = WHO RECEIVES\nBANK IN COL 3 = RELEASE DEED | BANK IN COL 4 = MORTGAGE DEED\n\nExtract EVERY EC row + header. Also check ALL docs for Release Deed / Giro Mukeli / Reconveyance.\n\nOutput ONLY JSON:\n{"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}],"pre_screen_releases":[{"bank":"","deed_no":"","date":"","source":""}]}'
 
-const REV_PS = 'Look at ALL uploaded images. Find Revenue Records: Village Form No. 7 (Satbara/7-12), Village Form No. 8-A, Village Form No. 12, Property Card, City Survey extract, and FERFAR / Mutation Register / Gamnamuna No. 6 entries.\n\nFor the SUBJECT PROPERTY land only, extract:\n- village (Mouje), taluka, district\n- survey_block_no (include OLD survey number if the document references one, e.g. \"allotted in lieu of Survey No. X\")\n- total_area (with unit, e.g. H.Are.SqMt or Sq.Mtrs.)\n- land_use (exact words seen — Bin Kheti / Kheti / Non-Agricultural / Agricultural)\n- tenure (e.g. Juni Sharat / Old Tenure / Naa Sharat / New Tenure — if mentioned)\n- ownership_column (current Kabjedar/Khatedar name exactly as written)\n- boja_column (exact wording of Boja/encumbrance entry, or \"NIL\" if blank/clear)\n- ganot_column (tenant entry, or \"NIL\" if blank)\n\nAlso extract EVERY visible FERFAR/Mutation entry, oldest to newest, however old:\nFor each entry give: entry_no, entry_date, status (Certified or Rejected if stated), nature (description of what changed — sale/inheritance/NA conversion/death of owner/etc), relevant_survey_no (only if explicitly tied to this entry).\n\nDo NOT skip old entries even if faded or partial — extract whatever is legible. This data will be used to build a 20-25 year title history, so completeness matters more than brevity.\n\nOutput ONLY JSON:\n{"village":"","taluka":"","district":"","survey_block_no":"","total_area":"","land_use":"","tenure":"","ownership_column":"","boja_column":"","ganot_column":"","mutation_entries":[{"entry_no":"","entry_date":"","status":"","nature":"","relevant_survey_no":""}]}\nIf no revenue record document found: {"found":false}'
-
 // ================================================================
 // MAIN API HANDLER
 // ================================================================
@@ -379,53 +359,21 @@ export async function POST(req: NextRequest) {
         const allImgs: any[] = images.map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
         const ecImgs: any[] = images.filter((img: any) => img.docType && img.docType === 'ec').map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
         const relImgs: any[] = images.filter((img: any) => img.docType && (img.docType === 'release' || img.docType === 'mortgage')).map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
-        const revImgs: any[] = images.filter((img: any) => img.docType && img.docType === 'revenue').map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
         const psImgs = ecImgs.length > 0 ? [...ecImgs, ...relImgs] : allImgs
-        console.log('Images: all=' + allImgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage=' + relImgs.length + ' Revenue-tagged=' + revImgs.length)
+        console.log('Images: all=' + allImgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage=' + relImgs.length)
 
-        const FORM = ['=== FORM DATA (ALWAYS PRIORITY) ===', 'FORM_APPLICANT: ' + applicantName, 'FORM_CO: ' + (coApplicant || 'Not Applicable'), 'FORM_OWNER: ' + (currentOwner || applicantName), 'FORM_BANK: ' + bankName, 'FORM_PROPERTY: ' + propertyAddress, 'EAST: ' + boundaryEast, 'WEST: ' + boundaryWest, 'NORTH: ' + boundaryNorth, 'SOUTH: ' + boundarySouth, 'Applicant = FORM_APPLICANT always. Never advocate name.', '==='].join('\n')
-
-        // ── STEP 0 + STEP 1 — ALL RUN IN PARALLEL (was sequential, fixes 504 timeout) ──
-        // EC prescreen, Revenue prescreen, and Haiku fact-extraction all hit images
-        // independently and have no dependency on each other's output, so they
-        // fire concurrently instead of one after another.
+        // ── STEP 0: EC PRE-SCREEN ──
         let ecRows: ECRow[] = [], ecMetas: ECMeta[] = [], lc = runLC([]), preReleases: any[] = []
-        let revData: any = null
-        let facts = ''
-
-        const ecPrescreen = AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
-            .then(ps => {
-                const p = parseJSON(ps.content[0].type === 'text' ? ps.content[0].text : '{}')
-                if (p?.rows?.length > 0) {
-                    ecRows = p.rows; lc = runLC(ecRows)
-                    if (p.ec_app_number) ecMetas.push({ ec_app_number: p.ec_app_number, ec_date: p.ec_date || '', ec_from: p.ec_from || '', ec_to: p.ec_to || '' })
-                    if (p.pre_screen_releases?.length > 0) preReleases = p.pre_screen_releases
-                    console.log('EC P0: rows=' + ecRows.length + ' status=' + lc.status)
-                }
-            })
-            .catch(e => console.log('PS err:', e))
-
-        // Same fallback pattern as EC: if a file was explicitly tagged 'revenue', scan
-        // just that (precise, cheaper). If NOT, still scan ALL uploaded images instead of
-        // skipping entirely — catches cases where a 7/12 was uploaded but never tagged.
-        const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
-        const revPrescreen =
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
-                .then(rs => {
-                    const r = parseJSON(rs.content[0].type === 'text' ? rs.content[0].text : '{}')
-                    if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0) + ' (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
-                    else { console.log('REV P0: no revenue record found in scanned images (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
-                })
-                .catch(e => console.log('REV PS err:', e))
-
-        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...allImgs, { type: 'text', text: FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
-            .then(s1 => {
-                facts = s1.content[0].type === 'text' ? s1.content[0].text : ''
-                console.log('STEP1: facts extracted, length=' + facts.length)
-            })
-            .catch(e => console.log('STEP1 err:', e))
-
-        await Promise.all([ecPrescreen, revPrescreen, step1Promise])
+        try {
+            const ps = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
+            const p = parseJSON(ps.content[0].type === 'text' ? ps.content[0].text : '{}')
+            if (p?.rows?.length > 0) {
+                ecRows = p.rows; lc = runLC(ecRows)
+                if (p.ec_app_number) ecMetas.push({ ec_app_number: p.ec_app_number, ec_date: p.ec_date || '', ec_from: p.ec_from || '', ec_to: p.ec_to || '' })
+                if (p.pre_screen_releases?.length > 0) preReleases = p.pre_screen_releases
+                console.log('EC P0: rows=' + ecRows.length + ' status=' + lc.status)
+            }
+        } catch (e) { console.log('PS err:', e) }
 
         // Apply pre-screen releases
         if (preReleases.length > 0) {
@@ -442,33 +390,15 @@ export async function POST(req: NextRequest) {
         }
         console.log('FINAL LC:' + lc.status + '|' + lc.summary)
 
-        const ecGT = ['=== EC GROUND TRUTH ===', 'EC App No: ' + (ecMetas.map(m => m.ec_app_number).join(', ') || 'NOT PROVIDED'), 'EC Date: ' + (ecMetas.map(m => m.ec_date).join(' | ') || 'NOT PROVIDED'), 'EC Period: ' + (ecMetas.map(m => m.ec_from + ' to ' + m.ec_to).join(' | ') || 'NOT PROVIDED'), 'EC Rows: ' + ecRows.length, 'Status: ' + lc.status, 'Summary: ' + lc.summary, 'Active: ' + (lc.active.length === 0 ? 'NONE' : lc.active.map(a => a.lender + ' Deed:' + a.deed_no + ' Date:' + a.date).join(' | ')), 'Released: ' + (lc.released.length === 0 ? 'NONE' : lc.released.map(r => r.lender + ' RELEASED vide Deed No.' + r.release_deed_no + ' dated ' + r.release_date).join(' | ')), 'RULE: Released = NEVER flag as active. Bank in LEFT EC col = Release.', '==='].join('\n')
+        const GT = ['=== EC GROUND TRUTH ===', 'EC App No: ' + (ecMetas.map(m => m.ec_app_number).join(', ') || 'NOT PROVIDED'), 'EC Date: ' + (ecMetas.map(m => m.ec_date).join(' | ') || 'NOT PROVIDED'), 'EC Period: ' + (ecMetas.map(m => m.ec_from + ' to ' + m.ec_to).join(' | ') || 'NOT PROVIDED'), 'EC Rows: ' + ecRows.length, 'Status: ' + lc.status, 'Summary: ' + lc.summary, 'Active: ' + (lc.active.length === 0 ? 'NONE' : lc.active.map(a => a.lender + ' Deed:' + a.deed_no + ' Date:' + a.date).join(' | ')), 'Released: ' + (lc.released.length === 0 ? 'NONE' : lc.released.map(r => r.lender + ' RELEASED vide Deed No.' + r.release_deed_no + ' dated ' + r.release_date).join(' | ')), 'RULE: Released = NEVER flag as active. Bank in LEFT EC col = Release.', '==='].join('\n')
 
-        let revGT = ''
-        if (revData) {
-            const mutLines = (revData.mutation_entries || []).map((m: any, idx: number) => '  ' + (idx + 1) + '. Entry No.' + (m.entry_no || '?') + ' | Date:' + (m.entry_date || '?') + ' | Status:' + (m.status || '?') + ' | ' + (m.nature || '') + (m.relevant_survey_no ? (' | Survey:' + m.relevant_survey_no) : ''))
-            revGT = ['', '=== REVENUE RECORD GROUND TRUTH (deep-scanned 7/12 / Property Card / FERFAR) ===',
-                'Village: ' + (revData.village || 'NOT PROVIDED'),
-                'Taluka: ' + (revData.taluka || 'NOT PROVIDED'),
-                'District: ' + (revData.district || 'NOT PROVIDED'),
-                'Survey/Block No: ' + (revData.survey_block_no || 'NOT PROVIDED'),
-                'Total Area: ' + (revData.total_area || 'NOT PROVIDED'),
-                'Land Use: ' + (revData.land_use || 'NOT PROVIDED'),
-                'Tenure: ' + (revData.tenure || 'NOT PROVIDED'),
-                'Ownership Column: ' + (revData.ownership_column || 'NOT PROVIDED'),
-                'Boja/Encumbrance Column: ' + (revData.boja_column || 'NOT PROVIDED'),
-                'Ganot/Tenant Column: ' + (revData.ganot_column || 'NOT PROVIDED'),
-                'FERFAR/Mutation Entries (' + ((revData.mutation_entries || []).length) + ' found, oldest to newest):',
-                ...mutLines,
-                'RULE: Use these entries to extend the title chain as far back as possible (20-25+ years). Treat this as authoritative revenue record data.',
-                '==='
-            ].join('\n')
-            console.log('Revenue GT built: ' + (revData.mutation_entries?.length || 0) + ' mutation entries')
-        }
+        const FORM = ['=== FORM DATA (ALWAYS PRIORITY) ===', 'FORM_APPLICANT: ' + applicantName, 'FORM_CO: ' + (coApplicant || 'Not Applicable'), 'FORM_OWNER: ' + (currentOwner || applicantName), 'FORM_BANK: ' + bankName, 'FORM_PROPERTY: ' + propertyAddress, 'EAST: ' + boundaryEast, 'WEST: ' + boundaryWest, 'NORTH: ' + boundaryNorth, 'SOUTH: ' + boundarySouth, 'Applicant = FORM_APPLICANT always. Never advocate name.', '==='].join('\n')
 
-        const GT = ecGT + revGT
+        // ── STEP 1: Extract facts (Haiku) ──
+        const s1 = await AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...allImgs, { type: 'text', text: FORM + '\n\n' + GT + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
+        const facts = s1.content[0].type === 'text' ? s1.content[0].text : ''
 
-        // ── STEP 2: Deep legal analysis (Sonnet) — facts already extracted in parallel above ──
+        // ── STEP 2: Deep legal analysis (Sonnet) ──
         const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, system: getS2(caseType), messages: [{ role: 'user', content: FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
         const analysis = s2.content[0].type === 'text' ? s2.content[0].text : ''
         const meta = parseMeta(analysis)
@@ -477,31 +407,20 @@ export async function POST(req: NextRequest) {
         const lcSection = buildLifecycleSection(lc)
         const verdict = extractVerdict(analysis)
 
-        const revenueProvidedFlag = revData ? 'REVENUE_RECORD_PROVIDED: YES — ' + ((revData.mutation_entries || []).length) + ' Mutation/FERFAR entries deep-scanned, cite them specifically by entry number and date.' : 'REVENUE_RECORD_PROVIDED: NO — no 7/12 / Mutation / FERFAR document was tagged or scanned for this case. Do NOT claim Revenue Record was examined. State plainly that Revenue Record / Mutation extract was not separately produced for verification.'
-        const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 8000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
+        const ctx = FORM + '\n\n' + GT + '\n\nANALYSIS:\n' + analysis.substring(0, 3500) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
         // ── STEP 3: Parallel HTML generation (4x Sonnet) ──
         const [r3a, r3b, r3c, r3d] = await Promise.all([
             AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] }),
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 7000, system: S3B, messages: [{ role: 'user', content: ctx }] }),
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3B, messages: [{ role: 'user', content: ctx }] }),
             AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] }),
             AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })
         ])
 
-        const BT3 = String.fromCharCode(96).repeat(3)
-        const stripFences = (t: string): string => {
-            let s = t.trim()
-            const htmlFence = BT3 + 'html'
-            if (s.toLowerCase().startsWith(htmlFence)) s = s.slice(htmlFence.length)
-            else if (s.startsWith(BT3)) s = s.slice(BT3.length)
-            if (s.endsWith(BT3)) s = s.slice(0, -BT3.length)
-            s = s.split(BT3).join('')
-            return s.trim()
-        }
-        const p1 = stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : '')
-        const p2 = stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : '')
-        const p3 = stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : '')
-        const p4 = stripFences(r3d.content[0].type === 'text' ? r3d.content[0].text : '')
+        const p1 = r3a.content[0].type === 'text' ? r3a.content[0].text : ''
+        const p2 = r3b.content[0].type === 'text' ? r3b.content[0].text : ''
+        const p3 = r3c.content[0].type === 'text' ? r3c.content[0].text : ''
+        const p4 = r3d.content[0].type === 'text' ? r3d.content[0].text : ''
 
         const finalApplicant = meta.applicant || applicantName
         const finalCoApp = meta.coApplicant || coApplicant || 'Not Applicable'
