@@ -472,7 +472,7 @@ export async function POST(req: NextRequest) {
         const GT = ecGT + revGT
 
         // ── STEP 2: Deep legal analysis (Sonnet) — facts already extracted in parallel above ──
-        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, system: getS2(caseType), messages: [{ role: 'user', content: FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
+        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 6000, system: getS2(caseType), messages: [{ role: 'user', content: FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
         const analysis = s2.content[0].type === 'text' ? s2.content[0].text : ''
         const meta = parseMeta(analysis)
 
