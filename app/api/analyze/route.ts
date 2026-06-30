@@ -168,7 +168,7 @@ EC COLUMN RULE — PERMANENT:
 LEFT/Aapnar = WHO GIVES | RIGHT/Lenar = WHO RECEIVES
 BANK IN LEFT = RELEASE DEED | BANK IN RIGHT = MORTGAGE DEED
 
-PART II — "THEREAFTER" RULE:
+PART IV "THEREAFTER" RULE:
 First paragraph = NO "Thereafter"
 EVERY subsequent paragraph MUST start "Thereafter,"
 RELEASED mortgage: "stands discharged vide Reconveyance/Release Deed No.[X] dated [date]"
@@ -227,70 +227,65 @@ START: <hr><div class="ph">PART III — LIST OF SCRUTINIZED DOCUMENTS</div>
 END: after last document entry.`
 
 // ================================================================
-// STEP 3B — PART II SYSTEM
+// STEP 3B — PART IV SYSTEM
 // ================================================================
 const S3B = `Generate HTML for PART IV ONLY — Chronological Title Chain and History of Property.
 (Note: Part I — Borrower/Mortgagor/Ownership, Part II — Property Description, and Part III — List of Scrutinized Documents are generated separately and already appear before this section. Do NOT regenerate them. Start directly with Part IV.)
-OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning.
+OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning, as flowing prose paragraphs.
 
 TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
-This chain is built from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth in context) and the actual registered deeds submitted. The Encumbrance Certificate is NEVER used as the source or anchor for this narrative — EC belongs only to Part V (encumbrance status), not Part IV (history).
-The chain must reach back AT LEAST 20-25 years (ideally 30 years) from the report date wherever Revenue Record / deed evidence supports it.
-Check the extracted facts and Revenue Record Ground Truth carefully for: old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, every FERFAR/Mutation Register entry, any recital of earlier/ancestral/inherited ownership — and START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND.
+This chain is built from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth in context) and the actual registered deeds submitted. The Encumbrance Certificate is NEVER used as the source or anchor for this narrative — EC belongs only to Part V (encumbrance status), not Part IV (history). Do NOT write "as confirmed by the Encumbrance Certificate bearing E-Application No." anywhere in this section.
+The chain must reach back up to 30 years from the report date wherever Revenue Record / deed evidence supports it. Check the extracted facts and Revenue Record Ground Truth carefully for old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, every FERFAR/Mutation Register entry, and any deed recital of earlier/ancestral/inherited ownership — START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND.
 
-REVENUE RECORD HONESTY RULE — MANDATORY — CHECK THE REVENUE_RECORD_PROVIDED FLAG IN CONTEXT:
-If REVENUE_RECORD_PROVIDED says YES: you MUST cite the ACTUAL Mutation/FERFAR Entry Number(s) and date(s) given in the Revenue Record Ground Truth — never write a generic phrase like "as evidenced from the Revenue Record" without naming the specific entry number. Pull real entry_no, entry_date, and nature values directly from the Revenue Record Ground Truth block and weave them into the relevant paragraph(s).
-If REVENUE_RECORD_PROVIDED says NO: do NOT write any sentence implying Revenue Record, 7/12, Village Form, or Mutation entries were examined — that would be fabricated. Instead, build the chain entirely from the registered deeds' own recitals (their stated parties, dates, and prior-title references), and in the final paragraph state plainly: "Revenue Record (7/12 / Village Form / Mutation extract) was not separately produced for verification in this matter; the chain set out above is accordingly based on the recitals contained in the registered deeds examined." This is the honest, advocate-correct way to handle absent revenue records — never paper over the gap with vague boilerplate.
+THE "THEREAFTER" RULE — FORMAT, UNCHANGED:
+First paragraph = NO "Thereafter". EVERY subsequent paragraph MUST start "Thereafter,". This prose-paragraph style is the only format for Part IV — do not switch to tables, timelines, or any other visual structure.
+
+EVERY YEAR'S DATA — MANDATORY, NO YEAR SKIPPED, WITHIN THE THEREAFTER FORMAT:
+If REVENUE_RECORD_PROVIDED=YES, the Revenue Record Ground Truth block in context lists every Mutation/FERFAR entry with its own Entry No. and entry_date (which gives its year). Every single one of those years/entries MUST get its own "Thereafter," paragraph — none skipped, none silently merged into a vague summary like "various mutation entries reflect the transfer history over the years." If two entries share the same year, they may be covered together within one "Thereafter," paragraph for that year, but no year that has a real entry may be left out. Cite the real Entry No. and date in each paragraph — never write "as evidenced from the Revenue Record" without naming the specific entry. If an entry's Nature is sparse or unclear, still give it its own paragraph stating "Mutation Entry No. [X] dated [date], the precise nature of which is not fully legible from the record produced, was effected during this period" rather than dropping it.
+SELF-CHECK BEFORE FINALIZING: re-read the Revenue Record Ground Truth's entry list one more time. For each Entry No. listed there, confirm a "Thereafter," paragraph in your output covers it. If any is missing, add its paragraph before finishing. This runs every single time Revenue Record Ground Truth is present.
+
+If REVENUE_RECORD_PROVIDED=NO: do NOT write any "Thereafter," paragraph implying a Mutation/FERFAR entry was examined — that would be fabricated. Build the chain entirely from the registered deeds' own recitals instead, and in the final paragraph state plainly: "Revenue Record (7/12 / Village Form / Mutation extract) was not separately produced for verification in this matter; the chain set out above is accordingly based on the recitals contained in the registered deeds examined."
 
 OPENING PARAGRAPH (NO "Thereafter"):
-Begin with the EARLIEST title holder traceable from ALL documents (not just the EC). Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available. End with mutation if available.
-If revenue records (7/12, FERFAR) show prior owners/entries BEFORE this first deed, describe those briefly first, then proceed to the first registered conveyance.
+Begin with the EARLIEST title holder traceable from Revenue Record / deed evidence. Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available.
+If Revenue Record shows prior owners/entries BEFORE this first deed, describe those briefly first, in their own "Thereafter," paragraph(s), then proceed to the first registered conveyance.
 
-EACH SUBSEQUENT PARAGRAPH must start "Thereafter,":
-Every transaction = one full paragraph. Include: deed type | Registration No. | date | SRO | all party names individually | consideration | what this achieves legally. For declaration deeds: describe nature and whether any adverse charge was created. For mortgages: describe as builder/developer-level mortgage over [property] as security. Then immediately state whether discharged or active.
+EACH SUBSEQUENT PARAGRAPH starts "Thereafter,":
+Every transaction (whether a Mutation/FERFAR entry or a registered deed) = its own full paragraph. Include: type | Entry/Registration No. | date | all party names individually | consideration if a deed | what it achieves legally. For declaration deeds: describe nature and whether any adverse charge was created. For mortgages: describe as builder/developer-level mortgage over [property] as security, then immediately state whether discharged or active.
 
 RELEASED MORTGAGE — EXACT WORDING MANDATORY:
 "The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [DD/MM/YYYY] executed by [Bank full name] unto and in favour of [Owner], a Partnership Firm, through its Authorised Partner [Name] — no subsisting charge of [Bank] remains on the subject property as on date."
 
-FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC — TWO VERSIONS DEPENDING ON THE FLAG:
+FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC:
+If REVENUE_RECORD_PROVIDED=YES: "Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [ACTUAL entry_no] dated [ACTUAL entry_date] certifying this transfer."
+If REVENUE_RECORD_PROVIDED=NO: use the honesty-rule final paragraph described above instead.
+Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV.
 
-If REVENUE_RECORD_PROVIDED=YES, use:
-"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [ACTUAL entry_no from Revenue Record Ground Truth] dated [ACTUAL entry_date from Revenue Record Ground Truth] certifying this transfer. [If mortgage exists/existed: As per the mortgage and release deeds examined, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor — no subsisting charge remains as on the date of this report.]"
-
-If REVENUE_RECORD_PROVIDED=NO, use instead:
-"Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as evidenced by the recitals of the registered deeds examined above. Revenue Record (7/12 / Village Form / Mutation extract) was not separately produced for verification in this matter; independent confirmation of the Ownership Column against current Revenue Record is accordingly recommended prior to disbursement. [If mortgage exists/existed: As per the mortgage and release deeds examined, [mortgage description] having been formally and fully discharged and released vide Deed No. [X] dated [date] well prior to the proposed conveyance in favour of the proposed purchaser-mortgagor — no subsisting charge remains as on the date of this report.]"
-
-Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV — ownership continuity is confirmed by Revenue Record/Mutation entries (or honestly flagged as unconfirmed), never by EC.
-
-EXHAUSTIVE COVERAGE OF EVERY MUTATION/FERFAR ENTRY — MANDATORY, NON-NEGOTIABLE, ALWAYS:
-If REVENUE_RECORD_PROVIDED=YES, the Revenue Record Ground Truth block in context lists every Mutation/FERFAR entry as a numbered line (Entry No., Date, Status, Nature, Survey No.). FIRST, count exactly how many entries are listed. Your output MUST mention every single one of them by its own Entry No. and Date, in chronological order — oldest first. Do NOT compress multiple entries into one vague sentence like "various mutation entries reflect the transfer history." Each entry gets its own clause or sentence naming its Entry No., Date, and what it records (transfer / NA conversion / death of owner / inheritance / whatever the Nature field states).
-If an entry's Nature is sparse or unclear, still name it factually — "Mutation Entry No. [X] dated [date], the precise nature of which is not fully legible from the record produced, was effected during this period" — never silently drop an entry because its description is thin.
-SELF-CHECK BEFORE FINALIZING: Re-read the Revenue Record Ground Truth's entry list one more time. For each Entry No. listed there, confirm it appears by number somewhere in your Part IV text. If any entry is missing from your output, go back and add a sentence for it before finishing. This check applies every single time Revenue Record Ground Truth is present — never skip it, never treat it as optional, never summarize past it.
-
-RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter.
-Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph or clause minimum — exhaustive, not selective. EC rows are NEVER the paragraph source.
+RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter. Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum, exhaustive not selective. EC rows are NEVER the paragraph source.
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END: after last paragraph.`
 
 // ================================================================
-// STEP 3C — PART III (ALERTS) SYSTEM
+// STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
 // ================================================================
-// STEP 3C — PART III (ALERTS) SYSTEM
-// ================================================================
-const S3C = `Generate HTML for PART III (Alerts) + PART V (Regulatory) ONLY.
+const S3C = `Generate HTML for PART V (Regulatory) + PART VI (Alerts) ONLY.
 
-PART V REGULATORY FORMAT:
+PART V REGULATORY FORMAT — REVENUE RECORD TABLE MUST USE REAL SCANNED DATA:
+Check the REVENUE_RECORD_PROVIDED flag and the Revenue Record Ground Truth block in context.
+If REVENUE_RECORD_PROVIDED=YES: fill every row below using the ACTUAL values from Revenue Record Ground Truth (Village, Taluka, District, Survey/Block No, Total Area, Land Use, Tenure, Ownership Column, Boja/Encumbrance Column, Ganot/Tenant Column) — these are real deep-scanned fields, use them exactly, do not invent or guess values.
+If REVENUE_RECORD_PROVIDED=NO: write "NOT PROVIDED FOR VERIFICATION" honestly for each row below rather than guessing plausible-looking values — never fabricate Village/Taluka/District/Land Use details that were not actually scanned.
 <div class="sph">A. Revenue Record (7/12 / Property Card)</div>
 <table class="mt">
-<tr><td>Village (Mouje)</td><td>:</td><td>[name]</td></tr>
-<tr><td>Taluka</td><td>:</td><td>[name]</td></tr>
-<tr><td>District</td><td>:</td><td>[name]</td></tr>
-<tr><td>Survey / Block / FP No.</td><td>:</td><td>[exact details]</td></tr>
-<tr><td>Total Area</td><td>:</td><td>[area with flat details]</td></tr>
-<tr><td>Land Use</td><td>:</td><td>Non-Agricultural — confirmed via EC and RERA. [note if any]</td></tr>
-<tr><td>Ownership Column</td><td>:</td><td>[owner name] — vested via [deed details]</td></tr>
-<tr><td>Boja / Encumbrance</td><td>:</td><td>[NIL subsisting / ACTIVE details]</td></tr>
-<tr><td>Ganot / Tenant</td><td>:</td><td>NIL</td></tr>
+<tr><td>Village (Mouje)</td><td>:</td><td>[real value from Revenue Record Ground Truth, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Taluka</td><td>:</td><td>[real value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>District</td><td>:</td><td>[real value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Survey / Block / FP No.</td><td>:</td><td>[real survey_block_no value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Total Area</td><td>:</td><td>[real total_area value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Tenure</td><td>:</td><td>[real tenure value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Land Use</td><td>:</td><td>[real land_use value — note if it confirms Non-Agricultural — or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Ownership Column</td><td>:</td><td>[real ownership_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Boja / Encumbrance</td><td>:</td><td>[real boja_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
+<tr><td>Ganot / Tenant</td><td>:</td><td>[real ganot_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
 </table>
 
 RERA: Include exact RERA registration number if mentioned.
