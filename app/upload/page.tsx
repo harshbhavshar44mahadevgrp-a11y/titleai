@@ -4,7 +4,6 @@ import Sidebar from '@/components/Sidebar'
 
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
-// Per-file tags for EC detection
 const FILE_TAGS = [
     { id: 'auto', label: 'Auto', color: '#475569' },
     { id: 'ec', label: '📋 EC', color: '#6366f1' },
@@ -29,8 +28,16 @@ const loanTypeMap: Record<string, string> = {
     lap: 'LAP (Loan Against Property)',
 }
 
-// ── CHANGED: added docType per file ──
 interface DocFile { name: string; size: string; type: string; docType: string; fileRef?: File }
+
+// ================================================================
+// PAYLOAD BUDGET CONFIG — prevents 413 Request Entity Too Large
+// Vercel hard limit = 4.5MB per request body
+// Base64 adds ~33% overhead, so target raw image bytes well under that
+// ================================================================
+const TARGET_TOTAL_BYTES = 3_200_000   // ~3.2MB raw -> ~4.3MB after base64, safe under 4.5MB
+const MIN_QUALITY = 0.35
+const MIN_MAXPX = 650
 
 export default function UploadPage() {
     const [dragging, setDragging] = useState(false)
@@ -67,7 +74,6 @@ export default function UploadPage() {
 
     const selectedCase = CASE_TYPES.find(c => c.id === caseType) || CASE_TYPES[0]
 
-    // Matrix animation — unchanged
     useEffect(() => {
         const canvas = canvasRef.current; if (!canvas) return
         const ctx = canvas.getContext('2d'); if (!ctx) return
@@ -91,7 +97,6 @@ export default function UploadPage() {
         return () => clearInterval(interval)
     }, [])
 
-    // ── CHANGED: docType added ──
     const addFiles = (newFiles: File[]) => {
         setFiles(prev => {
             const existing = new Set(prev.map(f => f.name + f.size))
@@ -99,47 +104,65 @@ export default function UploadPage() {
             return [...prev, ...toAdd.map(f => ({
                 name: f.name, size: (f.size / 1024).toFixed(1) + ' KB',
                 type: selectedType || 'Auto Detect',
-                docType: 'auto',   // default = auto
+                docType: 'auto',
                 fileRef: f
             }))]
         })
         setErrorMsg(''); setReportData(null)
     }
 
-    // ── CHANGED: update per-file docType ──
     const updateFileTag = (idx: number, tag: string) =>
         setFiles(prev => prev.map((f, i) => i === idx ? { ...f, docType: tag } : f))
 
-    const extractTextFromPDF = async (file: File, imgArr: any[], docType: string): Promise<string> => {
+    // ================================================================
+    // PDF -> IMAGES with ADAPTIVE compression (fixes 413 error)
+    // pageBudget = how many pages THIS file is allowed (priority-based)
+    // quality/maxPx shrink automatically when many files are uploaded
+    // ================================================================
+    const extractTextFromPDF = async (
+        file: File,
+        imgArr: any[],
+        docType: string,
+        pageBudget: number,
+        quality: number,
+        maxPx: number
+    ): Promise<string> => {
         try {
             const pdfjsLib = await import('pdfjs-dist')
             pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
             const arrayBuffer = await file.arrayBuffer()
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-            const pagesToProcess = Math.min(pdf.numPages, 3)
+
+            const pagesToProcess = Math.min(pdf.numPages, pageBudget)
             let fullText = '\n===== DOCUMENT: ' + file.name + ' =====\n'
+
             for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
                 const page = await pdf.getPage(pageNum)
                 const textContent = await page.getTextContent()
                 const pageText = textContent.items.map((item: any) => item.str).join(' ').trim()
                 fullText += '\n--- Page ' + pageNum + ' ---\n' + pageText + '\n'
+
                 const baseVp = page.getViewport({ scale: 1.0 })
-                const maxPx = 1200
                 const scale = Math.min(1.6, maxPx / Math.max(baseVp.width, baseVp.height))
                 const vp = page.getViewport({ scale })
                 const cv = document.createElement('canvas')
                 cv.width = vp.width; cv.height = vp.height
                 await page.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
                 imgArr.push({
-                    base64: cv.toDataURL('image/jpeg', 0.85).split(',')[1],
+                    base64: cv.toDataURL('image/jpeg', quality).split(',')[1],
                     mediaType: 'image/jpeg',
                     name: file.name + '_p' + pageNum,
-                    docType  // ← send docType with each page
+                    docType
                 })
             }
             return fullText
         } catch (e) { return '' }
     }
+
+    // ================================================================
+    // Estimate base64 payload size (approx) from raw image byte count
+    // ================================================================
+    const estimateBase64Bytes = (rawBytes: number) => Math.ceil(rawBytes * 1.37)
 
     const handleGenerate = async () => {
         if (files.length === 0) { setErrorMsg('Pehle documents upload karo!'); return }
@@ -152,27 +175,79 @@ export default function UploadPage() {
         const iv = setInterval(() => { s++; setStep(s); if (s >= steps.length) clearInterval(iv) }, 8000)
 
         try {
+            const pdfFiles = files.filter(f => f.fileRef)
+            const fileCount = pdfFiles.length
+
+            // ── SMART PAGE BUDGET ──
+            // EC + Release + Mortgage tagged files = priority, get up to 3 pages
+            // "auto"/untagged files = fewer pages when file count is high
+            // This prevents 14 files x 3 pages = 42 huge images crashing the request
+            const priorityTags = new Set(['ec', 'release', 'mortgage'])
+            const priorityCount = pdfFiles.filter(f => priorityTags.has(f.docType)).length
+            const normalCount = fileCount - priorityCount
+
+            let normalPageBudget = 3
+            if (fileCount > 10) normalPageBudget = 1
+            else if (fileCount > 6) normalPageBudget = 2
+
+            // ── ADAPTIVE COMPRESSION ──
+            // More files = more aggressive shrink, but EC files always get best quality
+            let normalQuality = 0.85, normalMaxPx = 1200
+            let priorityQuality = 0.85, priorityMaxPx = 1200
+            if (fileCount > 14) { normalQuality = 0.45; normalMaxPx = 750; priorityQuality = 0.65; priorityMaxPx = 950 }
+            else if (fileCount > 10) { normalQuality = 0.55; normalMaxPx = 850; priorityQuality = 0.75; priorityMaxPx = 1050 }
+            else if (fileCount > 6) { normalQuality = 0.7; normalMaxPx = 1000; priorityQuality = 0.85; priorityMaxPx = 1200 }
+
+            setProgress('Optimizing ' + fileCount + ' files for upload...')
+
             let allText = ''; const imageFiles: any[] = []
-            for (const f of files.filter(f => f.fileRef)) {
+
+            for (const f of pdfFiles) {
                 const file = f.fileRef!
+                const isPriority = priorityTags.has(f.docType)
+                const pageBudget = isPriority ? 3 : normalPageBudget
+                const quality = isPriority ? priorityQuality : normalQuality
+                const maxPx = isPriority ? priorityMaxPx : normalMaxPx
+
                 setProgress('Processing: ' + file.name + ' [' + (f.docType === 'ec' ? 'EC DEEP SCAN' : f.docType.toUpperCase()) + ']')
+
                 if (file.type === 'application/pdf') {
-                    allText += await extractTextFromPDF(file, imageFiles, f.docType)
+                    allText += await extractTextFromPDF(file, imageFiles, f.docType, pageBudget, quality, maxPx)
                 } else if (file.type.startsWith('image/')) {
                     const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file) })
                     imageFiles.push({ base64, mediaType: file.type || 'image/jpeg', name: file.name, docType: f.docType })
                 }
             }
+
             if (imageFiles.length === 0) throw new Error('PDF process nahi hua.')
 
-            // EC tagged files count
+            // ── FINAL SIZE CHECK — if still too big after compression, drop lowest-priority pages ──
+            let totalRawBytes = imageFiles.reduce((sum, img) => sum + (img.base64.length * 0.75), 0)
+            let estBase64 = estimateBase64Bytes(totalRawBytes)
+
+            if (estBase64 > TARGET_TOTAL_BYTES * 1.4) {
+                // Drop extra pages from non-priority files first (keep page 1 of each)
+                const seen = new Set<string>()
+                const filtered = imageFiles.filter(img => {
+                    if (priorityTags.has(img.docType)) return true
+                    const baseName = img.name.replace(/_p\d+$/, '')
+                    if (seen.has(baseName)) return false
+                    seen.add(baseName)
+                    return true
+                })
+                imageFiles.length = 0
+                imageFiles.push(...filtered)
+                totalRawBytes = imageFiles.reduce((sum, img) => sum + (img.base64.length * 0.75), 0)
+                estBase64 = estimateBase64Bytes(totalRawBytes)
+                setProgress('Large upload detected — trimmed to ' + imageFiles.length + ' pages to fit limit...')
+            }
+
             const ecCount = imageFiles.filter(i => i.docType === 'ec').length
             setProgress('AI analysis: ' + (ecCount > 0 ? ecCount + ' EC pages deep scan + ' : '') + imageFiles.length + ' total pages...')
 
             const res = await fetch('/api/analyze', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // ── CHANGED: send docType with each image ──
                     images: imageFiles.map((img: any) => ({
                         data: img.base64, mediaType: img.mediaType,
                         name: img.name, docType: img.docType
@@ -186,7 +261,14 @@ export default function UploadPage() {
                     userId: null,
                 })
             })
-            if (!res.ok) { const errText = await res.text(); throw new Error('Server error ' + res.status + ': ' + errText.substring(0, 100)) }
+
+            if (res.status === 413) {
+                throw new Error('Files bahut zyada hain ya bade hain. Kam files upload karo (max 8-10 ek baar mein), ya kam pages wale documents use karo.')
+            }
+            if (!res.ok) {
+                const errText = await res.text()
+                throw new Error('Server error ' + res.status + ': ' + errText.substring(0, 100))
+            }
             const data = await res.json()
             clearInterval(iv); setStep(steps.length)
             if (data.success) {
@@ -215,7 +297,6 @@ export default function UploadPage() {
             <Sidebar />
             <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
 
-                {/* HEADER */}
                 <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)' }}>
                     <div>
                         <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Document <span style={{ color: '#6366f1' }}>Upload & Report</span></div>
@@ -238,7 +319,6 @@ export default function UploadPage() {
 
                 <div style={{ padding: '32px' }}>
 
-                    {/* STEP 1: CASE TYPE */}
                     {!caseSelected && !generating && !reportData && (
                         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
                             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -265,7 +345,6 @@ export default function UploadPage() {
                         </div>
                     )}
 
-                    {/* STEP 2: UPLOAD + FORM */}
                     {caseSelected && !generating && !reportData && (
                         <>
                             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
@@ -283,7 +362,12 @@ export default function UploadPage() {
                                 </div>
                             )}
 
-                            {/* DOC TYPE SELECTOR (global — for new files) */}
+                            {files.length >= 10 && (
+                                <div style={{ marginBottom: '20px', padding: '12px 18px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '10px', color: '#a5b4fc', fontSize: '12px' }}>
+                                    ℹ️ {files.length} files uploaded — system automatically EC/Release files ko priority dega aur baki files compress karega taaki upload fail na ho.
+                                </div>
+                            )}
+
                             <div style={{ marginBottom: '20px' }}>
                                 <div style={{ fontSize: '11px', color: '#334155', letterSpacing: '2px', fontWeight: '700', marginBottom: '12px' }}>SELECT DOCUMENT TYPE (for next upload)</div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -296,7 +380,6 @@ export default function UploadPage() {
                                 </div>
                             </div>
 
-                            {/* DROP ZONE */}
                             <div
                                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
                                 onDragLeave={() => setDragging(false)}
@@ -317,21 +400,18 @@ export default function UploadPage() {
                                 <input ref={inputRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} style={{ display: 'none' }} />
                             </div>
 
-                            {/* ── FILE LIST WITH PER-FILE EC TAGGING ── */}
                             {files.length > 0 && (
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>
                                         ▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span>
                                         <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Max 3 pages per PDF processed)</span>
                                     </div>
-                                    {/* EC TIP */}
                                     <div style={{ fontSize: '11px', color: '#6366f1', marginBottom: '16px', padding: '8px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.2)' }}>
                                         💡 <strong>Tip:</strong> EC file pe click karke <strong>"📋 EC"</strong> tag karo — system us file ko specifically deep scan karega (App No, Mortgage, Release sab pakdega)
                                     </div>
 
                                     {files.map((f, i) => (
                                         <div key={i} style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(99,102,241,0.04)', border: `1px solid ${f.docType === 'ec' ? 'rgba(99,102,241,0.5)' : f.docType === 'release' ? 'rgba(16,185,129,0.4)' : f.docType === 'mortgage' ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.1)'}`, marginBottom: '10px' }}>
-                                            {/* File info row */}
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                                                 <div style={{ fontSize: '20px' }}>📄</div>
                                                 <div style={{ flex: 1 }}>
@@ -341,7 +421,6 @@ export default function UploadPage() {
                                                 <div onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ fontSize: '16px', color: '#ef4444', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>✕</div>
                                             </div>
 
-                                            {/* ── PER-FILE TAG BUTTONS ── */}
                                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                                 {FILE_TAGS.map(tag => (
                                                     <button key={tag.id} onClick={() => updateFileTag(i, tag.id)}
@@ -357,20 +436,19 @@ export default function UploadPage() {
                                                 ))}
                                             </div>
 
-                                            {/* Status indicators */}
                                             {f.docType === 'ec' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#6366f1', fontWeight: '600' }}>
-                                                    🔍 EC Deep Scan ON — App No, Date, Period, Mortgage, Release sab detect hoga
+                                                    🔍 EC Deep Scan ON — App No, Date, Period, Mortgage, Release sab detect hoga (priority quality)
                                                 </div>
                                             )}
                                             {f.docType === 'release' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#10b981', fontWeight: '600' }}>
-                                                    ✅ Release Deed tagged — Active mortgage se automatically match hoga
+                                                    ✅ Release Deed tagged — Active mortgage se automatically match hoga (priority quality)
                                                 </div>
                                             )}
                                             {f.docType === 'mortgage' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#ef4444', fontWeight: '600' }}>
-                                                    ⚠️ Mortgage Deed tagged — Release check automatically hoga
+                                                    ⚠️ Mortgage Deed tagged — Release check automatically hoga (priority quality)
                                                 </div>
                                             )}
                                         </div>
@@ -378,7 +456,6 @@ export default function UploadPage() {
                                 </div>
                             )}
 
-                            {/* FORM */}
                             <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '28px', marginBottom: '24px' }}>
                                 <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '20px', letterSpacing: '1px' }}>
                                     📋 CASE DETAILS SHEET
@@ -422,7 +499,6 @@ export default function UploadPage() {
                         </>
                     )}
 
-                    {/* GENERATING */}
                     {generating && (
                         <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '20px', padding: '48px 32px', textAlign: 'center' }}>
                             <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px', letterSpacing: '2px' }}>⚡ GENERATING LEGAL SCRUTINY REPORT...</div>
@@ -445,7 +521,6 @@ export default function UploadPage() {
                         </div>
                     )}
 
-                    {/* REPORT */}
                     {reportData && !generating && (
                         <div>
                             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
