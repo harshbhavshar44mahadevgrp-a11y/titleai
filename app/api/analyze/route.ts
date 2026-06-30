@@ -186,6 +186,8 @@ Start the chain from the EARLIEST point established by Revenue Record / deed evi
 Only state "chain limited to documents produced" if you have genuinely found zero Revenue Record or deed references to anything earlier after checking all documents.
 Construct the fullest, deepest, most complete chronological chain the Revenue Record and registered deeds support.
 
+EXHAUSTIVE ENTRY COVERAGE — MANDATORY, EVERY TIME: If Revenue Record Ground Truth lists Mutation/FERFAR entries, your analysis must walk through EVERY single one of them by Entry No. and Date — never compress several entries into a vague summary sentence. Count the entries listed, then confirm your analysis names each one individually before moving on. This feeds directly into how Part IV gets written downstream, so compressing here means the final report compresses too — do not let that happen.
+
 EC ANALYSIS FORMAT (exactly like this):
 EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination.
 
@@ -260,8 +262,13 @@ If REVENUE_RECORD_PROVIDED=NO, use instead:
 
 Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV — ownership continuity is confirmed by Revenue Record/Mutation entries (or honestly flagged as unconfirmed), never by EC.
 
+EXHAUSTIVE COVERAGE OF EVERY MUTATION/FERFAR ENTRY — MANDATORY, NON-NEGOTIABLE, ALWAYS:
+If REVENUE_RECORD_PROVIDED=YES, the Revenue Record Ground Truth block in context lists every Mutation/FERFAR entry as a numbered line (Entry No., Date, Status, Nature, Survey No.). FIRST, count exactly how many entries are listed. Your output MUST mention every single one of them by its own Entry No. and Date, in chronological order — oldest first. Do NOT compress multiple entries into one vague sentence like "various mutation entries reflect the transfer history." Each entry gets its own clause or sentence naming its Entry No., Date, and what it records (transfer / NA conversion / death of owner / inheritance / whatever the Nature field states).
+If an entry's Nature is sparse or unclear, still name it factually — "Mutation Entry No. [X] dated [date], the precise nature of which is not fully legible from the record produced, was effected during this period" — never silently drop an entry because its description is thin.
+SELF-CHECK BEFORE FINALIZING: Re-read the Revenue Record Ground Truth's entry list one more time. For each Entry No. listed there, confirm it appears by number somewhere in your Part IV text. If any entry is missing from your output, go back and add a sentence for it before finishing. This check applies every single time Revenue Record Ground Truth is present — never skip it, never treat it as optional, never summarize past it.
+
 RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter.
-Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum. EC rows are NEVER the paragraph source.
+Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph or clause minimum — exhaustive, not selective. EC rows are NEVER the paragraph source.
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END: after last paragraph.`
 
