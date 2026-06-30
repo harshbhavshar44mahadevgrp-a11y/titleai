@@ -369,9 +369,15 @@ export async function POST(req: NextRequest) {
         const psImgs = ecImgs.length > 0 ? [...ecImgs, ...relImgs] : allImgs
         console.log('Images: all=' + allImgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage=' + relImgs.length + ' Revenue-tagged=' + revImgs.length)
 
-        // ── STEP 0: EC PRE-SCREEN + REVENUE PRE-SCREEN (PARALLEL — was sequential, fixes 504 timeout) ──
+        const FORM = ['=== FORM DATA (ALWAYS PRIORITY) ===', 'FORM_APPLICANT: ' + applicantName, 'FORM_CO: ' + (coApplicant || 'Not Applicable'), 'FORM_OWNER: ' + (currentOwner || applicantName), 'FORM_BANK: ' + bankName, 'FORM_PROPERTY: ' + propertyAddress, 'EAST: ' + boundaryEast, 'WEST: ' + boundaryWest, 'NORTH: ' + boundaryNorth, 'SOUTH: ' + boundarySouth, 'Applicant = FORM_APPLICANT always. Never advocate name.', '==='].join('\n')
+
+        // ── STEP 0 + STEP 1 — ALL RUN IN PARALLEL (was sequential, fixes 504 timeout) ──
+        // EC prescreen, Revenue prescreen, and Haiku fact-extraction all hit images
+        // independently and have no dependency on each other's output, so they
+        // fire concurrently instead of one after another.
         let ecRows: ECRow[] = [], ecMetas: ECMeta[] = [], lc = runLC([]), preReleases: any[] = []
         let revData: any = null
+        let facts = ''
 
         const ecPrescreen = AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
             .then(ps => {
@@ -393,7 +399,14 @@ export async function POST(req: NextRequest) {
                 })
                 .catch(e => console.log('REV PS err:', e))
 
-        await Promise.all([ecPrescreen, revPrescreen])
+        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...allImgs, { type: 'text', text: FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
+            .then(s1 => {
+                facts = s1.content[0].type === 'text' ? s1.content[0].text : ''
+                console.log('STEP1: facts extracted, length=' + facts.length)
+            })
+            .catch(e => console.log('STEP1 err:', e))
+
+        await Promise.all([ecPrescreen, revPrescreen, step1Promise])
 
         // Apply pre-screen releases
         if (preReleases.length > 0) {
@@ -436,13 +449,7 @@ export async function POST(req: NextRequest) {
 
         const GT = ecGT + revGT
 
-        const FORM = ['=== FORM DATA (ALWAYS PRIORITY) ===', 'FORM_APPLICANT: ' + applicantName, 'FORM_CO: ' + (coApplicant || 'Not Applicable'), 'FORM_OWNER: ' + (currentOwner || applicantName), 'FORM_BANK: ' + bankName, 'FORM_PROPERTY: ' + propertyAddress, 'EAST: ' + boundaryEast, 'WEST: ' + boundaryWest, 'NORTH: ' + boundaryNorth, 'SOUTH: ' + boundarySouth, 'Applicant = FORM_APPLICANT always. Never advocate name.', '==='].join('\n')
-
-        // ── STEP 1: Extract facts (Haiku) ──
-        const s1 = await AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...allImgs, { type: 'text', text: FORM + '\n\n' + GT + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
-        const facts = s1.content[0].type === 'text' ? s1.content[0].text : ''
-
-        // ── STEP 2: Deep legal analysis (Sonnet) ──
+        // ── STEP 2: Deep legal analysis (Sonnet) — facts already extracted in parallel above ──
         const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, system: getS2(caseType), messages: [{ role: 'user', content: FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
         const analysis = s2.content[0].type === 'text' ? s2.content[0].text : ''
         const meta = parseMeta(analysis)
