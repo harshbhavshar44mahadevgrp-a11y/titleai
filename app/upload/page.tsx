@@ -7,6 +7,7 @@ const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 
 const FILE_TAGS = [
     { id: 'auto', label: 'Auto', color: '#475569' },
     { id: 'ec', label: '📋 EC', color: '#6366f1' },
+    { id: 'revenue', label: '🗺️ Revenue 7/12', color: '#a16207' },
     { id: 'release', label: '✅ Release', color: '#10b981' },
     { id: 'mortgage', label: '⚠️ Mortgage', color: '#ef4444' },
     { id: 'sale', label: '📄 Sale Deed', color: '#3b82f6' },
@@ -182,7 +183,7 @@ export default function UploadPage() {
             // EC + Release + Mortgage tagged files = priority, get up to 3 pages
             // "auto"/untagged files = fewer pages when file count is high
             // This prevents 14 files x 3 pages = 42 huge images crashing the request
-            const priorityTags = new Set(['ec', 'release', 'mortgage'])
+            const priorityTags = new Set(['ec', 'revenue', 'release', 'mortgage'])
             const priorityCount = pdfFiles.filter(f => priorityTags.has(f.docType)).length
             const normalCount = fileCount - priorityCount
 
@@ -194,8 +195,11 @@ export default function UploadPage() {
             // More files = more aggressive shrink, but EC files always get best quality
             let normalQuality = 0.85, normalMaxPx = 1200
             let priorityQuality = 0.85, priorityMaxPx = 1200
-            if (fileCount > 14) { normalQuality = 0.45; normalMaxPx = 750; priorityQuality = 0.65; priorityMaxPx = 950 }
-            else if (fileCount > 10) { normalQuality = 0.55; normalMaxPx = 850; priorityQuality = 0.75; priorityMaxPx = 1050 }
+            // Priority files (EC, Revenue, Release, Mortgage) ALWAYS get full quality
+            // regardless of file count — these are the critical documents. Only normal
+            // files get compressed aggressively when many files are uploaded.
+            if (fileCount > 14) { normalQuality = 0.45; normalMaxPx = 750; priorityQuality = 0.85; priorityMaxPx = 1200 }
+            else if (fileCount > 10) { normalQuality = 0.55; normalMaxPx = 850; priorityQuality = 0.85; priorityMaxPx = 1200 }
             else if (fileCount > 6) { normalQuality = 0.7; normalMaxPx = 1000; priorityQuality = 0.85; priorityMaxPx = 1200 }
 
             setProgress('Optimizing ' + fileCount + ' files for upload...')
@@ -209,7 +213,7 @@ export default function UploadPage() {
                 const quality = isPriority ? priorityQuality : normalQuality
                 const maxPx = isPriority ? priorityMaxPx : normalMaxPx
 
-                setProgress('Processing: ' + file.name + ' [' + (f.docType === 'ec' ? 'EC DEEP SCAN' : f.docType.toUpperCase()) + ']')
+                setProgress('Processing: ' + file.name + ' [' + (f.docType === 'ec' ? 'EC DEEP SCAN' : f.docType === 'revenue' ? 'REVENUE DEEP SCAN' : f.docType.toUpperCase()) + ']')
 
                 if (file.type === 'application/pdf') {
                     allText += await extractTextFromPDF(file, imageFiles, f.docType, pageBudget, quality, maxPx)
@@ -267,7 +271,14 @@ export default function UploadPage() {
             }
             if (!res.ok) {
                 const errText = await res.text()
-                throw new Error('Server error ' + res.status + ': ' + errText.substring(0, 100))
+                // Try to parse as JSON and pull the clean error field; fall back to raw text.
+                // No truncation — full message needed to diagnose actual API errors.
+                let cleanMsg = errText
+                try {
+                    const parsed = JSON.parse(errText)
+                    if (parsed?.error) cleanMsg = typeof parsed.error === 'string' ? parsed.error : JSON.stringify(parsed.error)
+                } catch { }
+                throw new Error('Server error ' + res.status + ': ' + cleanMsg)
             }
             const data = await res.json()
             clearInterval(iv); setStep(steps.length)
@@ -357,8 +368,9 @@ export default function UploadPage() {
                             </div>
 
                             {errorMsg && (
-                                <div style={{ marginBottom: '20px', padding: '14px 20px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '12px', color: '#fca5a5', fontSize: '13px', fontWeight: '600' }}>
-                                    ✗ {errorMsg}
+                                <div style={{ marginBottom: '20px', padding: '14px 20px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '12px', color: '#fca5a5', fontSize: '13px', fontWeight: '600', wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+                                    <div style={{ marginBottom: '8px' }}>✗ Error occurred — full details below (copy this if asking for help):</div>
+                                    <div style={{ fontFamily: 'monospace', fontSize: '11px', fontWeight: '400', color: '#fca5a5', background: 'rgba(0,0,0,0.25)', padding: '10px', borderRadius: '8px', userSelect: 'text' }}>{errorMsg}</div>
                                 </div>
                             )}
 
@@ -407,11 +419,11 @@ export default function UploadPage() {
                                         <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Max 3 pages per PDF processed)</span>
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#6366f1', marginBottom: '16px', padding: '8px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.2)' }}>
-                                        💡 <strong>Tip:</strong> EC file pe click karke <strong>"📋 EC"</strong> tag karo — system us file ko specifically deep scan karega (App No, Mortgage, Release sab pakdega)
+                                        💡 <strong>Tip:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 file pe <strong>"🗺️ Revenue 7/12"</strong> tag karo — system un files ko specifically deep scan karega (EC: App No, Mortgage, Release | Revenue: Survey No., Land Use, FERFAR/Mutation history)
                                     </div>
 
                                     {files.map((f, i) => (
-                                        <div key={i} style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(99,102,241,0.04)', border: `1px solid ${f.docType === 'ec' ? 'rgba(99,102,241,0.5)' : f.docType === 'release' ? 'rgba(16,185,129,0.4)' : f.docType === 'mortgage' ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.1)'}`, marginBottom: '10px' }}>
+                                        <div key={i} style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(99,102,241,0.04)', border: `1px solid ${f.docType === 'ec' ? 'rgba(99,102,241,0.5)' : f.docType === 'revenue' ? 'rgba(161,98,7,0.5)' : f.docType === 'release' ? 'rgba(16,185,129,0.4)' : f.docType === 'mortgage' ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.1)'}`, marginBottom: '10px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                                                 <div style={{ fontSize: '20px' }}>📄</div>
                                                 <div style={{ flex: 1 }}>
@@ -439,6 +451,11 @@ export default function UploadPage() {
                                             {f.docType === 'ec' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#6366f1', fontWeight: '600' }}>
                                                     🔍 EC Deep Scan ON — App No, Date, Period, Mortgage, Release sab detect hoga (priority quality)
+                                                </div>
+                                            )}
+                                            {f.docType === 'revenue' && (
+                                                <div style={{ marginTop: '8px', fontSize: '11px', color: '#a16207', fontWeight: '600' }}>
+                                                    🔍 Revenue Deep Scan ON — Village/Taluka/District, Survey No., Land Use, Boja, aur FERFAR/Mutation entries (20-25 saal tak) sab detect hoga (priority quality)
                                                 </div>
                                             )}
                                             {f.docType === 'release' && (

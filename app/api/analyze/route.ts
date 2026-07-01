@@ -444,11 +444,19 @@ export async function POST(req: NextRequest) {
         // skipping entirely — catches cases where a 7/12 was uploaded but never tagged.
         const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
         const revPrescreen =
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
-                    const r = parseJSON(rs.content[0].type === 'text' ? rs.content[0].text : '{}')
-                    if (r && r.found !== false) { revData = r; console.log('REV P0: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0) + ' (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
-                    else { console.log('REV P0: no revenue record found in scanned images (source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all') + ')') }
+                    const rawText = rs.content[0].type === 'text' ? rs.content[0].text : ''
+                    console.log('REV RAW (first 300 chars):', rawText.substring(0, 300))
+                    const r = parseJSON(rawText)
+                    if (r && r.found !== false) {
+                        revData = r
+                        console.log('REV P0 SUCCESS: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0) + ' source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all'))
+                    } else if (r && r.found === false) {
+                        console.log('REV P0: model explicitly returned found:false — no revenue record visible in images')
+                    } else {
+                        console.log('REV P0 PARSE FAILED: raw length=' + rawText.length + ' parseJSON returned null — likely truncated JSON from token budget. Source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all'))
+                    }
                 })
                 .catch(e => { revScanError = true; console.log('REV PS err:', e?.message || e) })
 
