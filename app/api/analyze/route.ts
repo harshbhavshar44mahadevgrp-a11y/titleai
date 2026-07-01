@@ -255,11 +255,30 @@ STEP 1 — DISCLOSURE PARAGRAPH FIRST (no Thereafter):
 If older entries exist but have no owner details, write:
 <p>Revenue records prior to Mutation Entry No. [X] were not available in the documents produced; the chain accordingly commences from the earliest available record, being Mutation Entry No. [X]. The following Mutation Entry numbers are referenced in the Revenue Record but without transfer particulars or owner details: Entry Nos. [list all]. Complete verification of the title chain prior to Entry No. [X] is therefore not possible on the basis of the Revenue Record as produced.</p>
 
-STEP 2 — ONE <p> TAG PER NONDH ENTRY (after first, each starts with Thereafter):
-<p>Thereafter, vide Mutation Entry No. [entry_no] dated [entry_date] (Certification Date: [certification_date]; Status: [status]), [PREVIOUS OWNER full name] transferred the subject land bearing Survey No. [survey_no], Mouje: [village], Taluka: [taluka], District: [district] to [NEW OWNER full name], vide [supporting document if any]. By virtue of this entry, [NEW OWNER] stood recorded as Kabjedar/Khatedar in the Revenue Record.</p>
+STEP 2 — ONE FULL DETAIL <p> TAG PER NONDH ENTRY:
 
-IF ONLY ONE NONDH ENTRY HAS OWNERSHIP DETAILS — still write it as its own <p>:
-<p>Thereafter, vide Mutation Entry No. [entry_no] (date: [date or "not stated in extract produced"]; Status: Certified), ownership of the subject land bearing Survey No. [survey_no], Mouje: [village], Taluka: [taluka], District: [district], admeasuring [area], stood recorded in the Revenue Record in the name of [NEW OWNER], as the current Kabjedar/Khatedar. Land use: Non-Agricultural. Tenure: Old Tenure (Juni Sharat). [State if previous owner name is not disclosed in extract.]</p>
+WHAT "FULL DETAIL" MEANS — EVERY paragraph must contain ALL of these that are available:
+1. Mutation Entry No. and Date (and Certification Date if different)
+2. Status (Certified / Pending / Rejected)
+3. Previous Owner — full name (who gave up ownership)
+4. New Owner — full name (who received ownership)
+5. Subject land details — Survey No., Village/Mouje, Taluka, District, Area
+6. Nature of entry — what kind of transaction (Sale, Inheritance, Partition, NA Conversion, Mortgage, Release, Court Order etc.)
+7. Supporting Document — deed number and date if mentioned
+8. Any remarks or special notations
+
+WHAT IS NOT ACCEPTABLE — do NOT write short one-liners like:
+❌ "Thereafter, vide Mutation Entry No. 12064, ownership changed to M/S Arpan Developers."
+❌ "Thereafter, Entry No. 21763 dated 17-07-2021 was certified."
+
+WHAT IS CORRECT — write a complete legal paragraph like this:
+✅ <p>Thereafter, vide Mutation Entry No. 21763 dated 17-07-2021 (Certification Date: 22-07-2021; Status: Certified), Seni Infrastructure Limited, as the recorded previous Kabjedar/Khatedar of the subject land bearing Survey No. 210/001, Final Plot No. 49/1/2, Town Planning Scheme No. 01 (KOBA), Mouje: Koba, Taluka: Gandhinagar, District: Gandhinagar, admeasuring 8,020 Sq. Mtrs., Non-Agricultural land, conveyed and transferred the said land to M/s. Shivalay Soham Developers, a Partnership Firm, vide Registered Sale Deed bearing Document No. 21763. By virtue of this certified mutation entry, M/s. Shivalay Soham Developers stood recorded as the new Kabjedar/Khatedar in the Revenue Record in place of Seni Infrastructure Limited.</p>
+
+FOR ENTRIES WHERE PREVIOUS OWNER IS NOT STATED:
+✅ <p>Thereafter, vide Mutation Entry No. 12064 (date not stated in extract; Status: Certified), ownership of the subject land bearing Survey No. 214, Mouje: Kudasan, Taluka: Gandhinagar, District: Gandhinagar, admeasuring 2-16-43 Hectares-Ares-Square Metres, Non-Agricultural land (Paiki Bin Kheti), Old Tenure (Juni Sharat), stood recorded in the Revenue Record in the name of M/S Arpan Developers, a Partnership Firm, as the Kabjedar/Khatedar. The name of the previous owner is not disclosed in the extract produced; accordingly, the origin of title prior to this entry cannot be independently traced from the Revenue Record alone. Mutation Entry No. 12064 stands Certified in the Revenue Record.</p>
+
+FOR MORTGAGE ENTRIES:
+✅ <p>Thereafter, vide Mutation Entry No. 37424 dated 24-08-2022 (Status: Certified), M/s. S B Realty, a Partnership Firm, through its authorized partner Bharatbhai Gandabhai Patel, created a Registered Mortgage over the subject land bearing Final Plot No. 49/1/2, Survey No. 210/001, Town Planning Scheme No. 01, Mouje: Koba, Taluka: Gandhinagar, District: Gandhinagar, in favour of Bajaj Housing Finance Limited, for a consideration of Rs. 4,00,00,000/-, vide Mortgage Deed No. 37424. This mortgage entry is recorded in the Boja/Encumbrance column of the Revenue Record. The said mortgage is subsisting and active as on date — no Release Deed has been found in the Revenue Record produced.</p>
 
 STEP 3 — BOJA/ENCUMBRANCE ENTRIES (if any noted in Revenue Record):
 <p>Thereafter, the Boja/Encumbrance column of the Revenue Record records the following entry notations against the subject property: Entry Nos. [list]. [Describe what each notation states, e.g. permissions, revision orders, Ganot cases.] Full details and parties underlying these entries are not available in the extract produced.</p>
@@ -269,6 +288,14 @@ STEP 4 — CURRENT STATUS PARAGRAPH:
 
 STEP 5 — EC CROSS-VERIFICATION (one <p>, very last):
 <p>The above Revenue Record chain is cross-verified against the Encumbrance Certificate bearing E-Application No. [X] covering the period [from] to [to] — [no discrepancy found / the following discrepancy noted: ___].</p>
+
+MANDATORY COUNT-AND-WRITE RULE — MOST IMPORTANT:
+The Revenue Record Ground Truth in your context shows "X found — ALL must be written" where X is the total number of Nondh entries extracted.
+Before you start writing: note that number.
+As you write: count your Thereafter paragraphs.
+Before you finish: confirm your paragraph count matches the entry count.
+If you wrote fewer paragraphs than entries — go back and add the missing ones.
+DO NOT stop early. DO NOT skip any entry even if it seems redundant or has minimal information. EVERY Nondh entry gets its own paragraph. This is a legal scrutiny report — omitting any entry is a serious deficiency.
 
 RULES: English only. No Gujarati. Every name individually — never "and others". Each Nondh = own <p>. First para = no Thereafter. Every para after = starts "Thereafter,"
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
@@ -380,7 +407,7 @@ END: after the Part XI paragraph.`
 // ================================================================
 const EC_PS = 'Look at ALL uploaded images. Find Encumbrance Certificate (EC) table.\n\nCRITICAL RULE:\nCOL 3 = Aapnar = LEFT = WHO GIVES\nCOL 4 = Lenar = RIGHT = WHO RECEIVES\nBANK IN COL 3 = RELEASE DEED | BANK IN COL 4 = MORTGAGE DEED\n\nExtract EVERY EC row + header. Also check ALL docs for Release Deed / Giro Mukeli / Reconveyance.\n\nOutput ONLY JSON:\n{"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}],"pre_screen_releases":[{"bank":"","deed_no":"","date":"","source":""}]}'
 
-const REV_PS = 'LANGUAGE RULE: Output EVERYTHING in English only. Never use Gujarati script in your JSON output — transliterate all Gujarati text to English (e.g. write Koba not કોબા, write Non-Agricultural not Bin Kheti in Gujarati script).\n\nLook at ALL uploaded images. Find Revenue Records of ANY type: Village Form No. 6, Village Form No. 7 (Satbara/7-12), Village Form No. 8-A, Village Form No. 12, Property Card, City Survey extract, Hakk Patrak, AND FERFAR / Mutation Register / Gamnamuna No. 6 entries.\n\nIMPORTANT — IDENTIFY WHICH TYPE OF DOCUMENT THIS IS:\nA "Property Card" or "RoR Extract" (snapshot type) typically shows ONLY current ownership + a Boja/encumbrance column — it usually does NOT list a long history of past transfers.\nA "Mutation Register" / "Hakk Patrak" / "Gamnamuna No. 6" / "Village Form No. 6" (ledger type) is a DIFFERENT document that DOES list every transfer entry chronologically, often spanning decades.\nReport which type(s) you actually see in document_type_found.\n\nFor the SUBJECT PROPERTY land only, extract:\n- village (Mouje), taluka, district\n- survey_block_no (include OLD survey number AND new survey number separately if the document distinguishes them, e.g. "allotted in lieu of Survey No. X")\n- total_area (with unit, e.g. H.Are.SqMt or Sq.Mtrs.)\n- land_use (exact words seen — Bin Kheti / Kheti / Non-Agricultural / Agricultural)\n- tenure (e.g. Juni Sharat / Old Tenure / Naa Sharat / New Tenure — if mentioned)\n- ownership_column (current Kabjedar/Khatedar name exactly as written)\n- boja_column (exact wording of Boja/encumbrance entry, or "NIL" if blank/clear — list EVERY Boja entry number visible, not just the first)\n- ganot_column (tenant entry, or "NIL" if blank)\n\nMUTATION ENTRY EXTRACTION — THIS IS THE MOST IMPORTANT PART, EXTRACT EVERY FIELD FOR EVERY ENTRY:\nFor EVERY visible FERFAR/Mutation entry, oldest to newest, however old, extract ALL of these fields per entry — do not skip any field, write "not stated" if genuinely absent rather than omitting the field entirely:\n- entry_no: the mutation/FERFAR entry number\n- entry_date: the date the entry was registered/recorded\n- certification_date: the date it was CERTIFIED (often different from entry_date — if the document only shows one date, use it for both)\n- status: Certified or Pending or Rejected — state exactly what the document shows\n- previous_owner: the FULL NAME of the owner BEFORE this mutation (who is giving up/transferring the right) — this is critical, extract every name individually, never "and others"\n- new_owner: the FULL NAME of the owner AFTER this mutation (who is receiving the right) — same rule, every name individually\n- nature: short description of the transaction type (sale / inheritance / gift / partition / NA conversion / death of owner / mortgage / mortgage release / court order / etc)\n- reason_of_mutation: a fuller sentence explaining WHY this mutation happened (e.g. "registered sale deed executed between previous and new owner for consideration", or "devolution upon death of original Khatedar", or "NA conversion order issued by Collector")\n- relevant_survey_no: only if explicitly tied to this entry\n- supporting_document: the deed/order type and number if mentioned (e.g. "Sale Deed No. 1234 dated DD-MM-YYYY") or "not stated" if the mutation entry does not reference a specific supporting document\n- remarks: any additional notation, discrepancy, or illegible portion specific to this entry\n\nEVEN ON A SNAPSHOT-TYPE DOCUMENT, look for any residual historical breadcrumbs that sometimes appear even outside a formal mutation table — e.g. small-print references to "previously recorded as," an earlier Khata number superseded by the current one, any note of a prior khatedar/owner name, or any reference to an older survey number lineage predating the current Final Plot allotment. If found, add these as additional mutation_entries even without a formal entry number (use entry_no: "reference" and fill previous_owner/new_owner from whatever names are mentioned).\n\nDo NOT skip old entries even if faded or partial — extract whatever is legible. This data will be used to build a complete chronological Revenue Record Flow of Chain showing exactly how ownership changed over time, so previous_owner and new_owner on EVERY entry matter more than anything else here. If the document genuinely is a current-snapshot type with no deeper history visible, say so honestly in document_type_found rather than inventing entries.\n\nOutput ONLY JSON:\n{"document_type_found":"Property Card/snapshot type OR Mutation Register/ledger type OR both","village":"","taluka":"","district":"","survey_block_no":"","total_area":"","land_use":"","tenure":"","ownership_column":"","boja_column":"","ganot_column":"","mutation_entries":[{"entry_no":"","entry_date":"","certification_date":"","status":"","previous_owner":"","new_owner":"","nature":"","reason_of_mutation":"","relevant_survey_no":"","supporting_document":"","remarks":""}]}\nIf no revenue record document found: {"found":false}'
+const REV_PS = 'LANGUAGE: Output everything in English only. No Gujarati script in JSON output. Translate: \'Bin Kheti\'=\'Non-Agricultural\', \'Juni Sharat\'=\'Old Tenure\', \'Naa Sharat\'=\'New Tenure\', village names in English transliteration.\n\nLook at ALL uploaded images. Find Revenue Records: Village Form No. 6, 7/12, 8-A, Property Card, Hakk Patrak, Mutation Register, FERFAR, Gamnamuna No. 6.\n\nDOCUMENT TYPE: Note if snapshot (Property Card/RoR extract showing current state only) or ledger (Mutation Register with full history). Report in document_type_found.\n\nEXTRACT FOR SUBJECT PROPERTY ONLY:\n- village, taluka, district (English)\n- survey_block_no (old AND new survey numbers if both shown)\n- total_area, land_use (English: Non-Agricultural/Agricultural), tenure (English: Old Tenure/New Tenure)\n- ownership_column (current Kabjedar name in English)\n- boja_column (ALL Boja entry numbers and any descriptions — every single one)\n- ganot_column\n\nMUTATION ENTRIES — EXTRACT EVERY SINGLE ONE, OLDEST TO NEWEST:\nThis is the most critical part. Extract ALL visible Nondh/Mutation/FERFAR entries without exception.\nIf the document shows 30 entries, extract all 30. If it shows 5, extract all 5.\nDO NOT stop early. DO NOT skip any entry. Every entry matters for building 25-30 year history.\nUse compact field names to fit more entries:\n\nOutput ONLY this JSON (no other text):\n{"document_type_found":"snapshot OR ledger","village":"","taluka":"","district":"","survey_block_no":"","total_area":"","land_use":"","tenure":"","ownership_column":"","boja_column":"","ganot_column":"","entries":[{"e":"entry_no","d":"entry_date","cd":"certification_date","s":"status","po":"previous_owner_full_name","no":"new_owner_full_name","n":"nature","r":"reason","sv":"survey_no","sd":"supporting_doc","rm":"remarks"}]}\nIf no revenue record found: {"found":false}'
 
 // ================================================================
 // MAIN API HANDLER
@@ -482,17 +509,20 @@ export async function POST(req: NextRequest) {
 
         let revGT = ''
         if (revData) {
-            const mutLines = (revData.mutation_entries || []).map((m: any, idx: number) =>
-                '  ' + (idx + 1) + '. Entry No.' + (m.entry_no || '?') + ' | Date:' + (m.entry_date || '?') +
-                (m.certification_date ? (' | Certified:' + m.certification_date) : '') +
-                ' | Status:' + (m.status || '?') +
-                ' | PREVIOUS OWNER: ' + (m.previous_owner || 'not stated') +
-                ' -> NEW OWNER: ' + (m.new_owner || 'not stated') +
-                ' | Nature:' + (m.nature || '?') +
-                (m.reason_of_mutation ? (' | Reason:' + m.reason_of_mutation) : '') +
-                (m.relevant_survey_no ? (' | Survey:' + m.relevant_survey_no) : '') +
-                (m.supporting_document ? (' | Supporting Doc:' + m.supporting_document) : '') +
-                (m.remarks ? (' | Remarks:' + m.remarks) : '')
+            // Support both old field names and new compact field names
+            const entries = revData.mutation_entries || revData.entries || []
+            const mutLines = entries.map((m: any, idx: number) =>
+                '  ' + (idx + 1) + '. Entry No.' + (m.e || m.entry_no || '?') +
+                ' | Date:' + (m.d || m.entry_date || 'not stated') +
+                (((m.cd || m.certification_date) ? (' | Certified:' + (m.cd || m.certification_date)) : '') +
+                    ' | Status:' + (m.s || m.status || '?') +
+                    ' | PREV OWNER: ' + (m.po || m.previous_owner || 'not stated') +
+                    ' -> NEW OWNER: ' + (m.no || m.new_owner || 'not stated') +
+                    ' | Nature:' + (m.n || m.nature || '?') +
+                    ((m.r || m.reason_of_mutation) ? (' | Reason:' + (m.r || m.reason_of_mutation)) : '') +
+                    ((m.sv || m.relevant_survey_no) ? (' | Survey:' + (m.sv || m.relevant_survey_no)) : '') +
+                    ((m.sd || m.supporting_document) ? (' | Doc:' + (m.sd || m.supporting_document)) : '') +
+                    ((m.rm || m.remarks) ? (' | Remarks:' + (m.rm || m.remarks)) : ''))
             )
             revGT = ['', '=== REVENUE RECORD GROUND TRUTH (deep-scanned 7/12 / Property Card / FERFAR) ===',
                 'Village: ' + (revData.village || 'NOT PROVIDED'),
@@ -505,7 +535,7 @@ export async function POST(req: NextRequest) {
                 'Ownership Column: ' + (revData.ownership_column || 'NOT PROVIDED'),
                 'Boja/Encumbrance Column: ' + (revData.boja_column || 'NOT PROVIDED'),
                 'Ganot/Tenant Column: ' + (revData.ganot_column || 'NOT PROVIDED'),
-                'FERFAR/Mutation Entries (' + ((revData.mutation_entries || []).length) + ' found, oldest to newest):',
+                'FERFAR/Mutation Entries (' + entries.length + ' found — ALL must be written in Part IV, oldest to newest):',
                 ...mutLines,
                 'RULE: Use these entries to extend the title chain as far back as possible (20-25+ years). Treat this as authoritative revenue record data.',
                 '==='
