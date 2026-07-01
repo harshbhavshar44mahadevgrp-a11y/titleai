@@ -229,58 +229,42 @@ END: after last document entry.`
 // ================================================================
 // STEP 3B — PART IV SYSTEM
 // ================================================================
-const S3B = `Generate HTML for PART IV ONLY — Chronological Title Chain and History of Property.
-(Note: Part I — Borrower/Mortgagor/Ownership, Part II — Property Description, and Part III — List of Scrutinized Documents are generated separately and already appear before this section. Do NOT regenerate them. Start directly with Part IV.)
-OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning, as flowing prose paragraphs.
+const S3B = `You are writing PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY.
 
-OBJECTIVE — READ THIS FIRST BEFORE WRITING ANYTHING:
-Your one job in this section is to prepare a complete Revenue Record Flow of Chain covering at least the last 15-20 years. The Revenue Record Ground Truth at the top of your context contains the extracted mutation entries — those are your PRIMARY source. Read every single entry listed there and write a paragraph for each one. Do not summarize. Do not skip. Do not merge entries.
+SOURCE RULE — NON-NEGOTIABLE, EVERY SINGLE REPORT:
+Write this section FROM REVENUE RECORD ONLY.
+The context given to you has a section called "=== PRIMARY SOURCE: REVENUE RECORD FLOW OF CHAIN ===" — that is your ONLY source for this section.
+EC (Encumbrance Certificate) is NOT the source. EC is only for cross-verification at the end.
+If you find yourself writing "as per the Encumbrance Certificate" or "EC bearing E-Application No." as the source of a chain event — STOP. That is wrong. Go back to the Revenue Record entries.
 
-MANDATORY SCOPE:
-• Cover a MINIMUM of the last 15-20 years. If records older than 20 years are available in the Revenue Record Ground Truth, start from the EARLIEST available entry — not just recent ones.
-• Include every mutation: sale, inheritance, partition, gift, exchange, court order, NA conversion, mortgage, mortgage release, correction entry — every single one that appears in the Revenue Record Ground Truth.
-• NEVER skip a certified mutation entry.
-• NEVER assume ownership prior to the earliest entry in the Revenue Record Ground Truth.
+HOW TO WRITE — SIMPLE RULES:
+1. Open the Revenue Record Ground Truth from context. It has mutation entries listed oldest to newest.
+2. Write the FIRST entry as an opening paragraph — NO "Thereafter" at the start.
+3. Write EVERY subsequent entry as a new paragraph starting with "Thereafter,"
+4. EVERY year that has an entry in the Revenue Record must get its own paragraph — do not skip any year, do not merge two years into one paragraph.
+5. In each paragraph state: Mutation Entry No. | Date | PREVIOUS OWNER | NEW OWNER | Nature of change | Supporting document if available.
+6. PREVIOUS OWNER and NEW OWNER must be named explicitly in every paragraph — never omit them.
 
-MANDATORY DISCLOSURES — include these exact sentences where applicable:
-(A) If Revenue Record Ground Truth shows the earliest entry is from a certain year and nothing older is available: write "Revenue records prior to [year of earliest entry] were not available in the documents provided; therefore, the chain commences from the earliest available record, being Mutation Entry No. [entry_no] dated [entry_date]."
-(B) If any mutation entry references an earlier entry number that is NOT itself listed in the Revenue Record Ground Truth: write "Earlier Mutation Entry No. [referenced_no] is referenced in Entry No. [current_entry_no] but the corresponding record has not been provided. Therefore, complete verification of the title flow prior to this entry is not possible."
+IF REVENUE RECORD IS NOT AVAILABLE:
+If REVENUE_RECORD_PROVIDED does not say YES, write the chain only from the registered deeds (Sale Deed, Mortgage, Release Deed) using their recitals, and end with:
+"Revenue Record (7/12 / Mutation extract) was not separately produced for verification; the above chain is based solely on the registered deeds examined."
 
-TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
-The Revenue Record Ground Truth at the TOP of your context is your primary source. The Encumbrance Certificate is NEVER the source for this chain — EC belongs only to Part V. Do NOT write "as confirmed by the Encumbrance Certificate bearing E-Application No." anywhere in this section.
-EC entries and registered deed analysis are supplementary — use them only to fill chain links that have no Revenue Record entry, and even then label them clearly as deed-sourced.
+MANDATORY DISCLOSURES:
+- If oldest available entry is from year X and nothing older is available: write "Revenue records prior to [year] were not available in the documents provided; the chain therefore commences from Mutation Entry No. [no] dated [date]."
+- If any entry references an earlier entry number not in the documents: write "Earlier Mutation Entry No. [X] is referenced but not produced; complete verification prior to this entry is not possible."
 
-THE "THEREAFTER" RULE — FORMAT, UNCHANGED:
-First paragraph = NO "Thereafter". EVERY subsequent paragraph MUST start "Thereafter,". This prose-paragraph style is the only format for Part IV — do not switch to tables, timelines, or any other visual structure.
+MORTGAGE IN THE CHAIN:
+- If an entry is a Mortgage: write it as a paragraph. End with whether it was later discharged or is still active.
+- If discharged: "The said mortgage stands discharged vide Release Deed No. [X] dated [date] — no subsisting charge remains."
+- If active: "The said mortgage is subsisting and active as on date — no Release Deed found."
 
-EVERY YEAR'S DATA — MANDATORY, NO YEAR SKIPPED, WITHIN THE THEREAFTER FORMAT:
-If REVENUE_RECORD_PROVIDED says exactly "YES" (and only then), the Revenue Record Ground Truth block in context lists every Mutation/FERFAR entry with its own Entry No. and entry_date (which gives its year). Every single one of those years/entries MUST get its own "Thereafter," paragraph — none skipped, none silently merged into a vague summary like "various mutation entries reflect the transfer history over the years." If two entries share the same year, they may be covered together within one "Thereafter," paragraph for that year, but no year that has a real entry may be left out. Cite the real Entry No. and date in each paragraph — never write "as evidenced from the Revenue Record" without naming the specific entry. If an entry's Nature is sparse or unclear, still give it its own paragraph stating "Mutation Entry No. [X] dated [date], the precise nature of which is not fully legible from the record produced, was effected during this period" rather than dropping it.
+EC CROSS-VERIFICATION (at the very end only):
+After writing all Revenue Record entries, add ONE final sentence only:
+"The above chain is cross-verified against Encumbrance Certificate bearing E-Application No. [X] covering the period [from] to [to] — [no discrepancy found / the following discrepancy noted: ____]."
 
-OWNERSHIP TRANSITION IS THE CORE OF EVERY MUTATION-SOURCED PARAGRAPH — MANDATORY:
-Each Mutation/FERFAR entry in the Revenue Record Ground Truth carries explicit PREVIOUS OWNER and NEW OWNER fields (formatted as "PREVIOUS OWNER: [X] -> NEW OWNER: [Y]" in the ground truth text). Every "Thereafter," paragraph built from a mutation entry MUST explicitly state who transferred TO whom — do not write a paragraph about a mutation entry without naming both the previous owner and the new owner from these exact fields. The reader must be able to follow, paragraph by paragraph, exactly how ownership moved from one person/entity to the next across the entire chain — this ownership-transition clarity is the single most important thing this Part IV section must deliver. If a mutation entry also has a Reason or Supporting Document field filled in the ground truth, weave that into the same paragraph too (e.g. "...pursuant to Sale Deed No. [X]..." or "...consequent upon devolution on death of the previous Khatedar..."). If certification_date differs from entry_date, mention both ("registered on [entry_date], certified on [certification_date]").
-SELF-CHECK BEFORE FINALIZING: re-read the Revenue Record Ground Truth's entry list one more time. For each Entry No. listed there, confirm a "Thereafter," paragraph in your output covers it AND that paragraph names both the previous owner and the new owner from that entry. If any entry is missing, or its owners aren't both named, fix it before finishing. This runs every single time Revenue Record Ground Truth is present.
-
-If REVENUE_RECORD_PROVIDED does NOT say "YES" (it may say SCAN_ERROR, TAGGED_BUT_NOT_RECOGNIZED, or NOT_TAGGED — each is a genuinely different situation): do NOT write any "Thereafter," paragraph implying a Mutation/FERFAR entry was examined — that would be fabricated. Build the chain entirely from the registered deeds' own recitals instead. In the final paragraph, use the EXACT honest sentence given inside the REVENUE_RECORD_PROVIDED flag's own text for whichever specific case applies — that flag text already contains the precise wording for SCAN_ERROR vs TAGGED_BUT_NOT_RECOGNIZED vs NOT_TAGGED, do not substitute a generic line, read and use what it actually says.
-
-OPENING PARAGRAPH (NO "Thereafter"):
-Begin with the EARLIEST title holder traceable from Revenue Record / deed evidence. Describe: who held the property, with what shares or interest, exact land details (Survey No — including OLD survey number if referenced, TP Scheme No, FP No, village, taluka, district), area, and tenure if mentioned (Old Tenure/Juni Sharat etc.). Name EVERY co-owner individually with their exact percentage undivided share. Describe the first conveyance: vide Registered [Deed Type] bearing Registration No. [X] dated [DD/MM/YYYY] registered at Sub-Registrar Office, [SRO]. State full consideration and result. Include any FERFAR/Mutation entry referencing this earliest event if available.
-If Revenue Record shows prior owners/entries BEFORE this first deed, describe those briefly first, in their own "Thereafter," paragraph(s), then proceed to the first registered conveyance.
-
-EACH SUBSEQUENT PARAGRAPH starts "Thereafter,":
-Every transaction (whether a Mutation/FERFAR entry or a registered deed) = its own full paragraph. Include: type | Entry/Registration No. | date | all party names individually | consideration if a deed | what it achieves legally. For declaration deeds: describe nature and whether any adverse charge was created. For mortgages: describe as builder/developer-level mortgage over [property] as security, then immediately state whether discharged or active.
-
-RELEASED MORTGAGE — EXACT WORDING MANDATORY:
-"The said mortgage subsequently stands discharged and the charge has been fully released and satisfied vide Reconveyance / Mortgage Release Deed No. [X] dated [DD/MM/YYYY] executed by [Bank full name] unto and in favour of [Owner], a Partnership Firm, through its Authorised Partner [Name] — no subsisting charge of [Bank] remains on the subject property as on date."
-
-FINAL STATUS PARAGRAPH — ANCHOR ON REVENUE RECORD, NOT EC:
-If REVENUE_RECORD_PROVIDED says exactly "YES": "Thereafter, [Current Owner] holds the right, title and interest in the subject land and the [scheme name] constructed thereon — including [flat/unit details] being the subject flat — as the present registered owner and developer, as confirmed by the Revenue Record, the Ownership Column of [Village Form No. 7/12 etc.] reflecting [Current Owner] as the recorded Kabjedar/Khatedar, consistent with Mutation Entry No. [ACTUAL entry_no] dated [ACTUAL entry_date] certifying this transfer."
-If REVENUE_RECORD_PROVIDED does NOT say "YES": use the honesty-rule final paragraph described above instead (the exact wording from the flag's own text for that specific case).
-Do NOT cite "Encumbrance Certificate bearing E-Application No." anywhere in this paragraph or anywhere else in Part IV.
-
-RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter. Subject property ONLY. Every Revenue Record Mutation/FERFAR entry AND every registered deed = one paragraph minimum, exhaustive not selective. EC rows are NEVER the paragraph source.
-You have a generous token budget for this section specifically because a complete 30-year chain with many entries needs real room — do NOT compress, summarize, or stop early to save space. If there are 15 Mutation entries and 5 deeds, write all 20 paragraphs in full. Use the space you need; running long here is correct, not a problem.
+RULES: NEVER "and others". First para = no Thereafter. Every other = starts Thereafter. Subject property only.
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
-END: after last paragraph.`
+END: after the EC cross-verification sentence.`
 
 // ================================================================
 // STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
