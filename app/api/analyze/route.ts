@@ -233,9 +233,22 @@ const S3B = `Generate HTML for PART IV ONLY — Chronological Title Chain and Hi
 (Note: Part I — Borrower/Mortgagor/Ownership, Part II — Property Description, and Part III — List of Scrutinized Documents are generated separately and already appear before this section. Do NOT regenerate them. Start directly with Part IV.)
 OLDEST FIRST — NEWEST LAST. Write EVERY link in FULL DETAIL from the very beginning, as flowing prose paragraphs.
 
+OBJECTIVE — READ THIS FIRST BEFORE WRITING ANYTHING:
+Your one job in this section is to prepare a complete Revenue Record Flow of Chain covering at least the last 15-20 years. The Revenue Record Ground Truth at the top of your context contains the extracted mutation entries — those are your PRIMARY source. Read every single entry listed there and write a paragraph for each one. Do not summarize. Do not skip. Do not merge entries.
+
+MANDATORY SCOPE:
+• Cover a MINIMUM of the last 15-20 years. If records older than 20 years are available in the Revenue Record Ground Truth, start from the EARLIEST available entry — not just recent ones.
+• Include every mutation: sale, inheritance, partition, gift, exchange, court order, NA conversion, mortgage, mortgage release, correction entry — every single one that appears in the Revenue Record Ground Truth.
+• NEVER skip a certified mutation entry.
+• NEVER assume ownership prior to the earliest entry in the Revenue Record Ground Truth.
+
+MANDATORY DISCLOSURES — include these exact sentences where applicable:
+(A) If Revenue Record Ground Truth shows the earliest entry is from a certain year and nothing older is available: write "Revenue records prior to [year of earliest entry] were not available in the documents provided; therefore, the chain commences from the earliest available record, being Mutation Entry No. [entry_no] dated [entry_date]."
+(B) If any mutation entry references an earlier entry number that is NOT itself listed in the Revenue Record Ground Truth: write "Earlier Mutation Entry No. [referenced_no] is referenced in Entry No. [current_entry_no] but the corresponding record has not been provided. Therefore, complete verification of the title flow prior to this entry is not possible."
+
 TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
-This chain is built from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth in context) and the actual registered deeds submitted. The Encumbrance Certificate is NEVER used as the source or anchor for this narrative — EC belongs only to Part V (encumbrance status), not Part IV (history). Do NOT write "as confirmed by the Encumbrance Certificate bearing E-Application No." anywhere in this section.
-The chain must reach back up to 30 years from the report date wherever Revenue Record / deed evidence supports it. Check the extracted facts and Revenue Record Ground Truth carefully for old/original Survey Numbers, 7/12 history, Village Form 7/8-A/12 entries, every FERFAR/Mutation Register entry, and any deed recital of earlier/ancestral/inherited ownership — START THE CHAIN FROM THE EARLIEST SUCH POINT FOUND.
+The Revenue Record Ground Truth at the TOP of your context is your primary source. The Encumbrance Certificate is NEVER the source for this chain — EC belongs only to Part V. Do NOT write "as confirmed by the Encumbrance Certificate bearing E-Application No." anywhere in this section.
+EC entries and registered deed analysis are supplementary — use them only to fill chain links that have no Revenue Record entry, and even then label them clearly as deed-sourced.
 
 THE "THEREAFTER" RULE — FORMAT, UNCHANGED:
 First paragraph = NO "Thereafter". EVERY subsequent paragraph MUST start "Thereafter,". This prose-paragraph style is the only format for Part IV — do not switch to tables, timelines, or any other visual structure.
@@ -524,6 +537,31 @@ export async function POST(req: NextRequest) {
         }
         const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 8000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
+        // DEDICATED CONTEXT FOR S3B (Part IV chain writer) — Revenue Record data FIRST
+        // S3B must not compete with 8000 chars of general analysis to find mutation entries.
+        // This context puts the Revenue Record chain data at the very top, unmissably.
+        const ctxS3B = [
+            '=== PRIMARY SOURCE: REVENUE RECORD FLOW OF CHAIN ===',
+            'THIS IS THE MAIN SOURCE FOR PART IV. Write the chain primarily from these entries.',
+            revenueProvidedFlag,
+            '',
+            revGT || '(No Revenue Record Ground Truth available — see flag above for reason.)',
+            '',
+            '=== SUPPORTING CONTEXT: FORM DATA AND PROPERTY ===',
+            FORM,
+            '',
+            '=== SUPPLEMENTARY: EC GROUND TRUTH (for cross-reference only, NOT for chain source) ===',
+            GT,
+            '',
+            '=== SUPPLEMENTARY: REGISTERED DEEDS (fill chain links not in Revenue Record) ===',
+            'APPLICANT: ' + (meta.applicant || applicantName),
+            'OWNER: ' + (meta.currentOwner || currentOwner),
+            'CASE: ' + caseType,
+            'BANK: ' + bankName,
+            'DEED ANALYSIS (short supplement — Revenue Record entries above take priority):',
+            analysis.substring(0, 3000),
+        ].join('\n')
+
         // ── STEP 3: Parallel HTML generation (4x Sonnet) — each call isolated so one failure can't sink the whole report ──
         const safeStep3 = (label: string, p: Promise<any>) => p.catch(e => {
             console.log('STEP3 ' + label + ' err:', e?.message || e)
@@ -537,7 +575,7 @@ export async function POST(req: NextRequest) {
         // are now more calls, because they all still run concurrently.
         const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
             safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
-            safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 7000, system: S3B, messages: [{ role: 'user', content: ctx }] })),
+            safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 7000, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
             safeStep3('Part V/VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
             safeStep3('Part VII-VIII', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
             safeStep3('Part IX-XI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
