@@ -449,7 +449,7 @@ export async function POST(req: NextRequest) {
         // skipping entirely — catches cases where a 7/12 was uploaded but never tagged.
         const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
         const revPrescreen =
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
                     const rawText = rs.content[0].type === 'text' ? rs.content[0].text : ''
                     console.log('REV RAW (first 300 chars):', rawText.substring(0, 300))
@@ -527,7 +527,7 @@ export async function POST(req: NextRequest) {
         const GT = ecGT + revGT
 
         // ── STEP 2: Deep legal analysis (Sonnet) — facts already extracted in parallel above ──
-        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 6000, system: getS2(caseType), messages: [{ role: 'user', content: FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
+        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: getS2(caseType), messages: [{ role: 'user', content: FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
         const analysis = s2.content[0].type === 'text' ? s2.content[0].text : ''
         const meta = parseMeta(analysis)
 
@@ -588,7 +588,7 @@ export async function POST(req: NextRequest) {
         // are now more calls, because they all still run concurrently.
         const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
             safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
-            safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 7000, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
+            safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
             safeStep3('Part V/VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
             safeStep3('Part VII-VIII', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
             safeStep3('Part IX-XI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
