@@ -237,67 +237,70 @@ END: after last document entry.`
 // ================================================================
 const S3B = `You are writing PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY.
 
-LANGUAGE: English only. No Gujarati script. Translate all terms:
-- "Paiki Bin Kheti" = Non-Agricultural
-- "Juni Sharat" = Old Tenure (Juni Sharat)
-- "Naa Sharat" = New Tenure (Naa Sharat)
-- "Bin Kheti" = Non-Agricultural
-- Village/Taluka/District names = English transliteration only
+LANGUAGE: Formal English only. No Gujarati script. Translate all Gujarati terms to English.
+Examples: "Bin Kheti" = Non-Agricultural | "Juni Sharat" = Old Tenure | "Naa Sharat" = New Tenure
 
-SOURCE — FIXED RULE: Write ONLY from Revenue Record Nondh entries (see "PRIMARY SOURCE" block in context). EC is NOT the source for this section — only cross-verify at end.
+SOURCE RULE: Write ONLY from Revenue Record Nondh entries (see PRIMARY SOURCE block in context). EC is NOT the source — only cross-verify at the very end in one sentence.
 
-MANDATORY OUTPUT FORMAT — FOLLOW EXACTLY:
-OUTPUT IS HTML PARAGRAPHS — each Nondh entry = its own separate <p> tag.
-NEVER combine two Nondh entries into one <p> tag.
-NEVER write a wall of text — every new entry starts a new <p>.
+═══════════════════════════════════════════
+MANDATORY FORMAT FOR EVERY NONDH ENTRY
+═══════════════════════════════════════════
 
-STEP 1 — DISCLOSURE PARAGRAPH FIRST (no Thereafter):
-If older entries exist but have no owner details, write:
-<p>Revenue records prior to Mutation Entry No. [X] were not available in the documents produced; the chain accordingly commences from the earliest available record, being Mutation Entry No. [X]. The following Mutation Entry numbers are referenced in the Revenue Record but without transfer particulars or owner details: Entry Nos. [list all]. Complete verification of the title chain prior to Entry No. [X] is therefore not possible on the basis of the Revenue Record as produced.</p>
+Every single Nondh (Mutation Entry) from the Revenue Record Ground Truth must appear in the output as:
 
-STEP 2 — ONE FULL DETAIL <p> TAG PER NONDH ENTRY:
+(A) A HEADING LINE for that entry:
+<div class="sph">Nondh Entry No. [entry_no] | Dated: [entry_date] | Certification Date: [certification_date] | Status: [status]</div>
 
-WHAT "FULL DETAIL" MEANS — EVERY paragraph must contain ALL of these that are available:
-1. Mutation Entry No. and Date (and Certification Date if different)
-2. Status (Certified / Pending / Rejected)
-3. Previous Owner — full name (who gave up ownership)
-4. New Owner — full name (who received ownership)
-5. Subject land details — Survey No., Village/Mouje, Taluka, District, Area
-6. Nature of entry — what kind of transaction (Sale, Inheritance, Partition, NA Conversion, Mortgage, Release, Court Order etc.)
-7. Supporting Document — deed number and date if mentioned
-8. Any remarks or special notations
+(B) Immediately followed by a FULL NARRATIVE PARAGRAPH:
+<p>Thereafter, vide Mutation Entry No. [entry_no] dated [entry_date] (Certification Date: [certification_date]; Status: [status]), [PREVIOUS OWNER full name], as the recorded Kabjedar/Khatedar, transferred and conveyed the subject land bearing Survey No. [survey_no], Mouje: [village], Taluka: [taluka], District: [district], admeasuring [area], [land use], [tenure], to [NEW OWNER full name], vide [supporting document type and number if available, e.g. "Registered Sale Deed bearing Document No. X dated DD-MM-YYYY"]. By virtue of this certified mutation entry, [NEW OWNER] stood recorded as the Kabjedar/Khatedar in the Revenue Record in place of [PREVIOUS OWNER]. [Include any legally relevant remarks from the entry — permissions, court orders, revisions, Ganot case references, etc.]</p>
 
-WHAT IS NOT ACCEPTABLE — do NOT write short one-liners like:
-❌ "Thereafter, vide Mutation Entry No. 12064, ownership changed to M/S Arpan Developers."
-❌ "Thereafter, Entry No. 21763 dated 17-07-2021 was certified."
+RULES FOR THE NARRATIVE PARAGRAPH:
+- Include EVERY field available: Entry No., Date, Certification Date, Status, Previous Owner, New Owner, Survey No., Area, Land Use, Tenure, Nature, Supporting Document, Remarks
+- If any field is not available in the extract, say so explicitly e.g. "date not stated in extract produced" or "previous owner not disclosed in extract"
+- Never write a one-line summary. Never write just the entry number. Write the complete legal narrative.
+- Never merge two entries into one paragraph.
+- Never skip an entry because it seems similar to another.
 
-WHAT IS CORRECT — write a complete legal paragraph like this:
-✅ <p>Thereafter, vide Mutation Entry No. 21763 dated 17-07-2021 (Certification Date: 22-07-2021; Status: Certified), Seni Infrastructure Limited, as the recorded previous Kabjedar/Khatedar of the subject land bearing Survey No. 210/001, Final Plot No. 49/1/2, Town Planning Scheme No. 01 (KOBA), Mouje: Koba, Taluka: Gandhinagar, District: Gandhinagar, admeasuring 8,020 Sq. Mtrs., Non-Agricultural land, conveyed and transferred the said land to M/s. Shivalay Soham Developers, a Partnership Firm, vide Registered Sale Deed bearing Document No. 21763. By virtue of this certified mutation entry, M/s. Shivalay Soham Developers stood recorded as the new Kabjedar/Khatedar in the Revenue Record in place of Seni Infrastructure Limited.</p>
+═══════════════════════════════════════════
+OPENING BEFORE FIRST NONDH ENTRY
+═══════════════════════════════════════════
 
-FOR ENTRIES WHERE PREVIOUS OWNER IS NOT STATED:
-✅ <p>Thereafter, vide Mutation Entry No. 12064 (date not stated in extract; Status: Certified), ownership of the subject land bearing Survey No. 214, Mouje: Kudasan, Taluka: Gandhinagar, District: Gandhinagar, admeasuring 2-16-43 Hectares-Ares-Square Metres, Non-Agricultural land (Paiki Bin Kheti), Old Tenure (Juni Sharat), stood recorded in the Revenue Record in the name of M/S Arpan Developers, a Partnership Firm, as the Kabjedar/Khatedar. The name of the previous owner is not disclosed in the extract produced; accordingly, the origin of title prior to this entry cannot be independently traced from the Revenue Record alone. Mutation Entry No. 12064 stands Certified in the Revenue Record.</p>
+Before the first Nondh heading, write this disclosure paragraph if applicable:
+<p>[If older entries are referenced but not produced]: Revenue records prior to Mutation Entry No. [earliest available entry no.] were not available in the documents produced; the chain accordingly commences from the earliest available record. The following Mutation Entry numbers are referenced in the Revenue Record extract but without transfer particulars or owner details: Entry Nos. [list all such numbers]. Complete verification of the title chain prior to Entry No. [X] is therefore not possible on the basis of the Revenue Record as produced.</p>
 
-FOR MORTGAGE ENTRIES:
-✅ <p>Thereafter, vide Mutation Entry No. 37424 dated 24-08-2022 (Status: Certified), M/s. S B Realty, a Partnership Firm, through its authorized partner Bharatbhai Gandabhai Patel, created a Registered Mortgage over the subject land bearing Final Plot No. 49/1/2, Survey No. 210/001, Town Planning Scheme No. 01, Mouje: Koba, Taluka: Gandhinagar, District: Gandhinagar, in favour of Bajaj Housing Finance Limited, for a consideration of Rs. 4,00,00,000/-, vide Mortgage Deed No. 37424. This mortgage entry is recorded in the Boja/Encumbrance column of the Revenue Record. The said mortgage is subsisting and active as on date — no Release Deed has been found in the Revenue Record produced.</p>
+The very first Nondh entry that HAS ownership details does NOT get "Thereafter" — it starts directly:
+<p>The subject land bearing Survey No. [X]... stood recorded in the name of [OWNER]... vide Mutation Entry No. [X]...</p>
 
-STEP 3 — BOJA/ENCUMBRANCE ENTRIES (if any noted in Revenue Record):
-<p>Thereafter, the Boja/Encumbrance column of the Revenue Record records the following entry notations against the subject property: Entry Nos. [list]. [Describe what each notation states, e.g. permissions, revision orders, Ganot cases.] Full details and parties underlying these entries are not available in the extract produced.</p>
+All entries after the first get "Thereafter," at the start of their narrative paragraph.
 
-STEP 4 — CURRENT STATUS PARAGRAPH:
-<p>Thereafter, [Current Owner] holds the right, title and interest in the subject land as the present recorded Kabjedar/Khatedar in the Revenue Record vide Mutation Entry No. [X], Status: Certified. Land use is recorded as Non-Agricultural. Tenant/Ganot column: NIL.</p>
+═══════════════════════════════════════════
+COUNT-AND-VERIFY BEFORE FINISHING
+═══════════════════════════════════════════
 
-STEP 5 — EC CROSS-VERIFICATION (one <p>, very last):
-<p>The above Revenue Record chain is cross-verified against the Encumbrance Certificate bearing E-Application No. [X] covering the period [from] to [to] — [no discrepancy found / the following discrepancy noted: ___].</p>
+The Revenue Record Ground Truth in your context shows the total number of entries found.
+Count how many Nondh headings you have written.
+If that count is less than the total entries shown — go back and add the missing entries before finishing.
+Do NOT stop writing until every single entry from the Revenue Record Ground Truth has its own heading and paragraph.
 
-MANDATORY COUNT-AND-WRITE RULE — MOST IMPORTANT:
-The Revenue Record Ground Truth in your context shows "X found — ALL must be written" where X is the total number of Nondh entries extracted.
-Before you start writing: note that number.
-As you write: count your Thereafter paragraphs.
-Before you finish: confirm your paragraph count matches the entry count.
-If you wrote fewer paragraphs than entries — go back and add the missing ones.
-DO NOT stop early. DO NOT skip any entry even if it seems redundant or has minimal information. EVERY Nondh entry gets its own paragraph. This is a legal scrutiny report — omitting any entry is a serious deficiency.
+═══════════════════════════════════════════
+BOJA / ENCUMBRANCE ENTRIES
+═══════════════════════════════════════════
 
-RULES: English only. No Gujarati. Every name individually — never "and others". Each Nondh = own <p>. First para = no Thereafter. Every para after = starts "Thereafter,"
+If the Boja/Encumbrance column of the Revenue Record lists additional entry notations, write them as their own entries with headings:
+<div class="sph">Boja / Encumbrance Entries Noted in Revenue Record</div>
+<p>Thereafter, the Boja/Encumbrance column of the Revenue Record records the following entry notations against the subject property: Entry Nos. [list]. [For each entry that has a description, explain what it records — e.g. NA permission, court revision, Ganot case, mortgage.] Full details and supporting documents for these entries have not been separately produced for examination.</p>
+
+═══════════════════════════════════════════
+CURRENT STATUS AND EC CROSS-VERIFICATION
+═══════════════════════════════════════════
+
+After all Nondh entries, write:
+<div class="sph">Current Revenue Record Status</div>
+<p>Thereafter, [Current Owner full name] holds the right, title and interest in the subject land as the present recorded Kabjedar/Khatedar in the Revenue Record, as evidenced by the certified Mutation Entry No. [X]. Land use: Non-Agricultural. Tenant / Ganot column: NIL. [Any other current record details.]</p>
+
+Final sentence — EC cross-verification only (one sentence, no heading):
+<p>The above Revenue Record chain is cross-verified against the Encumbrance Certificate bearing E-Application No. [X] covering the period [from] to [to] — [no discrepancy found between Revenue Record entries and EC entries / the following discrepancy is noted: ___ ].</p>
+
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
 END: after the EC cross-verification paragraph.`
 
