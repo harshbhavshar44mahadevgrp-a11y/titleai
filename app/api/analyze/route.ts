@@ -468,7 +468,7 @@ export async function POST(req: NextRequest) {
         // skipping entirely — catches cases where a 7/12 was uploaded but never tagged.
         const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
         const revPrescreen =
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+            AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
                     const rawText = rs.content[0].type === 'text' ? rs.content[0].text : ''
                     console.log('REV RAW (first 300 chars):', rawText.substring(0, 300))
