@@ -473,7 +473,7 @@ export async function POST(req: NextRequest) {
                     const r = parseJSON(rawText)
                     if (r && r.found !== false) {
                         revData = r
-                        console.log('REV P0 SUCCESS: village=' + (r.village || '?') + ' mutations=' + (r.mutation_entries?.length || 0) + ' source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all'))
+                        const _ents = r.mutation_entries || r.entries || []; console.log('REV P0 SUCCESS: village=' + (r.village || '?') + ' mutations=' + _ents.length + ' source=fallback-all')
                     } else if (r && r.found === false) {
                         console.log('REV P0: model explicitly returned found:false — no revenue record visible in images')
                     } else {
@@ -541,7 +541,7 @@ export async function POST(req: NextRequest) {
                 'RULE: Use these entries to extend the title chain as far back as possible (20-25+ years). Treat this as authoritative revenue record data.',
                 '==='
             ].join('\n')
-            console.log('Revenue GT built: ' + (revData.mutation_entries?.length || 0) + ' mutation entries')
+            console.log('Revenue GT built: ' + entries.length + ' mutation entries')
         }
 
         const GT = ecGT + revGT
@@ -560,13 +560,16 @@ export async function POST(req: NextRequest) {
         // even when a file WAS tagged but the scan simply didn't recognize it.
         let revenueProvidedFlag: string
         if (revData) {
-            revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: YES — ' + ((revData.mutation_entries || []).length) + ' Mutation/FERFAR entries deep-scanned, cite them specifically by entry number and date.'
+            revenueProvidedFlag = (() => {
+                const ents = revData.mutation_entries || revData.entries || []
+                return 'REVENUE_RECORD_PROVIDED: YES — ' + ents.length + ' Mutation/FERFAR entries deep-scanned and available. ALL ' + ents.length + ' entries must be written as separate paragraphs in Part IV. DO NOT skip any entry.'
+            })()
         } else if (revScanError) {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: SCAN_ERROR — a Revenue Record scan was attempted but failed due to a technical error (not a content issue). Do NOT claim Revenue Record was examined or was absent. State plainly: "Revenue Record verification could not be completed due to a technical error during processing; please retry or verify manually before disbursement."'
         } else if (revImgs.length > 0) {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: TAGGED_BUT_NOT_RECOGNIZED — a document WAS specifically tagged as Revenue Record/7-12, and was scanned, but the scan could not identify recognizable 7/12, Mutation, or FERFAR content in it. Do NOT say "not tagged or produced." Instead state plainly: "A Revenue Record document was submitted for this case; however, the content could not be positively identified as a Village Form 7/12, Property Card, or Mutation Register extract on automated review. Independent manual verification of the Revenue Record is recommended before disbursement."'
         } else {
-            revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: NOT_TAGGED — no document was specifically tagged as Revenue Record, and a general scan of all uploaded documents did not identify a recognizable 7/12/Mutation/FERFAR document either. Do NOT claim Revenue Record was examined. State plainly that Revenue Record / Mutation extract was not separately produced for verification.'
+            revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: NOT_FOUND — a complete scan of all uploaded documents was performed automatically but no recognizable Revenue Record (7/12 / Property Card / Mutation Register / FERFAR) was identified. Do NOT claim Revenue Record was examined. State plainly: Revenue Record (7/12 / Mutation extract) was not found in the documents produced for examination; independent verification of the Revenue Record is recommended before disbursement.'
         }
         const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 8000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
@@ -608,7 +611,7 @@ export async function POST(req: NextRequest) {
         // are now more calls, because they all still run concurrently.
         const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
             safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
-            safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
+            safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 6000, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
             safeStep3('Part V/VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
             safeStep3('Part VII-VIII', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
             safeStep3('Part IX-XI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
