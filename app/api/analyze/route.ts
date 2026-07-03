@@ -463,10 +463,8 @@ export async function POST(req: NextRequest) {
             })
             .catch(e => console.log('PS err:', e))
 
-        // Same fallback pattern as EC: if a file was explicitly tagged 'revenue', scan
-        // just that (precise, cheaper). If NOT, still scan ALL uploaded images instead of
-        // skipping entirely — catches cases where a 7/12 was uploaded but never tagged.
-        const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
+        // Revenue Record is always detected automatically from ALL uploaded images — no tag needed.
+        const revPrescreenImgs = allImgs
         const revPrescreen =
             AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
