@@ -208,9 +208,9 @@ export default function UploadPage() {
                 const isPriority = priorityTags.has(f.docType)
                 // Revenue Record: read ALL pages so no mutation entry is missed
                 // EC: 5 pages, Others: 2 pages minimum
-                const pageBudget = f.docType === 'revenue' ? 999 : isPriority ? 5 : normalPageBudget
-                const quality = isPriority ? priorityQuality : normalQuality
-                const maxPx = isPriority ? priorityMaxPx : normalMaxPx
+                const pageBudget = f.docType === 'revenue' ? 5 : isPriority ? 3 : normalPageBudget
+                const quality = f.docType === 'revenue' ? 0.75 : isPriority ? priorityQuality : normalQuality
+                const maxPx = f.docType === 'revenue' ? 1000 : isPriority ? priorityMaxPx : normalMaxPx
 
                 setProgress('Processing: ' + file.name + ' [' + (f.docType === 'ec' ? 'EC DEEP SCAN' : 'AUTO') + ']')
 
