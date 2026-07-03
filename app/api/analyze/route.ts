@@ -463,8 +463,9 @@ export async function POST(req: NextRequest) {
             })
             .catch(e => console.log('PS err:', e))
 
-        // Revenue Record is always detected automatically from ALL uploaded images — no tag needed.
-        const revPrescreenImgs = allImgs
+        // Revenue Record: if tagged (has ALL pages), use those specifically.
+        // If not tagged, fall back to scanning all images (may miss pages — encourage tagging).
+        const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
         const revPrescreen =
             AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
