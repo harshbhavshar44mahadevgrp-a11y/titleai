@@ -252,8 +252,12 @@ Look at the revenueProvidedFlag in your context (it starts with REVENUE_RECORD_P
 
 IF REVENUE_RECORD_PROVIDED says YES:
 → Write the chain from the Revenue Record entries listed in the Revenue Record Ground Truth.
+→ Write EVERY SINGLE Revenue Record entry, in chronological order EARLIEST → PRESENT.
 → Each Nondh entry from revGT = one heading + one paragraph (as shown in format below).
-→ Do NOT use EC entries as chain paragraphs.
+→ Do NOT use EC entries as chain paragraphs. Do NOT create any paragraph whose source is
+  an EC deed/entry. If a fact appears ONLY in the EC and not in the Revenue Record, it does
+  NOT get its own chain paragraph — it may only be mentioned in the final EC cross-verification
+  sentence. The chain paragraphs come from Revenue Record entries and nothing else.
 
 IF REVENUE_RECORD_PROVIDED does NOT say YES (any other value):
 → Do NOT attempt to write the chain from EC or any other source.
@@ -631,8 +635,11 @@ export async function POST(req: NextRequest) {
         // S3B must not compete with 8000 chars of general analysis to find mutation entries.
         // This context puts the Revenue Record chain data at the very top, unmissably.
         const ctxS3B = [
-            '=== PRIMARY SOURCE: REVENUE RECORD FLOW OF CHAIN ===',
-            'THIS IS THE MAIN SOURCE FOR PART IV. Write the chain primarily from these entries.',
+            '=== PRIMARY AND ONLY SOURCE FOR THE CHAIN: REVENUE RECORD FLOW OF CHAIN ===',
+            'The chronological title chain in Part IV MUST be written from these Revenue Record',
+            'entries ONLY — every entry, earliest to present, each as its own heading + paragraph.',
+            'EC entries below are NOT a source for the chain; they are for the final one-sentence',
+            'cross-verification only. NEVER turn an EC entry into a chain paragraph.',
             revenueProvidedFlag,
             '',
             revGT || '(No Revenue Record Ground Truth available — see flag above for reason.)',
@@ -640,8 +647,10 @@ export async function POST(req: NextRequest) {
             '=== SUPPORTING CONTEXT: FORM DATA AND PROPERTY ===',
             FORM,
             '',
-            '=== SUPPLEMENTARY: EC GROUND TRUTH (for cross-reference only, NOT for chain source) ===',
-            GT,
+            '=== FOR CROSS-VERIFICATION ONLY — DO NOT WRITE CHAIN PARAGRAPHS FROM THIS EC DATA ===',
+            'Use the block below ONLY for the single closing "cross-verified against the EC" sentence.',
+            'Do NOT copy EC deed numbers, parties, or dates into the chain as if they were Nondh entries.',
+            ecGT,
             '',
             '=== SUPPLEMENTARY: REGISTERED DEEDS (fill chain links not in Revenue Record) ===',
             'APPLICANT: ' + (meta.applicant || applicantName),
