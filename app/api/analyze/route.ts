@@ -562,6 +562,15 @@ export async function POST(req: NextRequest) {
 
         const ecGT = ['=== EC GROUND TRUTH ===', 'EC App No: ' + (ecMetas.map(m => m.ec_app_number).join(', ') || 'NOT PROVIDED'), 'EC Date: ' + (ecMetas.map(m => m.ec_date).join(' | ') || 'NOT PROVIDED'), 'EC Period: ' + (ecMetas.map(m => m.ec_from + ' to ' + m.ec_to).join(' | ') || 'NOT PROVIDED'), 'EC Rows: ' + ecRows.length, 'Status: ' + lc.status, 'Summary: ' + lc.summary, 'Active: ' + (lc.active.length === 0 ? 'NONE' : lc.active.map(a => a.lender + ' Deed:' + a.deed_no + ' Date:' + a.date).join(' | ')), 'Released: ' + (lc.released.length === 0 ? 'NONE' : lc.released.map(r => r.lender + ' RELEASED vide Deed No.' + r.release_deed_no + ' dated ' + r.release_date).join(' | ')), 'RULE: Released = NEVER flag as active. Bank in LEFT EC col = Release.', '==='].join('\n')
 
+        // Compact EC line for the Part IV cross-verification sentence ONLY. Deliberately
+        // omits the deed-by-deed Active/Released rows — those are exactly what the chain-writer
+        // was copying into chain paragraphs. It gets just App No + period + overall status.
+        const ecCrossVerifyLine = 'EC for cross-verification only — E-Application No.: ' +
+            (ecMetas.map(m => m.ec_app_number).join(', ') || 'NOT PROVIDED') +
+            ' | Period: ' + (ecMetas.map(m => m.ec_from + ' to ' + m.ec_to).join(' | ') || 'NOT PROVIDED') +
+            ' | Overall encumbrance status: ' + lc.status +
+            '. Use this ONLY to write the single closing sentence; do NOT create chain paragraphs from it.'
+
         let revGT = ''
         if (revData) {
             // Support both old field names and new compact field names
@@ -647,18 +656,29 @@ export async function POST(req: NextRequest) {
             '=== SUPPORTING CONTEXT: FORM DATA AND PROPERTY ===',
             FORM,
             '',
-            '=== FOR CROSS-VERIFICATION ONLY — DO NOT WRITE CHAIN PARAGRAPHS FROM THIS EC DATA ===',
-            'Use the block below ONLY for the single closing "cross-verified against the EC" sentence.',
-            'Do NOT copy EC deed numbers, parties, or dates into the chain as if they were Nondh entries.',
-            ecGT,
+            // CROSS-VERIFY SUMMARY ONLY. When a Revenue Record exists, we deliberately do
+            // NOT hand the chain-writer the deed-by-deed EC ground truth (ecGT) — seeing rich
+            // EC deed data is exactly what makes the model turn EC deeds into chain paragraphs.
+            // It only needs the EC App No + period + overall status to write the single closing
+            // cross-verification sentence. If no Revenue Record, fall back to full ecGT so the
+            // "not available" branch still has the EC line for its verification sentence.
+            '=== EC — FOR THE ONE CLOSING CROSS-VERIFICATION SENTENCE ONLY ===',
+            'Do NOT write any chain paragraph from this. Chain paragraphs come from the Revenue',
+            'Record entries above and nothing else. Use this only to write the final one sentence:',
+            '"cross-verified against the Encumbrance Certificate bearing E-Application No. [X]...".',
+            (revData ? ecCrossVerifyLine : ecGT),
             '',
-            '=== SUPPLEMENTARY: REGISTERED DEEDS (fill chain links not in Revenue Record) ===',
+            '=== SUPPLEMENTARY: PARTIES (for names only — NOT a chain source) ===',
             'APPLICANT: ' + (meta.applicant || applicantName),
             'OWNER: ' + (meta.currentOwner || currentOwner),
             'CASE: ' + caseType,
             'BANK: ' + bankName,
-            'DEED ANALYSIS (short supplement — Revenue Record entries above take priority):',
-            analysis.substring(0, 3000),
+            // When a Revenue Record exists, DO NOT pass the Step-2 analysis (it contains EC
+            // deed detail that leaks into the chain). Only pass it as a last-resort supplement
+            // when there is no Revenue Record to build the chain from.
+            (revData
+                ? '(Revenue Record present — build the chain strictly from the Revenue Record entries above; no other deed source is needed.)'
+                : 'DEED ANALYSIS (only because no Revenue Record was found):\n' + analysis.substring(0, 3000)),
         ].join('\n')
 
         // ── STEP 3: Parallel HTML generation (4x Sonnet) — each call isolated so one failure can't sink the whole report ──
