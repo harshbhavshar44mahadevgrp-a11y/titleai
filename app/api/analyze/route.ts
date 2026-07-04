@@ -467,7 +467,7 @@ export async function POST(req: NextRequest) {
         // If not tagged, fall back to scanning all images (may miss pages — encourage tagging).
         const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
         const revPrescreen =
-            AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
                     const rawText = rs.content[0].type === 'text' ? rs.content[0].text : ''
                     console.log('REV RAW (first 300 chars):', rawText.substring(0, 300))
