@@ -294,6 +294,17 @@ The very first Nondh entry that HAS ownership details does NOT get "Thereafter" 
 All entries after the first get "Thereafter," at the start of their narrative paragraph.
 
 ═══════════════════════════════════════════
+NON-AGRICULTURAL / LAND-USE CONVERSION ORDER (SOP — MANDATORY IF PRESENT)
+═══════════════════════════════════════════
+The Revenue Record Ground Truth may contain a line "NA / Conversion Order: ...".
+If it names a Non-Agricultural / land-use conversion order (order number and/or date),
+you MUST state it in the chain at the point it belongs — either inside the relevant
+Nondh paragraph (when a Mutation Entry records the NA conversion) or as its own short
+paragraph right after the entry where the land became Non-Agricultural, e.g.:
+<p>The subject land was converted to Non-Agricultural use vide Order No. [X] dated [date], as reflected in the Revenue Record.</p>
+If it says "NOT STATED IN REVENUE RECORD", do not invent one — simply omit this.
+
+═══════════════════════════════════════════
 COUNT-AND-VERIFY BEFORE FINISHING
 ═══════════════════════════════════════════
 
@@ -487,17 +498,34 @@ export async function POST(req: NextRequest) {
         // If not tagged, fall back to scanning all images (may miss pages — encourage tagging).
         // No revenue tag in upload — always scan ALL images automatically
         const revPrescreenImgs = allImgs
+        // No thinking / no temperature here on purpose: this is a pure JSON-extraction
+        // call. On claude-sonnet-4-6 the old `thinking:{type:'enabled',budget_tokens}`
+        // shape is rejected (400), and passing temperature alongside thinking is invalid —
+        // that 400 was silently killing every Revenue Record scan (revScanError=true).
+        // Bigger max_tokens so a long FERFAR/Mutation JSON isn't truncated mid-array.
         const revPrescreen =
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 1, thinking: { type: 'enabled', budget_tokens: 1500 }, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
-                    const rawText = rs.content.find((b: any) => b.type === 'text')?.text || ''
+                    const _rb = rs.content.find(b => b.type === 'text')
+                    const rawText = _rb && _rb.type === 'text' ? _rb.text : ''
                     console.log('REV RAW (first 300 chars):', rawText.substring(0, 300))
                     const r = parseJSON(rawText)
-                    if (r && r.found !== false) {
+                    // A scan "counts" if it isn't an explicit found:false AND it carries at
+                    // least one real signal — a document type, a location field, a survey no,
+                    // or one or more mutation/FERFAR entries. This stops an empty/garbage object
+                    // from being reported as "PROVIDED: YES — 0 entries" (which reads as broken).
+                    const _ents = (r && (r.mutation_entries || r.entries)) || []
+                    const hasSignal = !!r && r.found !== false && (
+                        _ents.length > 0 ||
+                        !!(r.document_type_found || r.village || r.taluka || r.district || r.survey_block_no || r.ownership_column)
+                    )
+                    if (hasSignal) {
                         revData = r
-                        const _ents = r.mutation_entries || r.entries || []; console.log('REV P0 SUCCESS: village=' + (r.village || '?') + ' mutations=' + _ents.length + ' source=fallback-all')
+                        console.log('REV P0 SUCCESS: docType=' + (r.document_type_found || '?') + ' village=' + (r.village || '?') + ' survey=' + (r.survey_block_no || '?') + ' mutations=' + _ents.length + ' source=fallback-all')
                     } else if (r && r.found === false) {
                         console.log('REV P0: model explicitly returned found:false — no revenue record visible in images')
+                    } else if (r) {
+                        console.log('REV P0: parsed JSON had no usable Revenue Record signal (all fields empty) — treating as not-found')
                     } else {
                         console.log('REV P0 PARSE FAILED: raw length=' + rawText.length + ' parseJSON returned null — likely truncated JSON from token budget. Source=' + (revImgs.length > 0 ? 'tagged' : 'fallback-all'))
                     }
@@ -558,6 +586,10 @@ export async function POST(req: NextRequest) {
                 'Ownership Column: ' + (revData.ownership_column || 'NOT PROVIDED'),
                 'Boja/Encumbrance Column: ' + (revData.boja_column || 'NOT PROVIDED'),
                 'Ganot/Tenant Column: ' + (revData.ganot_column || 'NOT PROVIDED'),
+                // SOP point 5: the NA / land-use conversion order must be traced and stated.
+                // REV_PS extracts it as `na_order`, but it was never forwarded to the chain
+                // writer — so add it to the Ground Truth here.
+                'NA / Conversion Order: ' + (revData.na_order || 'NOT STATED IN REVENUE RECORD'),
                 'FERFAR/Mutation Entries (' + entries.length + ' found — ALL must be written in Part IV, oldest to newest):',
                 ...mutLines,
                 'RULE: Use these entries to extend the title chain as far back as possible (20-25+ years). Treat this as authoritative revenue record data.',
