@@ -7,7 +7,6 @@ const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 
 const FILE_TAGS = [
     { id: 'auto', label: 'Auto', color: '#475569' },
     { id: 'ec', label: '📋 EC', color: '#6366f1' },
-    { id: 'revenue', label: '📜 Revenue Record', color: '#a16207' },
 ]
 
 const CASE_TYPES = [
@@ -180,7 +179,7 @@ export default function UploadPage() {
             // EC + Release + Mortgage tagged files = priority, get up to 3 pages
             // "auto"/untagged files = fewer pages when file count is high
             // This prevents 14 files x 3 pages = 42 huge images crashing the request
-            const priorityTags = new Set(['ec', 'revenue'])
+            const priorityTags = new Set(['ec'])
             const priorityCount = pdfFiles.filter(f => priorityTags.has(f.docType)).length
             const normalCount = fileCount - priorityCount
 
@@ -208,9 +207,9 @@ export default function UploadPage() {
                 const isPriority = priorityTags.has(f.docType)
                 // Revenue Record: read ALL pages so no mutation entry is missed
                 // EC: 5 pages, Others: 2 pages minimum
-                const pageBudget = f.docType === 'revenue' ? 5 : isPriority ? 3 : normalPageBudget
-                const quality = f.docType === 'revenue' ? 0.85 : isPriority ? priorityQuality : normalQuality
-                const maxPx = f.docType === 'revenue' ? 1200 : isPriority ? priorityMaxPx : normalMaxPx
+                const pageBudget = isPriority ? 3 : normalPageBudget
+                const quality = isPriority ? priorityQuality : normalQuality
+                const maxPx = isPriority ? priorityMaxPx : normalMaxPx
 
                 setProgress('Processing: ' + file.name + ' [' + (f.docType === 'ec' ? 'EC DEEP SCAN' : 'AUTO') + ']')
 
@@ -418,7 +417,7 @@ export default function UploadPage() {
                                         <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Max 3 pages per PDF processed)</span>
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#6366f1', marginBottom: '16px', padding: '8px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.2)' }}>
-                                        💡 <strong>Tip:</strong> EC file pe <strong>"📋 EC"</strong> tag karo + Revenue Record file pe <strong>"📜 Revenue Record"</strong> tag karo — Revenue Record ke SAARE pages padhe jaayenge aur complete 25-30 saal ka Part IV flow milega.
+                                        💡 <strong>Tip:</strong> EC file pe <strong>"📋 EC"</strong> tag karo — system EC ka deep scan karega. Revenue Record automatically ALL uploaded documents mein se detect hoga.
                                     </div>
 
                                     {files.map((f, i) => (
@@ -452,11 +451,7 @@ export default function UploadPage() {
                                                     🔍 EC Deep Scan ON — App No, Date, Period, Mortgage, Release sab detect hoga (priority quality)
                                                 </div>
                                             )}
-                                            {f.docType === 'revenue' && (
-                                                <div style={{ marginTop: '8px', fontSize: '11px', color: '#a16207', fontWeight: '600' }}>
-                                                    📜 Revenue Record — SAARE PAGES padhe jaayenge (koi page miss nahi hoga) — complete 25-30 saal ka flow Part IV mein aayega
-                                                </div>
-                                            )}
+
                                         </div>
                                     ))}
                                 </div>

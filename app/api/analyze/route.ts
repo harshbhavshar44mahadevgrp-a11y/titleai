@@ -485,11 +485,12 @@ export async function POST(req: NextRequest) {
 
         // Revenue Record: if tagged (has ALL pages), use those specifically.
         // If not tagged, fall back to scanning all images (may miss pages — encourage tagging).
-        const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
+        // No revenue tag in upload — always scan ALL images automatically
+        const revPrescreenImgs = allImgs
         const revPrescreen =
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, temperature: 1, thinking: { type: 'enabled', budget_tokens: 1500 }, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
-                    const rawText = rs.content[0].type === 'text' ? rs.content[0].text : ''
+                    const rawText = rs.content.find((b: any) => b.type === 'text')?.text || ''
                     console.log('REV RAW (first 300 chars):', rawText.substring(0, 300))
                     const r = parseJSON(rawText)
                     if (r && r.found !== false) {
