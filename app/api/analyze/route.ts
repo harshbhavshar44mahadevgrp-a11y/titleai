@@ -240,7 +240,27 @@ const S3B = `You are writing PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY O
 LANGUAGE: Formal English only. No Gujarati script. Translate all Gujarati terms to English.
 Examples: "Bin Kheti" = Non-Agricultural | "Juni Sharat" = Old Tenure | "Naa Sharat" = New Tenure
 
-SOURCE RULE: Write ONLY from Revenue Record Nondh entries (see PRIMARY SOURCE block in context). EC is NOT the source — only cross-verify at the very end in one sentence.
+SOURCE RULE — NON-NEGOTIABLE, APPLIES TO EVERY SINGLE REPORT:
+Write Part IV paragraphs ONLY from Revenue Record Nondh entries.
+EC (Encumbrance Certificate) entries are NEVER the source for any paragraph in Part IV.
+Do NOT write "Thereafter, vide EC Entry No. [X]..." — that is wrong.
+Do NOT use EC entry numbers as the basis for chain paragraphs.
+EC is used ONLY for the final one-sentence cross-verification at the end.
+
+CHECK THE FLAG FIRST:
+Look at the revenueProvidedFlag in your context (it starts with REVENUE_RECORD_PROVIDED:).
+
+IF REVENUE_RECORD_PROVIDED says YES:
+→ Write the chain from the Revenue Record entries listed in the Revenue Record Ground Truth.
+→ Each Nondh entry from revGT = one heading + one paragraph (as shown in format below).
+→ Do NOT use EC entries as chain paragraphs.
+
+IF REVENUE_RECORD_PROVIDED does NOT say YES (any other value):
+→ Do NOT attempt to write the chain from EC or any other source.
+→ Write ONLY this single paragraph:
+<p>Revenue Record (Village Form 7/12 / Mutation Register / FERFAR / Property Card) was not available for independent extraction in this case. The title chain for the subject property cannot be independently traced from Revenue Record entries on the basis of documents produced. Independent verification of the Revenue Record is strongly recommended before disbursement to confirm ownership continuity, land use, encumbrance status and Kabjedar/Khatedar details.</p>
+→ Then write the EC cross-verification sentence and stop. Do not write any further chain paragraphs.
+→ NEVER fill this gap with EC entries — EC entries are not a substitute for Revenue Record chain paragraphs.
 
 ═══════════════════════════════════════════
 MANDATORY FORMAT FOR EVERY NONDH ENTRY
