@@ -522,10 +522,16 @@ export async function POST(req: NextRequest) {
             })
             .catch(e => console.log('PS err:', e))
 
-        // Revenue Record: if tagged (has ALL pages), use those specifically.
-        // If not tagged, fall back to scanning all images (may miss pages — encourage tagging).
-        // No revenue tag in upload — always scan ALL images automatically
-        const revPrescreenImgs = allImgs
+        // Revenue Record scan focus — THE KEY FIX.
+        // Previously this scanned ALL images (EC + deeds + NOC + GUDA + RERA + 7/12) together.
+        // With many clear EC/deed pages next to a single hard-to-read Gujarati 7/12 page, the
+        // model's attention drifted to the EC/deed content and it built the chain from deed
+        // numbers instead of the FERFAR Nondh entries — exactly the "chain from EC" symptom.
+        // When revenue documents ARE tagged (docType:'revenue'), scan ONLY those, so the
+        // 7/12 / FERFAR register gets its own focused deep scan with zero EC/deed distraction.
+        // Fall back to all images only when nothing is tagged as revenue.
+        const revPrescreenImgs = revImgs.length > 0 ? revImgs : allImgs
+        console.log('REV scan focus: ' + (revImgs.length > 0 ? ('TAGGED revenue images only (' + revImgs.length + ')') : 'ALL images (no revenue tag)'))
         // No thinking / no temperature here on purpose: this is a pure JSON-extraction
         // call. On claude-sonnet-4-6 the old `thinking:{type:'enabled',budget_tokens}`
         // shape is rejected (400), and passing temperature alongside thinking is invalid —

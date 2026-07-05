@@ -7,6 +7,9 @@ const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 
 const FILE_TAGS = [
     { id: 'auto', label: 'Auto', color: '#475569' },
     { id: 'ec', label: '📋 EC', color: '#6366f1' },
+    // Revenue tag — lets the user mark the 7/12 / FERFAR so it gets the same
+    // full-quality, all-pages priority scan as EC (drives the Part IV chain).
+    { id: 'revenue', label: '📜 Revenue 7/12', color: '#a16207' },
 ]
 
 const CASE_TYPES = [
@@ -179,7 +182,13 @@ export default function UploadPage() {
             // EC + Release + Mortgage tagged files = priority, get up to 3 pages
             // "auto"/untagged files = fewer pages when file count is high
             // This prevents 14 files x 3 pages = 42 huge images crashing the request
-            const priorityTags = new Set(['ec'])
+            // Revenue Record (7/12 / FERFAR) MUST be priority too — it is the source of the
+            // entire Part IV title chain. Previously only 'ec' was priority, so the FERFAR
+            // register got compressed to low quality and trimmed to 2 pages, cutting off most
+            // of its 15-25 Nondh entries. That starvation is why the chain fell back to EC/deed
+            // data. Give revenue (and release/mortgage) the same full-quality, all-pages
+            // treatment as EC.
+            const priorityTags = new Set(['ec', 'revenue', 'release', 'mortgage'])
             const priorityCount = pdfFiles.filter(f => priorityTags.has(f.docType)).length
             const normalCount = fileCount - priorityCount
 
@@ -205,13 +214,14 @@ export default function UploadPage() {
             for (const f of pdfFiles) {
                 const file = f.fileRef!
                 const isPriority = priorityTags.has(f.docType)
-                // Revenue Record: read ALL pages so no mutation entry is missed
-                // EC: 5 pages, Others: 2 pages minimum
-                const pageBudget = isPriority ? 3 : normalPageBudget
+                // Revenue Record: read up to 8 pages — the FERFAR / Mutation register commonly
+                // runs 5-6 pages and every Nondh entry matters for the Part IV chain. EC and
+                // other priority docs: 3 pages. Untagged/auto: normal budget.
+                const pageBudget = f.docType === 'revenue' ? 8 : isPriority ? 3 : normalPageBudget
                 const quality = isPriority ? priorityQuality : normalQuality
                 const maxPx = isPriority ? priorityMaxPx : normalMaxPx
 
-                setProgress('Processing: ' + file.name + ' [' + (f.docType === 'ec' ? 'EC DEEP SCAN' : 'AUTO') + ']')
+                setProgress('Processing: ' + file.name + ' [' + (f.docType === 'ec' ? 'EC DEEP SCAN' : f.docType === 'revenue' ? 'REVENUE DEEP SCAN' : isPriority ? 'PRIORITY' : 'AUTO') + ']')
 
                 if (file.type === 'application/pdf') {
                     allText += await extractTextFromPDF(file, imageFiles, f.docType, pageBudget, quality, maxPx)
@@ -414,10 +424,10 @@ export default function UploadPage() {
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>
                                         ▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span>
-                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Max 3 pages per PDF processed)</span>
+                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged EC/Revenue: up to 8 pages full quality)</span>
                                     </div>
-                                    <div style={{ fontSize: '11px', color: '#6366f1', marginBottom: '16px', padding: '8px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.2)' }}>
-                                        💡 <strong>Tip:</strong> EC file pe <strong>"📋 EC"</strong> tag karo — system EC ka deep scan karega. Revenue Record automatically ALL uploaded documents mein se detect hoga.
+                                    <div style={{ fontSize: '11px', color: '#a16207', marginBottom: '16px', padding: '8px 12px', background: 'rgba(161,98,7,0.08)', borderRadius: '8px', border: '1px solid rgba(161,98,7,0.25)' }}>
+                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR file pe <strong>"📜 Revenue 7/12"</strong> tag karo. Tabhi Revenue Record full quality me (saari pages) scan hoga aur Part IV chain uski asli Nondh entries se banega. Tag nahi kiya to woh compress ho ke entries chhoot sakti hain.
                                     </div>
 
                                     {files.map((f, i) => (
@@ -449,6 +459,12 @@ export default function UploadPage() {
                                             {f.docType === 'ec' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#6366f1', fontWeight: '600' }}>
                                                     🔍 EC Deep Scan ON — App No, Date, Period, Mortgage, Release sab detect hoga (priority quality)
+                                                </div>
+                                            )}
+
+                                            {f.docType === 'revenue' && (
+                                                <div style={{ marginTop: '8px', fontSize: '11px', color: '#a16207', fontWeight: '600' }}>
+                                                    📜 Revenue Deep Scan ON — 7/12 aur FERFAR ki saari Nondh entries full quality me scan hongi (up to 8 pages). Part IV chain isi se banega.
                                                 </div>
                                             )}
 
