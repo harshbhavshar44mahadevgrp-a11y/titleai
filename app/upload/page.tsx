@@ -143,18 +143,19 @@ export default function UploadPage() {
                 fullText += '\n--- Page ' + pageNum + ' ---\n' + pageText + '\n'
 
                 // Revenue (FERFAR / 7-12 / Mutation register) carries a dense Gujarati
-                // narrative column that only becomes legible at OCR-grade resolution. The
-                // generic 1.6x cap (~115 DPI on A4) reads the big bold Nondh NUMBERS but
-                // NOT the fine per-entry date / parties / narrative — which is exactly why
-                // the chain showed Nondh numbers with "date not stated in extract". Render
-                // revenue much larger. Trade a little resolution + JPEG quality for coverage
-                // when the register runs many pages, so total payload still fits the 4.5MB
-                // request limit. Non-revenue docs keep the original light 1.6x / passed quality.
+                // narrative column. The generic 1.6x cap (~115 DPI on A4) reads the big bold
+                // Nondh NUMBERS but NOT the fine per-entry date / parties / narrative — which
+                // is why the chain showed Nondh numbers with "date not stated in extract".
+                // KEY LIMIT: Claude's vision API internally downscales any image to ~1568px on
+                // the long edge, so rendering beyond ~1550px gains NOTHING it can see while
+                // tripling the payload + processing time (that is what caused the 504 timeout).
+                // So target ~1550px — Claude's useful ceiling — but SUPERSAMPLE it from a higher
+                // render scale so the downscaled image is crisper than a direct low-res render.
+                // Slightly smaller + lighter for long registers so many pages still fit in time.
                 let scaleCap = 1.6, pxCap = maxPx, q = quality
                 if (docType === 'revenue') {
-                    if (pagesToProcess <= 5) { scaleCap = 2.7; pxCap = 2100; q = 0.78 }
-                    else if (pagesToProcess <= 8) { scaleCap = 2.3; pxCap = 1850; q = 0.72 }
-                    else { scaleCap = 2.0; pxCap = 1600; q = 0.66 }
+                    if (pagesToProcess <= 6) { scaleCap = 2.5; pxCap = 1550; q = 0.80 }
+                    else { scaleCap = 2.2; pxCap = 1450; q = 0.74 }
                 }
                 const baseVp = page.getViewport({ scale: 1.0 })
                 const scale = Math.min(scaleCap, pxCap / Math.max(baseVp.width, baseVp.height))
@@ -231,7 +232,7 @@ export default function UploadPage() {
                 // Revenue Record: read up to 8 pages — the FERFAR / Mutation register commonly
                 // runs 5-6 pages and every Nondh entry matters for the Part IV chain. EC and
                 // other priority docs: 3 pages. Untagged/auto: normal budget.
-                const pageBudget = f.docType === 'revenue' ? 10 : isPriority ? 3 : normalPageBudget
+                const pageBudget = f.docType === 'revenue' ? 8 : isPriority ? 3 : normalPageBudget
                 const quality = isPriority ? priorityQuality : normalQuality
                 const maxPx = isPriority ? priorityMaxPx : normalMaxPx
 
@@ -438,10 +439,10 @@ export default function UploadPage() {
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>
                                         ▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span>
-                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged EC/Revenue: up to 10 pages, OCR-grade quality)</span>
+                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged EC/Revenue: up to 8 pages, OCR-grade quality)</span>
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#a16207', marginBottom: '16px', padding: '8px 12px', background: 'rgba(161,98,7,0.08)', borderRadius: '8px', border: '1px solid rgba(161,98,7,0.25)' }}>
-                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR file pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Sirf 7/12 ka summary page nahi — har Nondh ki poori detail (date, naam, sauda) ke liye asli "Hakkpatrak / Gam Namuna No. 6 / Entry Details" wale mutation pages bhi upload karo</strong> — Part IV ki date + details wahi se aati hain. Tag karne se ye pages OCR-grade quality me (up to 10 pages) scan honge; tag/upload nahi kiya to har Nondh sirf number dikhayega, date/details "not stated" aayegi.
+                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR file pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Sirf 7/12 ka summary page nahi — har Nondh ki poori detail (date, naam, sauda) ke liye asli "Hakkpatrak / Gam Namuna No. 6 / Entry Details" wale mutation pages bhi upload karo</strong> — Part IV ki date + details wahi se aati hain. Tag karne se ye pages OCR-grade quality me (up to 8 pages) scan honge; tag/upload nahi kiya to har Nondh sirf number dikhayega, date/details "not stated" aayegi.
                                     </div>
 
                                     {files.map((f, i) => (
@@ -478,7 +479,7 @@ export default function UploadPage() {
 
                                             {f.docType === 'revenue' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#a16207', fontWeight: '600' }}>
-                                                    📜 Revenue Deep Scan ON — OCR-grade quality (up to 10 pages). Har Nondh ki date + parties + sauda tabhi aayegi jab is file me asli mutation detail pages (Hakkpatrak / Gam Namuna 6 / Entry Details) hon — sirf 7/12 summary se number aayega, details nahi.
+                                                    📜 Revenue Deep Scan ON — OCR-grade quality (up to 8 pages). Har Nondh ki date + parties + sauda tabhi aayegi jab is file me asli mutation detail pages (Hakkpatrak / Gam Namuna 6 / Entry Details) hon — sirf 7/12 summary se number aayega, details nahi.
                                                 </div>
                                             )}
 
