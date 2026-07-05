@@ -591,7 +591,15 @@ export async function POST(req: NextRequest) {
                 })
                 .catch(e => { revScanError = true; console.log('REV PS err:', e?.message || e) })
 
-        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...allImgs, { type: 'text', text: FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
+        // SPEED: don't make Haiku re-read the heavy high-res Revenue pages — REV_PS already
+        // deep-scans those and feeds their facts via the Revenue Ground Truth. When a Revenue
+        // doc is tagged, S1 skips it and reads only the deed/EC pages, so the single biggest
+        // duplicated vision cost in the pipeline (8 large 7/12/FERFAR images processed twice)
+        // is removed. If nothing is tagged as revenue, S1 keeps reading everything.
+        const s1Imgs = revImgs.length > 0
+            ? images.filter((img: any) => img.docType !== 'revenue').map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
+            : allImgs
+        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...s1Imgs, { type: 'text', text: FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
             .then(s1 => {
                 facts = s1.content[0].type === 'text' ? s1.content[0].text : ''
                 console.log('STEP1: facts extracted, length=' + facts.length)
@@ -700,7 +708,10 @@ export async function POST(req: NextRequest) {
         } else {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: NOT_FOUND — a complete scan of all uploaded documents was performed automatically but no recognizable Revenue Record (7/12 / Property Card / Mutation Register / FERFAR) was identified. Do NOT claim Revenue Record was examined. State plainly: Revenue Record (7/12 / Mutation extract) was not found in the documents produced for examination; independent verification of the Revenue Record is recommended before disbursement.'
         }
-        const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 8000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
+        // SPEED: 5k chars of analysis is enough for the report writers (they also have FORM +
+        // GT + facts). Trimming from 8k trims input tokens across the parallel Part-III/V/VII-XI
+        // writers without losing anything they need.
+        const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 5000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
         // DEDICATED CONTEXT FOR S3B (Part IV chain writer) — Revenue Record data FIRST
         // S3B must not compete with 8000 chars of general analysis to find mutation entries.
