@@ -267,6 +267,21 @@ IF REVENUE_RECORD_PROVIDED does NOT say YES (any other value):
 → NEVER fill this gap with EC entries — EC entries are not a substitute for Revenue Record chain paragraphs.
 
 ═══════════════════════════════════════════
+NONDH NUMBER vs DEED NUMBER — CRITICAL, READ FIRST
+═══════════════════════════════════════════
+A "Nondh" / "Mutation Entry" number is the Revenue-Record entry number (from the FERFAR /
+Gamnamuna No. 6 register). A "Deed" / "Document" number is the number printed on a registered
+Sale / Mortgage / Release deed. THESE ARE DIFFERENT NUMBERS.
+- The Revenue Record Ground Truth lists a line "VALID NONDH (MUTATION ENTRY) NUMBERS — ...".
+  Those are the ONLY numbers allowed as the entry number of a chain paragraph.
+- A registered Deed/Document number (e.g. a sale deed number) is NEVER a Nondh number.
+  It may appear INSIDE a paragraph as "vide Registered Sale Deed bearing Document No. X",
+  but you must NEVER write "Nondh Entry No. <deed number>" or head a paragraph with it.
+- If you find yourself about to start a chain paragraph with a number that is NOT in the
+  VALID NONDH list, STOP — you have grabbed a deed number by mistake. Use the correct Nondh
+  number from the list (the entry whose narrative mentions that deed).
+
+═══════════════════════════════════════════
 MANDATORY FORMAT FOR EVERY NONDH ENTRY
 ═══════════════════════════════════════════
 
@@ -603,6 +618,13 @@ export async function POST(req: NextRequest) {
                 // REV_PS extracts it as `na_order`, but it was never forwarded to the chain
                 // writer — so add it to the Ground Truth here.
                 'NA / Conversion Order: ' + (revData.na_order || 'NOT STATED IN REVENUE RECORD'),
+                // Hard whitelist of the ONLY valid Nondh (Mutation Entry) numbers. The chain
+                // was being built from EC/registered-DEED document numbers (e.g. 9871, 27734)
+                // which are NOT Nondh numbers. The chain paragraphs must use ONLY the numbers
+                // in this list — one paragraph per number, oldest to newest, nothing else.
+                'VALID NONDH (MUTATION ENTRY) NUMBERS — THE CHAIN MUST USE ONLY THESE, ONE PARAGRAPH EACH: ' +
+                    (entries.map((m: any) => m.e || m.entry_no).filter(Boolean).join(', ') || 'NONE'),
+                'CRITICAL: A registered Sale/Mortgage/Release DEED document number (e.g. the number on the deed itself) is NOT a Nondh number. NEVER start a chain paragraph with "Nondh Entry No. <deed number>". Every chain paragraph MUST be headed by one of the VALID NONDH numbers listed above. If a deed number is not in that list, it may appear INSIDE a paragraph as "vide Registered Deed No. X" but must NEVER be the Nondh/entry number of the paragraph.',
                 'FERFAR/Mutation Entries (' + entries.length + ' found — ALL must be written in Part IV, oldest to newest):',
                 ...mutLines,
                 'RULE: Use these entries to extend the title chain as far back as possible (20-25+ years). Treat this as authoritative revenue record data.',
