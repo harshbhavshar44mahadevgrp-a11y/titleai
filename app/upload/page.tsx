@@ -233,11 +233,12 @@ export default function UploadPage() {
                 // runs 5-6 pages and every Nondh entry matters for the Part IV chain. EC and
                 // other priority docs: 3 pages. Untagged/auto: normal budget.
                 // Revenue detail register (Gam Namuna 6 / Hakkpatrak) can run many pages — each
-                // Nondh's date/parties/narrative lives here. Allow up to 16 pages; because the
-                // register is scanned in its OWN chunked requests (not sharing the main 4.5MB
-                // budget), these pages always reach the deep-scan no matter how many other files
-                // the client uploads.
-                const pageBudget = f.docType === 'revenue' ? 16 : isPriority ? 3 : normalPageBudget
+                // Nondh's date/parties/narrative lives on its own detail page. Allow up to 24
+                // pages so a long register's LATER detail pages are not cut off (a Nondh whose
+                // detail page falls beyond the budget would otherwise show only its number).
+                // Because revenue is scanned in its OWN chunked requests (not sharing the main
+                // 4.5MB budget), these pages always reach the deep-scan regardless of other files.
+                const pageBudget = f.docType === 'revenue' ? 24 : isPriority ? 3 : normalPageBudget
                 const quality = isPriority ? priorityQuality : normalQuality
                 const maxPx = isPriority ? priorityMaxPx : normalMaxPx
 
@@ -518,7 +519,7 @@ export default function UploadPage() {
                                         <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged Revenue is deep-scanned separately — upload as many docs as you need)</span>
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#a16207', marginBottom: '16px', padding: '8px 12px', background: 'rgba(161,98,7,0.08)', borderRadius: '8px', border: '1px solid rgba(161,98,7,0.25)' }}>
-                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR / mutation file pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Har Nondh ki poori detail (date, naam, sauda) ke liye asli "Hakkpatrak / Gam Namuna No. 6 / Entry Details" wale mutation pages upload karo</strong> — Part IV ki date + details wahi se aati hain. <strong style={{ color: '#16a34a' }}>Ab jitni bhi files daalo chalega</strong> — Revenue Record apne alag deep-scan me padha jaata hai (16 pages tak, full quality), isliye baaki documents se uski detail kabhi cut nahi hoti.
+                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur har 7/12 / FERFAR / Nondh / nakal / mutation page pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Har Nondh ki detail (date, naam, sauda) us Nondh ke apne detail-page (Hakkpatrak / Gam Namuna 6 nakal) par hoti hai — jitne zyada Nondh ke detail-pages upload karoge, utni zyada entries ki full detail aayegi</strong>. Jis Nondh ka sirf number list me hai par detail-page nahi diya, uski sirf number aayega. <strong style={{ color: '#16a34a' }}>Jitni bhi files daalo chalega</strong> — Revenue Record apne alag deep-scan me padha jaata hai (24 pages tak, full quality).
                                     </div>
 
                                     {files.map((f, i) => (
@@ -555,7 +556,7 @@ export default function UploadPage() {
 
                                             {f.docType === 'revenue' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#a16207', fontWeight: '600' }}>
-                                                    📜 Revenue Deep Scan ON — apne alag dedicated scan me (16 pages tak, full OCR quality). Baaki files kitni bhi hon, is register ki har Nondh ki detail padhi jaayegi.
+                                                    📜 Revenue Deep Scan ON — apne alag dedicated scan me (24 pages tak, full OCR quality). Jis Nondh ka detail-page is file me hoga uski poori detail aayegi; jiska sirf number list me hai uska number.
                                                 </div>
                                             )}
 
