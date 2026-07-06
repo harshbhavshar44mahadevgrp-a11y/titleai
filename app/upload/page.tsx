@@ -155,7 +155,8 @@ export default function UploadPage() {
                 let scaleCap = 1.6, pxCap = maxPx, q = quality
                 if (docType === 'revenue') {
                     if (pagesToProcess <= 6) { scaleCap = 2.5; pxCap = 1550; q = 0.80 }
-                    else { scaleCap = 2.2; pxCap = 1450; q = 0.74 }
+                    else if (pagesToProcess <= 10) { scaleCap = 2.2; pxCap = 1450; q = 0.72 }
+                    else { scaleCap = 2.0; pxCap = 1350; q = 0.66 }
                 }
                 const baseVp = page.getViewport({ scale: 1.0 })
                 const scale = Math.min(scaleCap, pxCap / Math.max(baseVp.width, baseVp.height))
@@ -232,7 +233,12 @@ export default function UploadPage() {
                 // Revenue Record: read up to 8 pages — the FERFAR / Mutation register commonly
                 // runs 5-6 pages and every Nondh entry matters for the Part IV chain. EC and
                 // other priority docs: 3 pages. Untagged/auto: normal budget.
-                const pageBudget = f.docType === 'revenue' ? 8 : isPriority ? 3 : normalPageBudget
+                // Revenue detail register (Gam Namuna 6 / Hakkpatrak) can run many pages — each
+                // Nondh's date/parties/narrative lives here, so allow up to 12 pages. This only
+                // fits the 4.5MB request when the user keeps the OTHER files few; with a big
+                // register the guidance is 3-4 files total so this register's pages actually reach
+                // the deep-scan instead of being trimmed away.
+                const pageBudget = f.docType === 'revenue' ? 12 : isPriority ? 3 : normalPageBudget
                 const quality = isPriority ? priorityQuality : normalQuality
                 const maxPx = isPriority ? priorityMaxPx : normalMaxPx
 
@@ -439,10 +445,10 @@ export default function UploadPage() {
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>
                                         ▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span>
-                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged EC/Revenue: up to 8 pages, OCR-grade quality)</span>
+                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged Revenue: up to 12 pages · Best with 3-4 files total)</span>
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#a16207', marginBottom: '16px', padding: '8px 12px', background: 'rgba(161,98,7,0.08)', borderRadius: '8px', border: '1px solid rgba(161,98,7,0.25)' }}>
-                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR file pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Sirf 7/12 ka summary page nahi — har Nondh ki poori detail (date, naam, sauda) ke liye asli "Hakkpatrak / Gam Namuna No. 6 / Entry Details" wale mutation pages bhi upload karo</strong> — Part IV ki date + details wahi se aati hain. Tag karne se ye pages OCR-grade quality me (up to 8 pages) scan honge; tag/upload nahi kiya to har Nondh sirf number dikhayega, date/details "not stated" aayegi.
+                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR file pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Sirf 7/12 ka summary page nahi — har Nondh ki poori detail (date, naam, sauda) ke liye asli "Hakkpatrak / Gam Namuna No. 6 / Entry Details" wale mutation pages bhi upload karo</strong> — Part IV ki date + details wahi se aati hain. Tag karne se ye pages OCR-grade quality me (up to 12 pages) scan honge. <strong style={{ color: '#ef4444' }}>ZAROORI: total sirf 3-4 files rakho</strong> (detail register + EC + main Sale Deed) — zyada files daaloge to register ki pages 4.5MB limit me squeeze ho ke kat jaati hain aur har Nondh sirf number dikhayega, aur time bhi 10+ min lagta hai.
                                     </div>
 
                                     {files.map((f, i) => (
@@ -479,7 +485,7 @@ export default function UploadPage() {
 
                                             {f.docType === 'revenue' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#a16207', fontWeight: '600' }}>
-                                                    📜 Revenue Deep Scan ON — OCR-grade quality (up to 8 pages). Har Nondh ki date + parties + sauda tabhi aayegi jab is file me asli mutation detail pages (Hakkpatrak / Gam Namuna 6 / Entry Details) hon — sirf 7/12 summary se number aayega, details nahi.
+                                                    📜 Revenue Deep Scan ON — OCR-grade quality (up to 12 pages). Behtar result ke liye total 3-4 files hi rakho — zyada files me register ki detail pages cut ho jaati hain.
                                                 </div>
                                             )}
 
