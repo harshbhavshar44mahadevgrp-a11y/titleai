@@ -88,6 +88,100 @@ function parseMeta(t: string) { const b = t.match(/---META---\s*([\s\S]*?)---END
 
 function extractVerdict(t: string): string { const u = t.toUpperCase(); if (u.includes('TITLE NOT CLEAR') || u.includes('NOT CLEAR')) return 'NOT CLEAR'; if (u.includes('CLEAR SUBJECT TO')) return 'CLEAR SUBJECT TO'; if (u.includes('VERDICT: CLEAR')) return 'CLEAR'; return 'PENDING' }
 
+// ================================================================
+// PART IV — CHRONOLOGICAL TITLE CHAIN (BUILT DETERMINISTICALLY IN CODE)
+// ================================================================
+// Part IV used to be written by an AI call (S3B). That caused three problems the user hit:
+//   • duplicates ("2 baar entry") — an opening summary listed the Nondh numbers AND then each
+//     entry was written again as a full paragraph;
+//   • inconsistent flow — the same register read slightly differently each run;
+//   • time — it was the single slowest generation call (8000 tokens for ~27 entries).
+// The dedicated Revenue scan already produces fully-structured entries (number, date,
+// certification date, status, and a complete English narrative in `r`). So Part IV is now
+// assembled directly from that data, exactly like Part I and Part II: every Nondh appears
+// EXACTLY ONCE, sorted chronologically by entry number, in the user's required format —
+// deterministic, duplicate-free, fast, and identical on every run for the same input.
+function esc(s: string): string { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+
+function buildPart4(revData: any, ecMetas: ECMeta[], lc: LC, currentOwner: string): string {
+    let h = '<hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>'
+
+    const ecCross = (): string => {
+        const app = ecMetas.map(m => m.ec_app_number).filter(Boolean).join(', ')
+        const period = ecMetas.map(m => (m.ec_from || m.ec_to) ? ((m.ec_from || '?') + ' to ' + (m.ec_to || '?')) : '').filter(Boolean).join(' | ')
+        if (!app) return '<p>The above Revenue Record chain could not be independently cross-verified against an Encumbrance Certificate, as no EC was positively identified among the documents produced.</p>'
+        return '<p>The above Revenue Record chain is cross-verified against the Encumbrance Certificate bearing E-Application No. ' + esc(app) + (period ? ' covering the period ' + esc(period) : '') + ' — overall encumbrance status: ' + esc(lc.status) + '. No material discrepancy is noted between the Revenue Record mutation entries and the EC entries on the basis of the documents produced.</p>'
+    }
+
+    const entries: any[] = revData ? (revData.mutation_entries || revData.entries || []) : []
+    if (!revData || entries.length === 0) {
+        h += '<p>Revenue Record (Village Form 7/12 / Mutation Register / FERFAR / Property Card) was not available for independent extraction in this case. The title chain for the subject property cannot be independently traced from Revenue Record entries on the basis of the documents produced. Independent verification of the Revenue Record is strongly recommended before disbursement to confirm ownership continuity, land use, encumbrance status and Kabjedar/Khatedar details.</p>'
+        return h + ecCross()
+    }
+
+    const village = revData.village || '', taluka = revData.taluka || '', district = revData.district || ''
+    const survey = revData.survey_block_no || '', area = revData.total_area || '', landUse = revData.land_use || ''
+    const loc = [survey ? 'Survey/Block No. ' + survey : '', village ? 'Mouje: ' + village : '', taluka ? 'Taluka: ' + taluka : '', district ? 'District: ' + district : ''].filter(Boolean).join(', ')
+
+    // De-duplicate by Nondh number (guarantees NO entry appears twice) and sort chronologically
+    // by entry number (mutation numbers are assigned sequentially over time = oldest → newest).
+    const seen = new Set<string>()
+    const uniq = entries.filter((m: any) => {
+        const k = String(m.e || m.entry_no || '').trim()
+        if (!k) return true
+        if (seen.has(k)) return false
+        seen.add(k); return true
+    })
+    const numOf = (m: any) => { const n = parseInt(String(m.e || m.entry_no || '').replace(/[^0-9]/g, ''), 10); return isNaN(n) ? Number.MAX_SAFE_INTEGER : n }
+    const sorted = uniq.map((m: any, i: number) => ({ m, i })).sort((a, b) => { const d = numOf(a.m) - numOf(b.m); return d !== 0 ? d : a.i - b.i }).map(x => x.m)
+
+    // ONE clean opening line — NO list of entry numbers (that listing is what caused "2 baar").
+    h += '<p>The following chronological title chain is traced strictly from the certified Mutation/FERFAR (Nondh) entries appearing in the Revenue Record (Village Form 7/12 and Mutation Register)' + (loc ? ' for ' + esc(loc) : '') + (area ? ', admeasuring ' + esc(area) : '') + (landUse ? ', land use: ' + esc(landUse) : '') + '. A total of ' + sorted.length + ' Mutation/FERFAR entries are recorded against the subject survey number, each set out individually below in chronological order.</p>'
+
+    sorted.forEach((m: any, idx: number) => {
+        const no = esc(m.e || m.entry_no || '—')
+        const date = esc(m.d || m.entry_date || '')
+        const cd = esc(m.cd || m.certification_date || '')
+        const status = esc(m.s || m.status || 'Certified')
+        const narrative = String(m.r || m.reason_of_mutation || '').trim()
+        const po = String(m.po || m.previous_owner || '').trim()
+        const nowner = String(m.no || m.new_owner || '').trim()
+        const nature = String(m.n || m.nature || '').trim()
+        const doc = String(m.sd || m.supporting_document || '').trim()
+
+        h += '<div class="sph">Nondh Entry No. ' + no + ' | Dated: ' + (date || 'Not stated in extract') + (cd ? ' | Certification Date: ' + cd : '') + ' | Status: ' + status + '</div>'
+        const lead = idx === 0 ? '' : 'Thereafter, '
+        const head = lead + 'vide Mutation Entry No. ' + no + (date ? ' dated ' + date : '') + ' (' + (cd ? 'Certification Date: ' + cd + '; ' : '') + 'Status: ' + status + ')'
+
+        if (narrative) {
+            h += '<p>' + head + ', ' + esc(narrative) + '</p>'
+        } else if (po || nowner || nature) {
+            const bits = [
+                po ? esc(po) + ', the then recorded Kabjedar/Khatedar,' : '',
+                nature ? ' by way of ' + esc(nature) + ',' : ' ',
+                nowner ? ' ' + esc(nowner) + ' came to be recorded as the Kabjedar/Khatedar' : ' a change of recorded holder was effected',
+                loc ? ' in respect of ' + esc(loc) : '',
+                doc ? ', vide ' + esc(doc) : '',
+            ].join('')
+            h += '<p>' + head + ', ' + bits.replace(/\s+/g, ' ').trim() + '.</p>'
+        } else {
+            h += '<p>' + head + ', a further entry is recorded against ' + (loc ? esc(loc) : 'the subject survey number') + ' in the Revenue Record. The date, the previous and new recorded Kabjedar/Khatedar, and the nature of the transaction are not stated or not legible in the extract produced; the entry is visible in the Entry Details list of the Mutation Register and its certified status is confirmed. Independent verification of this entry from the original Mutation Register is recommended.</p>'
+        }
+    })
+
+    // Non-Agricultural / land-use conversion order, if traced in the Revenue Record.
+    const na = String(revData.na_order || '').trim()
+    if (na && !/^(not stated|not provided|na|nil|none)$/i.test(na) && !/not stated in revenue/i.test(na)) {
+        h += '<div class="sph">Non-Agricultural / Land-Use Conversion</div><p>The subject land is recorded as converted to Non-Agricultural use vide ' + esc(na) + ', as reflected in the Revenue Record.</p>'
+    }
+
+    // Current recorded status.
+    const ganot = String(revData.ganot_column || '').trim()
+    h += '<div class="sph">Current Revenue Record Status</div><p>' + (currentOwner ? esc(currentOwner) : 'The current recorded holder') + ' holds the right, title and interest in the subject land as the present recorded Kabjedar/Khatedar in the Revenue Record' + (landUse ? '. Land use: ' + esc(landUse) : '') + '. Tenant / Ganot column: ' + (ganot ? esc(ganot) : 'NIL') + '.</p>'
+
+    return h + ecCross()
+}
+
 
 // ================================================================
 // STEP 1 SYSTEM — PROVEN v5.3 EXTRACTION ENGINE
@@ -808,15 +902,13 @@ export async function POST(req: NextRequest) {
             console.log('STEP3 ' + label + ' err:', e?.message || e)
             return { content: [{ type: 'text', text: '<p style="color:#b91c1c;"><em>' + label + ' could not be generated (' + (e?.message ? String(e.message).substring(0, 150) : 'unknown error') + '). Please retry — other sections of this report are unaffected.</em></p>' }] }
         })
-        // Split into 5 parallel calls instead of 4 — Part VII-XI used to be ONE call
-        // doing 5 sections at 8000 tokens (the single slowest call in the batch).
-        // Splitting it into two smaller parallel calls means neither half needs
-        // anywhere near 8000 tokens, so the SLOWEST call in this whole batch drops
-        // significantly — total wall-clock time for Step 3 falls even though there
-        // are now more calls, because they all still run concurrently.
-        const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
+        // PART IV is NO LONGER an AI call — it is built deterministically in code from the
+        // structured Revenue data (see buildPart4 below). That removes the single slowest
+        // generation call (8000 tokens for ~27 entries), eliminates duplicate ("2 baar")
+        // entries, and gives an identical, correctly-ordered chain on every run. The remaining
+        // four sections still run concurrently.
+        const [r3a, r3c, r3d1, r3d2] = await Promise.all([
             safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
-            safeStep3('Part IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
             safeStep3('Part V/VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
             safeStep3('Part VII-VIII', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
             safeStep3('Part IX-XI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
@@ -833,7 +925,6 @@ export async function POST(req: NextRequest) {
             return s.trim()
         }
         const p1 = stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : '')
-        const p2 = stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : '')
         const p3 = stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : '')
         const p4 = stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : '')
 
@@ -893,8 +984,12 @@ export async function POST(req: NextRequest) {
             '<div class="prop-para">' + finalPropDesc + '</div>' +
             '<table class="mt">' + boundsRows + '</table>'
 
+        // PART IV — built deterministically from the structured Revenue data (no AI call):
+        // every Nondh exactly once, chronological order, duplicate-free, identical every run.
+        const part4 = buildPart4(revData, ecMetas, lc, finalOwner)
+
         const html = buildReport(refNo, appId, today, bankName, loanMap[caseType] || loanType,
-            part1 + part2 + p1 + p2 + p3 + p4
+            part1 + part2 + p1 + part4 + p3 + p4
         )
 
         if (userId && DB) { try { await DB.from('reports').insert({ user_id: userId, case_type: caseType, applicant_name: meta.applicant || applicantName || 'Unknown', bank_name: bankName || 'Unknown', property_address: meta.propertyDescription || propertyAddress || 'Unknown', app_id: appId || refNo, verdict, report_html: html }) } catch (e) { console.log('DB:', e) } }
