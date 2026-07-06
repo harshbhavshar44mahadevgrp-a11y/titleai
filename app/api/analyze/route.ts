@@ -506,11 +506,40 @@ export async function POST(req: NextRequest) {
             images, caseType = 'lap', appId = 'AUTO', bankName = 'Bank',
             loanType = 'Loan Against Property', applicantName = '', coApplicant = '',
             currentOwner = '', propertyAddress = '', boundaryEast = '', boundaryWest = '',
-            boundaryNorth = '', boundarySouth = '', userId = null
+            boundaryNorth = '', boundarySouth = '', userId = null,
+            // revData: pre-computed Revenue Record from the dedicated revenue-scan pass (see
+            // below). When present, the main pipeline uses it directly and does NOT re-scan
+            // revenue — so the register never has to share the 4.5MB request with other docs.
+            revData: providedRevData = null,
+            // mode: 'revenue-scan' = run ONLY the deep FERFAR scan on these images and return
+            // the structured revData. Anything else = normal full report generation.
+            mode = 'full',
         } = body
 
         if (!images || images.length === 0)
             return NextResponse.json({ success: false, error: 'No documents uploaded. Please upload EC and property documents.' }, { status: 400 })
+
+        // ── DEDICATED REVENUE-RECORD SCAN (its own request, its own 4.5MB budget) ──
+        // The frontend sends the tagged Revenue detail register (Gam Namuna 6 / Hakkpatrak)
+        // here BY ITSELF — in page-chunks if it is long — so every mutation-entry page is
+        // deep-scanned at full quality regardless of how many OTHER documents the client
+        // uploaded. This is what makes the per-Nondh date/detail reliable for a SaaS flow
+        // where users dump all their files. Returns just the structured revData JSON.
+        if (mode === 'revenue-scan') {
+            try {
+                const scanImgs = images.map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
+                const rs = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: [...scanImgs, { type: 'text', text: REV_PS }] }] })
+                const _rb = rs.content.find(b => b.type === 'text')
+                const rawText = _rb && _rb.type === 'text' ? _rb.text : ''
+                const parsed = parseJSON(rawText)
+                const _e = (parsed && (parsed.mutation_entries || parsed.entries)) || []
+                console.log('REVENUE-SCAN chunk: imgs=' + scanImgs.length + ' entries=' + _e.length + ' village=' + (parsed?.village || '?'))
+                return NextResponse.json({ success: true, revData: parsed })
+            } catch (e: any) {
+                console.log('REVENUE-SCAN err:', e?.message || e)
+                return NextResponse.json({ success: false, error: e?.message || 'revenue scan failed', revData: null }, { status: 200 })
+            }
+        }
 
         const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
         const refNo = 'TITLEMATRIXAI/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-4)
@@ -534,6 +563,20 @@ export async function POST(req: NextRequest) {
         let revData: any = null
         let revScanError = false
         let facts = ''
+
+        // Did the frontend already deep-scan the Revenue Record in its own dedicated request?
+        // If so, use that result and SKIP the in-request revenue scan entirely — the register
+        // was read at full budget separately, so we must not (and need not) re-scan it here.
+        const usePreScan = !!providedRevData
+        if (usePreScan) {
+            const _pe = (providedRevData.mutation_entries || providedRevData.entries) || []
+            const hasSignal = providedRevData.found !== false && (
+                _pe.length > 0 ||
+                !!(providedRevData.document_type_found || providedRevData.village || providedRevData.taluka || providedRevData.district || providedRevData.survey_block_no || providedRevData.ownership_column)
+            )
+            revData = hasSignal ? providedRevData : null
+            console.log('REV: pre-computed revData provided by dedicated scan — hasSignal=' + hasSignal + ' entries=' + _pe.length)
+        }
 
         const ecPrescreen = AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
             .then(ps => {
@@ -562,8 +605,10 @@ export async function POST(req: NextRequest) {
         // shape is rejected (400), and passing temperature alongside thinking is invalid —
         // that 400 was silently killing every Revenue Record scan (revScanError=true).
         // Bigger max_tokens so a long FERFAR/Mutation JSON isn't truncated mid-array.
-        const revPrescreen =
-            AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+        const revPrescreen = usePreScan
+            // Dedicated scan already ran — nothing to do here.
+            ? Promise.resolve()
+            : AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
                     const _rb = rs.content.find(b => b.type === 'text')
                     const rawText = _rb && _rb.type === 'text' ? _rb.text : ''
@@ -703,7 +748,7 @@ export async function POST(req: NextRequest) {
             })()
         } else if (revScanError) {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: SCAN_ERROR — a Revenue Record scan was attempted but failed due to a technical error (not a content issue). Do NOT claim Revenue Record was examined or was absent. State plainly: "Revenue Record verification could not be completed due to a technical error during processing; please retry or verify manually before disbursement."'
-        } else if (revImgs.length > 0) {
+        } else if (revImgs.length > 0 || usePreScan) {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: TAGGED_BUT_NOT_RECOGNIZED — a document WAS specifically tagged as Revenue Record/7-12, and was scanned, but the scan could not identify recognizable 7/12, Mutation, or FERFAR content in it. Do NOT say "not tagged or produced." Instead state plainly: "A Revenue Record document was submitted for this case; however, the content could not be positively identified as a Village Form 7/12, Property Card, or Mutation Register extract on automated review. Independent manual verification of the Revenue Record is recommended before disbursement."'
         } else {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: NOT_FOUND — a complete scan of all uploaded documents was performed automatically but no recognizable Revenue Record (7/12 / Property Card / Mutation Register / FERFAR) was identified. Do NOT claim Revenue Record was examined. State plainly: Revenue Record (7/12 / Mutation extract) was not found in the documents produced for examination; independent verification of the Revenue Record is recommended before disbursement.'

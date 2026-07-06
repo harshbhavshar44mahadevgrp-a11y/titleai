@@ -152,12 +152,11 @@ export default function UploadPage() {
                 // So target ~1550px — Claude's useful ceiling — but SUPERSAMPLE it from a higher
                 // render scale so the downscaled image is crisper than a direct low-res render.
                 // Slightly smaller + lighter for long registers so many pages still fit in time.
+                // Revenue is sent in its OWN chunked requests (≤8 pages each), so it never has to
+                // share the 4.5MB budget with other docs — we can therefore keep EVERY revenue
+                // page at full OCR-grade quality regardless of how long the register is.
                 let scaleCap = 1.6, pxCap = maxPx, q = quality
-                if (docType === 'revenue') {
-                    if (pagesToProcess <= 6) { scaleCap = 2.5; pxCap = 1550; q = 0.80 }
-                    else if (pagesToProcess <= 10) { scaleCap = 2.2; pxCap = 1450; q = 0.72 }
-                    else { scaleCap = 2.0; pxCap = 1350; q = 0.66 }
-                }
+                if (docType === 'revenue') { scaleCap = 2.5; pxCap = 1550; q = 0.80 }
                 const baseVp = page.getViewport({ scale: 1.0 })
                 const scale = Math.min(scaleCap, pxCap / Math.max(baseVp.width, baseVp.height))
                 const vp = page.getViewport({ scale })
@@ -234,11 +233,11 @@ export default function UploadPage() {
                 // runs 5-6 pages and every Nondh entry matters for the Part IV chain. EC and
                 // other priority docs: 3 pages. Untagged/auto: normal budget.
                 // Revenue detail register (Gam Namuna 6 / Hakkpatrak) can run many pages — each
-                // Nondh's date/parties/narrative lives here, so allow up to 12 pages. This only
-                // fits the 4.5MB request when the user keeps the OTHER files few; with a big
-                // register the guidance is 3-4 files total so this register's pages actually reach
-                // the deep-scan instead of being trimmed away.
-                const pageBudget = f.docType === 'revenue' ? 12 : isPriority ? 3 : normalPageBudget
+                // Nondh's date/parties/narrative lives here. Allow up to 16 pages; because the
+                // register is scanned in its OWN chunked requests (not sharing the main 4.5MB
+                // budget), these pages always reach the deep-scan no matter how many other files
+                // the client uploads.
+                const pageBudget = f.docType === 'revenue' ? 16 : isPriority ? 3 : normalPageBudget
                 const quality = isPriority ? priorityQuality : normalQuality
                 const maxPx = isPriority ? priorityMaxPx : normalMaxPx
 
@@ -254,37 +253,97 @@ export default function UploadPage() {
 
             if (imageFiles.length === 0) throw new Error('PDF process nahi hua.')
 
-            // ── FINAL SIZE CHECK — if still too big after compression, drop lowest-priority pages ──
-            let totalRawBytes = imageFiles.reduce((sum, img) => sum + (img.base64.length * 0.75), 0)
-            let estBase64 = estimateBase64Bytes(totalRawBytes)
+            // ── DEDICATED REVENUE-RECORD PASS (its own request, its own 4.5MB budget) ──
+            // SaaS reality: clients dump ALL their documents. If the Revenue detail register
+            // shares one 4.5MB request with 10+ other files, its pages get squeezed out and
+            // only Nondh numbers survive. So we send the tagged Revenue pages in their OWN
+            // request(s) — chunked and scanned in parallel — merge the result, and the main
+            // report request then EXCLUDES revenue images and just carries the pre-computed
+            // revData. This makes per-Nondh date/detail reliable no matter how many files are
+            // uploaded — no "upload fewer files" instruction needed.
+            const mergeRevData = (parts: any[]): any => {
+                const valid = parts.filter(Boolean)
+                if (valid.length === 0) return null
+                const pick = (k: string) => { for (const p of valid) if (p && p[k]) return p[k]; return '' }
+                const entries: any[] = []; const seen = new Set<string>()
+                for (const p of valid) {
+                    const ents = (p && (p.mutation_entries || p.entries)) || []
+                    for (const e of ents) {
+                        const key = String(e.e || e.entry_no || JSON.stringify(e))
+                        if (seen.has(key)) continue
+                        seen.add(key); entries.push(e)
+                    }
+                }
+                return {
+                    document_type_found: pick('document_type_found'),
+                    village: pick('village'), taluka: pick('taluka'), district: pick('district'),
+                    survey_block_no: pick('survey_block_no'), total_area: pick('total_area'),
+                    land_use: pick('land_use'), tenure: pick('tenure'),
+                    ownership_column: pick('ownership_column'), boja_column: pick('boja_column'),
+                    ganot_column: pick('ganot_column'), na_order: pick('na_order'),
+                    entries,
+                }
+            }
 
+            const revImages = imageFiles.filter(i => i.docType === 'revenue')
+            const otherImages = imageFiles.filter(i => i.docType !== 'revenue')
+            let precomputedRevData: any = null
+            let mainImages = imageFiles
+
+            if (revImages.length > 0) {
+                try {
+                    setProgress('Deep-scanning Revenue Record separately (' + revImages.length + ' pages)...')
+                    const CHUNK = 8
+                    const chunks: any[][] = []
+                    for (let i = 0; i < revImages.length; i += CHUNK) chunks.push(revImages.slice(i, i + CHUNK))
+                    const scanResults = await Promise.all(chunks.map(chunk =>
+                        fetch('/api/analyze', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                mode: 'revenue-scan',
+                                images: chunk.map((img: any) => ({ data: img.base64, mediaType: img.mediaType, name: img.name, docType: img.docType })),
+                            })
+                        }).then(r => r.ok ? r.json() : null).catch(() => null)
+                    ))
+                    precomputedRevData = mergeRevData(scanResults.map((s: any) => s?.revData))
+                    // Main request excludes the (already-scanned) revenue pages. If revenue was
+                    // the ONLY thing uploaded, send just 1-2 revenue pages so the main request is
+                    // non-empty and small (revData already carries the full chain) — avoids a 413.
+                    if (precomputedRevData) mainImages = otherImages.length > 0 ? otherImages : revImages.slice(0, 2)
+                    const revEntries = (precomputedRevData?.entries || []).length
+                    setProgress('Revenue Record scanned: ' + revEntries + ' mutation entries found ✓')
+                } catch { precomputedRevData = null; mainImages = imageFiles }
+            }
+
+            // ── FINAL SIZE CHECK on the MAIN request images (revenue handled separately above) ──
+            let totalRawBytes = mainImages.reduce((sum, img) => sum + (img.base64.length * 0.75), 0)
+            let estBase64 = estimateBase64Bytes(totalRawBytes)
             if (estBase64 > TARGET_TOTAL_BYTES * 1.4) {
                 // Drop extra pages from non-priority files first (keep page 1 of each)
                 const seen = new Set<string>()
-                const filtered = imageFiles.filter(img => {
+                mainImages = mainImages.filter(img => {
                     if (priorityTags.has(img.docType)) return true
                     const baseName = img.name.replace(/_p\d+$/, '')
                     if (seen.has(baseName)) return false
                     seen.add(baseName)
                     return true
                 })
-                imageFiles.length = 0
-                imageFiles.push(...filtered)
-                totalRawBytes = imageFiles.reduce((sum, img) => sum + (img.base64.length * 0.75), 0)
+                totalRawBytes = mainImages.reduce((sum, img) => sum + (img.base64.length * 0.75), 0)
                 estBase64 = estimateBase64Bytes(totalRawBytes)
-                setProgress('Large upload detected — trimmed to ' + imageFiles.length + ' pages to fit limit...')
+                setProgress('Large upload — trimmed to ' + mainImages.length + ' pages to fit limit...')
             }
 
-            const ecCount = imageFiles.filter(i => i.docType === 'ec').length
-            setProgress('AI analysis: ' + (ecCount > 0 ? ecCount + ' EC pages deep scan + ' : '') + imageFiles.length + ' total pages...')
+            const ecCount = mainImages.filter(i => i.docType === 'ec').length
+            setProgress('AI analysis: ' + (precomputedRevData ? 'Revenue ✓ + ' : '') + (ecCount > 0 ? ecCount + ' EC pages + ' : '') + mainImages.length + ' pages...')
 
             const res = await fetch('/api/analyze', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    images: imageFiles.map((img: any) => ({
+                    images: mainImages.map((img: any) => ({
                         data: img.base64, mediaType: img.mediaType,
                         name: img.name, docType: img.docType
                     })),
+                    revData: precomputedRevData,
                     caseType, appId: 'AUTO-' + Date.now().toString().slice(-6),
                     bankName: bankName.trim(), loanType: loanTypeMap[caseType] || 'LAP',
                     applicantName: applicantName.trim(), coApplicant: coApplicant.trim(),
@@ -445,10 +504,10 @@ export default function UploadPage() {
                                 <div style={{ background: 'rgba(2,2,8,0.9)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>
                                         ▣ DOCUMENTS — <span style={{ color: '#6366f1' }}>{files.length} files</span>
-                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged Revenue: up to 12 pages · Best with 3-4 files total)</span>
+                                        <span style={{ fontSize: '11px', color: '#475569', marginLeft: '12px', fontWeight: '400' }}>(Tagged Revenue is deep-scanned separately — upload as many docs as you need)</span>
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#a16207', marginBottom: '16px', padding: '8px 12px', background: 'rgba(161,98,7,0.08)', borderRadius: '8px', border: '1px solid rgba(161,98,7,0.25)' }}>
-                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR file pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Sirf 7/12 ka summary page nahi — har Nondh ki poori detail (date, naam, sauda) ke liye asli "Hakkpatrak / Gam Namuna No. 6 / Entry Details" wale mutation pages bhi upload karo</strong> — Part IV ki date + details wahi se aati hain. Tag karne se ye pages OCR-grade quality me (up to 12 pages) scan honge. <strong style={{ color: '#ef4444' }}>ZAROORI: total sirf 3-4 files rakho</strong> (detail register + EC + main Sale Deed) — zyada files daaloge to register ki pages 4.5MB limit me squeeze ho ke kat jaati hain aur har Nondh sirf number dikhayega, aur time bhi 10+ min lagta hai.
+                                        💡 <strong>Zaroori:</strong> EC file pe <strong>"📋 EC"</strong> aur 7/12 / FERFAR / mutation file pe <strong>"📜 Revenue 7/12"</strong> tag karo. <strong style={{ color: '#d97706' }}>Har Nondh ki poori detail (date, naam, sauda) ke liye asli "Hakkpatrak / Gam Namuna No. 6 / Entry Details" wale mutation pages upload karo</strong> — Part IV ki date + details wahi se aati hain. <strong style={{ color: '#16a34a' }}>Ab jitni bhi files daalo chalega</strong> — Revenue Record apne alag deep-scan me padha jaata hai (16 pages tak, full quality), isliye baaki documents se uski detail kabhi cut nahi hoti.
                                     </div>
 
                                     {files.map((f, i) => (
@@ -485,7 +544,7 @@ export default function UploadPage() {
 
                                             {f.docType === 'revenue' && (
                                                 <div style={{ marginTop: '8px', fontSize: '11px', color: '#a16207', fontWeight: '600' }}>
-                                                    📜 Revenue Deep Scan ON — OCR-grade quality (up to 12 pages). Behtar result ke liye total 3-4 files hi rakho — zyada files me register ki detail pages cut ho jaati hain.
+                                                    📜 Revenue Deep Scan ON — apne alag dedicated scan me (16 pages tak, full OCR quality). Baaki files kitni bhi hon, is register ki har Nondh ki detail padhi jaayegi.
                                                 </div>
                                             )}
 
