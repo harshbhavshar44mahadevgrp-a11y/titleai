@@ -261,17 +261,21 @@ export default function UploadPage() {
             // report request then EXCLUDES revenue images and just carries the pre-computed
             // revData. This makes per-Nondh date/detail reliable no matter how many files are
             // uploaded — no "upload fewer files" instruction needed.
+            // richness = how many detail fields an entry actually carries. Used so that when the
+            // same Nondh is read in two chunks (once with full detail, once number-only) we keep
+            // the RICHER read — detail is never lost in the merge.
+            const richness = (e: any) => ['d', 'r', 'po', 'no', 'n', 's', 'sd', 'cd', 'rm', 'sv'].reduce((c, k) => c + (e && e[k] ? 1 : 0), 0)
             const mergeRevData = (parts: any[]): any => {
                 const valid = parts.filter(Boolean)
                 if (valid.length === 0) return null
                 const pick = (k: string) => { for (const p of valid) if (p && p[k]) return p[k]; return '' }
-                const entries: any[] = []; const seen = new Set<string>()
+                const order: string[] = []; const byKey = new Map<string, any>()
                 for (const p of valid) {
                     const ents = (p && (p.mutation_entries || p.entries)) || []
                     for (const e of ents) {
                         const key = String(e.e || e.entry_no || JSON.stringify(e))
-                        if (seen.has(key)) continue
-                        seen.add(key); entries.push(e)
+                        if (!byKey.has(key)) { order.push(key); byKey.set(key, e) }
+                        else if (richness(e) > richness(byKey.get(key))) byKey.set(key, e)
                     }
                 }
                 return {
@@ -281,7 +285,7 @@ export default function UploadPage() {
                     land_use: pick('land_use'), tenure: pick('tenure'),
                     ownership_column: pick('ownership_column'), boja_column: pick('boja_column'),
                     ganot_column: pick('ganot_column'), na_order: pick('na_order'),
-                    entries,
+                    entries: order.map(k => byKey.get(k)),
                 }
             }
 
@@ -296,15 +300,22 @@ export default function UploadPage() {
                     const CHUNK = 8
                     const chunks: any[][] = []
                     for (let i = 0; i < revImages.length; i += CHUNK) chunks.push(revImages.slice(i, i + CHUNK))
-                    const scanResults = await Promise.all(chunks.map(chunk =>
-                        fetch('/api/analyze', {
+                    // Each chunk gets one automatic retry if it comes back empty/failed, so a
+                    // single transient error never silently drops a whole page-group of entries.
+                    const scanChunk = async (chunk: any[]) => {
+                        const once = () => fetch('/api/analyze', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 mode: 'revenue-scan',
                                 images: chunk.map((img: any) => ({ data: img.base64, mediaType: img.mediaType, name: img.name, docType: img.docType })),
                             })
                         }).then(r => r.ok ? r.json() : null).catch(() => null)
-                    ))
+                        const ok = (r: any) => !!(r && r.revData && (((r.revData.entries || r.revData.mutation_entries || []).length > 0) || r.revData.village || r.revData.survey_block_no))
+                        let res = await once()
+                        if (!ok(res)) res = await once()
+                        return res
+                    }
+                    const scanResults = await Promise.all(chunks.map(scanChunk))
                     precomputedRevData = mergeRevData(scanResults.map((s: any) => s?.revData))
                     // Main request excludes the (already-scanned) revenue pages. If revenue was
                     // the ONLY thing uploaded, send just 1-2 revenue pages so the main request is

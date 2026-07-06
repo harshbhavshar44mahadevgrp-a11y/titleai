@@ -528,7 +528,11 @@ export async function POST(req: NextRequest) {
         if (mode === 'revenue-scan') {
             try {
                 const scanImgs = images.map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
-                const rs = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: [...scanImgs, { type: 'text', text: REV_PS }] }] })
+                // temperature:0 — this is an OCR/extraction task, not creative writing. At the
+                // default temperature (1.0) the SAME register read differently on each run: once
+                // full detail, once "not legible" — the inconsistency the user saw. Deterministic
+                // reading makes the result the same every time for the same document.
+                const rs = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, messages: [{ role: 'user', content: [...scanImgs, { type: 'text', text: REV_PS }] }] })
                 const _rb = rs.content.find(b => b.type === 'text')
                 const rawText = _rb && _rb.type === 'text' ? _rb.text : ''
                 const parsed = parseJSON(rawText)
@@ -608,7 +612,7 @@ export async function POST(req: NextRequest) {
         const revPrescreen = usePreScan
             // Dedicated scan already ran — nothing to do here.
             ? Promise.resolve()
-            : AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
+            : AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, messages: [{ role: 'user', content: [...revPrescreenImgs, { type: 'text', text: REV_PS }] }] })
                 .then(rs => {
                     const _rb = rs.content.find(b => b.type === 'text')
                     const rawText = _rb && _rb.type === 'text' ? _rb.text : ''
