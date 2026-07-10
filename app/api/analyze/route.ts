@@ -103,20 +103,13 @@ function extractVerdict(t: string): string { const u = t.toUpperCase(); if (u.in
 // deterministic, duplicate-free, fast, and identical on every run for the same input.
 function esc(s: string): string { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
 
-function buildPart4(revData: any, ecMetas: ECMeta[], lc: LC, currentOwner: string): string {
+function buildPart4(revData: any, currentOwner: string): string {
     let h = '<hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>'
-
-    const ecCross = (): string => {
-        const app = ecMetas.map(m => m.ec_app_number).filter(Boolean).join(', ')
-        const period = ecMetas.map(m => (m.ec_from || m.ec_to) ? ((m.ec_from || '?') + ' to ' + (m.ec_to || '?')) : '').filter(Boolean).join(' | ')
-        if (!app) return '<p>The above Revenue Record chain could not be independently cross-verified against an Encumbrance Certificate, as no EC was positively identified among the documents produced.</p>'
-        return '<p>The above Revenue Record chain is cross-verified against the Encumbrance Certificate bearing E-Application No. ' + esc(app) + (period ? ' covering the period ' + esc(period) : '') + ' — overall encumbrance status: ' + esc(lc.status) + '. No material discrepancy is noted between the Revenue Record mutation entries and the EC entries on the basis of the documents produced.</p>'
-    }
 
     const entries: any[] = revData ? (revData.mutation_entries || revData.entries || []) : []
     if (!revData || entries.length === 0) {
         h += '<p>Revenue Record (Village Form 7/12 / Mutation Register / FERFAR / Property Card) was not available for independent extraction in this case. The title chain for the subject property cannot be independently traced from Revenue Record entries on the basis of the documents produced. Independent verification of the Revenue Record is strongly recommended before disbursement to confirm ownership continuity, land use, encumbrance status and Kabjedar/Khatedar details.</p>'
-        return h + ecCross()
+        return h
     }
 
     const village = revData.village || '', taluka = revData.taluka || '', district = revData.district || ''
@@ -179,7 +172,9 @@ function buildPart4(revData: any, ecMetas: ECMeta[], lc: LC, currentOwner: strin
     const ganot = String(revData.ganot_column || '').trim()
     h += '<div class="sph">Current Revenue Record Status</div><p>' + (currentOwner ? esc(currentOwner) : 'The current recorded holder') + ' holds the right, title and interest in the subject land as the present recorded Kabjedar/Khatedar in the Revenue Record' + (landUse ? '. Land use: ' + esc(landUse) : '') + '. Tenant / Ganot column: ' + (ganot ? esc(ganot) : 'NIL') + '.</p>'
 
-    return h + ecCross()
+    // EC details, Permissions/Approvals and Regulatory Compliance are appended to Part IV by
+    // the Part IV-tail writer (S3C), per the report SOP — so Part IV ends here at the chain.
+    return h
 }
 
 
@@ -304,24 +299,23 @@ USE ALL TOKENS. MISS NOTHING.`
 // ================================================================
 // STEP 3A — PART I SYSTEM
 // ================================================================
-const S3A = `Generate HTML for PART III ONLY — List of Scrutinized Documents.
-(Note: Part I — Borrower/Mortgagor/Ownership and Part II — Property Description are generated separately and already appear before this section. Do NOT regenerate them. Start directly with Part III.)
-LATEST document FIRST. OLDEST LAST.
+const S3A = `Generate HTML for PART III ONLY — List of Scrutinized Documents. SUMMARIZED.
+(Part I and Part II are generated separately and already appear before this. Start directly with Part III.)
 
-EC FORMAT — WRITE EVERY SINGLE ENTRY FOUND INSIDE THE EC:
-<div class="di"><p><span class="dn">N. Encumbrance Certificate — E-App. No.: [APP_NO] | Dated: [DATE] | Period: [FROM] to [TO]</span><br>
-EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination. Entries reflect: (i) [Row 1 — deed type, deed number, date, exact parties from→to, key finding]; (ii) [Row 2 — same detail]; (iii) [Row 3 if exists — same detail including if mortgage is active or discharged and by which release deed]. [Final sentence on overall encumbrance status.]</p></div>
+SOP RULES FOR PART III:
+- List ONLY documents that were actually submitted / produced for scrutiny.
+- SUMMARIZE each document in ONE short line — do NOT write long descriptions or reproduce full recitals.
+- Do NOT reproduce E-Application Receipt or E-Challan details. For the EC, only the EC Application No., date and search period may be mentioned — nothing else from the EC here (the EC's transactions belong in Part IV).
+- Do NOT add remarks like "ILLEGIBLE", "NOT PROVIDED FOR VERIFICATION", or "BLANK". If a document was not produced, simply do not list it.
+- Formal English only. No Gujarati script. NEVER "and others". NEVER list mutation entries here. NEVER stamp-paper numbers.
+- LATEST document first, oldest last.
 
-EC ENTRY DETAIL RULE — MANDATORY:
-For EACH row inside EC write: deed type | deed number | date | who executed (Aapnar) | in whose favour (Lenar) | what it achieved.
-If mortgage row: add "which stands discharged vide Release Deed No.[X] dated [date]" OR "which is subsisting and active as on date".
-If release row: add "confirming formal discharge of builder-level mortgage / Mortgage Deed No.[X] dated [date]".
-NEVER write just a generic one-line EC summary. EVERY row must be described.
+FORMAT (one entry per submitted document, summarized):
+<div class="di"><p><span class="dn">1. [Document Type] — [Deed/App No. if any] | Dated: [date]</span><br>[one concise line: key parties and what it establishes]</p></div>
 
-RELEASE DEED FORMAT (if submitted as separate document):
-<div class="di"><p><span class="dn">N. Reconveyance / Mortgage Release Deed — Deed No. [X] | Dated: [DATE]</span><br>[Bank] unto and in favour of [Owner] through [Authorised Partner]. SRO: [SRO]. This Release Deed formally discharges and extinguishes Mortgage Deed No. [X] dated [DATE] created by [mortgagor] in respect of [property]. Upon registration of this deed, the mortgage stands fully satisfied and released. No residual charge or encumbrance survives from the said mortgage as of [date].</p></div>
+For the EC specifically (summarized, one line only):
+<div class="di"><p><span class="dn">N. Encumbrance Certificate — E-App. No.: [APP_NO] | Dated: [DATE] | Search Period: [FROM] to [TO]</span><br>Encumbrance Certificate produced for the search period [FROM] to [TO]; transactions examined and set out in Part IV.</p></div>
 
-RULES: NEVER "and others". NEVER mutation entries in this Part. NEVER stamp paper numbers.
 START: <hr><div class="ph">PART III — LIST OF SCRUTINIZED DOCUMENTS</div>
 <p>The following documents have been produced for examination and scrutiny:</p>
 END: after last document entry.`
@@ -485,102 +479,61 @@ END: after the EC cross-verification paragraph.`
 // ================================================================
 // STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
 // ================================================================
-const S3C = `Generate HTML for PART V (Regulatory) + PART VI (Alerts) ONLY.
+const S3C = `You generate TWO things: (1) the TAIL of PART IV (EC details + Approvals + Regulatory — as sub-sections that CONTINUE Part IV, so use <div class="sph"> sub-headings and do NOT write any new "PART" header for these), then (2) PART V — ALERTS. Everything SUMMARIZED. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
 
-LANGUAGE RULE: EVERYTHING in formal English only. NEVER use Gujarati script. Village names, land use, tenure, owner names — all in English. Write 'Non-Agricultural (Bin Kheti)' not 'બિન ખેતી'. Write 'Koba' not 'કોબા'.
+═══ PART IV TAIL (sub-sections — NO new PART header) ═══
 
-PART V REGULATORY FORMAT — REVENUE RECORD TABLE MUST USE REAL SCANNED DATA:
-Check the REVENUE_RECORD_PROVIDED flag and the Revenue Record Ground Truth block in context.
-If REVENUE_RECORD_PROVIDED says exactly "YES": fill every row below using the ACTUAL values from Revenue Record Ground Truth (Village, Taluka, District, Survey/Block No, Total Area, Land Use, Tenure, Ownership Column, Boja/Encumbrance Column, Ganot/Tenant Column) — these are real deep-scanned fields, use them exactly, do not invent or guess values.
-If REVENUE_RECORD_PROVIDED does NOT say "YES" (whatever specific reason it gives — scan error, tagged but unrecognized, or not tagged at all): write "NOT PROVIDED FOR VERIFICATION" honestly for each row below rather than guessing plausible-looking values — never fabricate Village/Taluka/District/Land Use details that were not actually scanned. If the flag indicates a scan error specifically, you may instead note "Verification pending — technical error during scan, retry recommended" for these rows rather than the standard NOT PROVIDED wording, since that more accurately reflects what happened.
-<div class="sph">A. Revenue Record (7/12 / Property Card)</div>
-<table class="mt">
-<tr><td>Village (Mouje)</td><td>:</td><td>[real value from Revenue Record Ground Truth, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Taluka</td><td>:</td><td>[real value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>District</td><td>:</td><td>[real value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Survey / Block / FP No.</td><td>:</td><td>[real survey_block_no value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Total Area</td><td>:</td><td>[real total_area value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Tenure</td><td>:</td><td>[real tenure value or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Land Use</td><td>:</td><td>[real land_use value — note if it confirms Non-Agricultural — or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Ownership Column</td><td>:</td><td>[real ownership_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Boja / Encumbrance</td><td>:</td><td>[real boja_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-<tr><td>Ganot / Tenant</td><td>:</td><td>[real ganot_column value, or "NOT PROVIDED FOR VERIFICATION"]</td></tr>
-</table>
+<div class="sph">Details of Encumbrance Certificate (EC)</div>
+<p>[ONE summarized paragraph using the EC TABLE / MORTGAGE LIFECYCLE data in context: EC E-Application No., search period (from → to), total registered transactions found, and a short chronological summary of the material deeds (sale / mortgage / release) with their deed numbers and dates. State the overall encumbrance status — whether any mortgage is subsisting or all charges stand discharged/released (and by which Release/Reconveyance Deed). Do NOT reproduce the EC applicant name or the EC last column. Summarize — do not repeat every row verbatim. Released/discharged mortgages must be stated as discharged, never as active.]</p>
 
-RERA: Include exact RERA registration number if mentioned.
+<div class="sph">Approvals, Permissions & Regulatory Compliance</div>
+<p>[ONE summarized paragraph, ONLY where the documents/Ground Truth support it: land status from the Revenue Record Ground Truth (Village, Survey/Block No., Total Area, Tenure, and whether Land Use is confirmed Non-Agricultural); NA / Conversion Order number and date; RERA registration number; Development Permission / GUDA / AUDA / Municipal approval; Building Plan approval; Commencement / Occupancy (OC) / Completion (CC) / Building Use (BU) permission; and any NOCs. If the REVENUE_RECORD_PROVIDED flag is not "YES", state Revenue Record particulars are pending verification rather than inventing them. If a particular approval is not found in the documents, simply omit it — never fabricate an approval, number or date.]</p>
 
-ALERTS FORMAT — SHORT AND PRECISE:
-HIGH: <div class="ib"><div><span class="sh">HIGH SEVERITY</span></div><div class="it">N. [Title]</div><p>[3 sentences max with exact deed numbers]</p><p><span class="sg">Direction:</span> [action]</p></div>
-MEDIUM: same with class "sm"
-LOW: same with class "sl"
+═══ PART V ═══
+<hr><div class="ph">PART V — ALERTS AND ADVERSE FINDINGS</div>
+[SUMMARIZED alerts only, max 5-6. Each:
+HIGH: <div class="ib"><div><span class="sh">HIGH SEVERITY</span></div><div class="it">N. [Title]</div><p>[2-3 sentences, exact deed numbers]</p><p><span class="sg">Direction:</span> [action]</p></div>
+MEDIUM: same with class "sm" | LOW: same with class "sl"]
+NEVER flag: released/discharged mortgages | EC-confirmed deeds | EC applicant name.
+If nothing material is adverse, write a single <div class="ib"><div><span class="sl">LOW SEVERITY</span></div><div class="it">1. No material adverse findings</div><p>No material adverse finding was noted on the documents produced. Standard pre-disbursement verification is recommended.</p></div>
 
-NEVER flag: released mortgages | EC-confirmed deeds | EC applicant name
-NEVER list more than 5-6 alerts total.
-
-START: <hr><div class="ph">PART V — APPROVALS AND REGULATORY COMPLIANCE</div>
-...then...
-<hr><div class="ph">PART VI — ALERTS AND ADVERSE FINDINGS</div>
-END: after last alert.`
+END: after the last alert.`
 
 // ================================================================
 // STEP 3D — PARTS VII-XI SYSTEM
 // ================================================================
-const S3D1 = `Generate HTML for PART VII and PART VIII ONLY — nothing else.
+const S3D1 = `Generate HTML for PART VI — LEGAL OPINION ONLY (SUMMARIZED). Do NOT write a Document Deficiency Report. Formal English only.
 
-BOTH PARTS MUST BE COMPLETE, EVERY TIME:
-Write Part VII fully (all 5 sub-sections A-E), then Part VIII fully (legal opinion paragraph + complete verdict box with every numbered condition — never cut off mid-list). Keep Part VII thorough but not bloated so Part VIII has room to finish completely.
+<hr><div class="ph">PART VI — LEGAL OPINION</div>
+<p>[Summarized legal opinion — 4 to 6 sentences covering: whether ownership and title continuity are established from the Revenue Record mutation chain and the deeds produced; the encumbrance / mortgage position (active or fully discharged, with the release/reconveyance deed if any); marketability; mortgageability; SARFAESI enforceability; and any conditions the bank must satisfy. Do not repeat the whole chain — summarize its conclusion.]</p>
+[Verdict box — choose per the VERDICT given in context:
+CLEAR: <div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p>[brief reason]</p></div>
+CLEAR SUBJECT TO: <div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p>Mortgageable subject to: [short list of conditions]</p></div>
+NOT CLEAR: <div class="vnc"><div class="vt" style="color:#b91c1c;">TITLE NOT CLEAR — BANK SHOULD NOT PROCEED</div><p>[reasons/conditions]</p></div>]
 
-PART VII DOCUMENTS FORMAT:
-<div class="sph">A. Documents Submitted and Available</div><ol>
-<li>[EC App No + Period + date + key finding]</li>
-<li>[Deed type + No + date + parties]</li>
-</ol>
-<div class="sph">B. Critical Missing (Report Hold)</div><ol>[or <li>NIL</li>]</ol>
-<div class="sph">C. Important Missing (Pre-Disbursement)</div><ol>[list]</ol>
-<div class="sph">D. Illegible / Incomplete</div><ol>[or <li>NIL — No illegibility noted.</li>]</ol>
-<div class="sph">E. Risk Assessment Summary</div>
-<table class="mt">
-<tr><td>Title Risk Level</td><td>:</td><td>[LOW/MODERATE/HIGH]</td></tr>
-<tr><td>Mortgageability Status</td><td>:</td><td>[Mortgageable/Conditionally/Not]</td></tr>
-<tr><td>SARFAESI Enforceability</td><td>:</td><td>[Enforceable/Conditionally/Not]</td></tr>
-<tr><td>Lending Suitability</td><td>:</td><td>[Suitable/Conditionally/Not]</td></tr>
-<tr><td>Security Coverage</td><td>:</td><td>[Adequate/Marginal/Inadequate]</td></tr>
-<tr><td>Reasoning</td><td>:</td><td>[2-3 sentences]</td></tr>
-</table>
-
-PART VIII LEGAL OPINION:
-<hr><div class="ph">PART VIII — LEGAL OPINION AND VERDICT</div>
-<p>[Insert exact legal opinion paragraph]</p>
-[Verdict box based on severity:
-NOT CLEAR: <div class="vnc"><div class="vt" style="color:#b91c1c;">TITLE NOT CLEAR — BANK SHOULD NOT PROCEED</div><p>[conditions]</p></div>
-CLEAR SUBJECT TO: <div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p>Mortgageable subject to: [list]</p></div>
-CLEAR: <div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p>[brief reason]</p></div>]
-
-START: <hr><div class="ph">PART VII — DOCUMENT DEFICIENCY REPORT</div>
+START: <hr><div class="ph">PART VI — LEGAL OPINION</div>
 END: after the verdict box closing div.`
 
 // ================================================================
 // STEP 3E — PART IX-XI SYSTEM (split from S3D for parallel speed)
 // ================================================================
-const S3D2 = `Generate HTML for PART IX, PART X, and PART XI ONLY — nothing else. Do NOT regenerate Part VII or Part VIII, they are handled separately.
+const S3D2 = `Generate HTML for PART VII, PART VIII, and PART IX ONLY — nothing else. All SUMMARIZED. Formal English.
 
-ALL THREE PARTS MUST BE COMPLETE, EVERY TIME — this is non-negotiable:
+PART VII — PRE-DISBURSEMENT:
+<hr><div class="ph">PART VII — DOCUMENTS REQUIRED TO BE TAKEN INTO BANK CUSTODY AT PRE-DISBURSEMENT STAGE</div>
+<ol>[Summarized. Each item ONE line: <li><strong>[Document Name]</strong> — [one-line purpose]</li>]</ol>
 
-PART IX PRE-DISBURSEMENT:
-<hr><div class="ph">PART IX — DOCUMENTS REQUIRED AT PRE-DISBURSEMENT STAGE</div>
-<ol>Each item: <li><strong>[Document Name]</strong><br><em>Source:</em> [who/where]<br><em>Purpose:</em> [specific legal reason]</li></ol>
+PART VIII — POST-DISBURSEMENT:
+<hr><div class="ph">PART VIII — DOCUMENTS REQUIRED TO BE TAKEN INTO BANK CUSTODY AT POST-DISBURSEMENT STAGE</div>
+<ol>[Summarized 5-7 items, ONE line each — e.g. Registered/Equitable Mortgage creation, CERSAI charge registration, original title deeds, property insurance, ROC/CHG charge filing if borrower is a company, Society NOC / Share Certificate if applicable.]</ol>
 
-PART X POST-DISBURSEMENT:
-<hr><div class="ph">PART X — DOCUMENTS REQUIRED AT POST-DISBURSEMENT STAGE</div>
-<ol>Standard 6-8 items, same Source/Purpose format as Part IX.</ol>
+PART IX — FINAL RECOMMENDATION:
+<hr><div class="ph">PART IX — FINAL RECOMMENDATION</div>
+<div class="final-rec"><div class="fr-title">FINAL TITLE STATUS:</div><div class="fr-value">[Use the VERDICT given in context — CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS / TITLE NOT CLEAR]</div></div>
+<p>[3-4 sentence SUMMARIZED recommendation: title-chain conclusion | EC period + encumbrance status | mortgage lifecycle if any | outstanding conditions | SARFAESI enforceability | bank recommendation.]</p>
 
-PART XI FINAL RECOMMENDATION:
-<hr><div class="ph">PART XI — FINAL RECOMMENDATION</div>
-<div class="final-rec"><div class="fr-title">FINAL TITLE STATUS:</div><div class="fr-value">[CLEAR TITLE SUBJECT TO CONDITIONS / TITLE NOT CLEAR / CLEAR AND MARKETABLE — use the VERDICT given in context]</div></div>
-<p>[5-6 sentences covering: title chain summary | EC App numbers + period + status | mortgage lifecycle with deed numbers | RERA status | outstanding conditions | SARFAESI | bank recommendation]</p>
-
-START: <hr><div class="ph">PART IX
-END: after the Part XI paragraph.`
+START: <hr><div class="ph">PART VII
+END: after the Part IX paragraph.`
 
 
 // ================================================================
@@ -888,7 +841,7 @@ export async function POST(req: NextRequest) {
             'APPLICANT: ' + (meta.applicant || applicantName),
             'OWNER: ' + (meta.currentOwner || currentOwner),
             'CASE: ' + caseType,
-            'BANK: ' + bankName,
+            'BANK: ' + bankName,   
             // When a Revenue Record exists, DO NOT pass the Step-2 analysis (it contains EC
             // deed detail that leaks into the chain). Only pass it as a last-resort supplement
             // when there is no Revenue Record to build the chain from.
@@ -908,10 +861,10 @@ export async function POST(req: NextRequest) {
         // entries, and gives an identical, correctly-ordered chain on every run. The remaining
         // four sections still run concurrently.
         const [r3a, r3c, r3d1, r3d2] = await Promise.all([
-            safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
-            safeStep3('Part V/VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
-            safeStep3('Part VII-VIII', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
-            safeStep3('Part IX-XI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
+            safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3A, messages: [{ role: 'user', content: ctx }] })),
+            safeStep3('Part IV-tail + V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
+            safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
+            safeStep3('Part VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
         ])
 
         const BT3 = String.fromCharCode(96).repeat(3)
@@ -986,7 +939,7 @@ export async function POST(req: NextRequest) {
 
         // PART IV — built deterministically from the structured Revenue data (no AI call):
         // every Nondh exactly once, chronological order, duplicate-free, identical every run.
-        const part4 = buildPart4(revData, ecMetas, lc, finalOwner)
+        const part4 = buildPart4(revData, finalOwner)
 
         const html = buildReport(refNo, appId, today, bankName, loanMap[caseType] || loanType,
             part1 + part2 + p1 + part4 + p3 + p4
