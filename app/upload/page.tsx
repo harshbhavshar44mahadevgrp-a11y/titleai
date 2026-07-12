@@ -1,6 +1,8 @@
 ﻿"use client"
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
+import { supabase } from '@/lib/supabase'
 
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
@@ -40,6 +42,22 @@ const MIN_QUALITY = 0.35
 const MIN_MAXPX = 650
 
 export default function UploadPage() {
+    const router = useRouter()
+    // AUTH GUARD — the upload tool sits behind login. On mount, check for a Supabase session;
+    // if there is none, send the visitor to the login page. authChecked gates the render so an
+    // unauthenticated visitor never even flashes the upload UI. Normal flow: Landing (/) →
+    // Login/Signup → /upload.
+    const [authChecked, setAuthChecked] = useState(false)
+    useEffect(() => {
+        let alive = true
+        supabase.auth.getSession().then(({ data }) => {
+            if (!alive) return
+            if (!data.session) router.replace('/login')
+            else setAuthChecked(true)
+        }).catch(() => { if (alive) router.replace('/login') })
+        return () => { alive = false }
+    }, [router])
+
     const [dragging, setDragging] = useState(false)
     const [files, setFiles] = useState<DocFile[]>([])
     const [selectedType, setSelectedType] = useState('')
@@ -95,7 +113,9 @@ export default function UploadPage() {
         }
         const interval = setInterval(draw, 40)
         return () => clearInterval(interval)
-    }, [])
+        // depends on authChecked so it (re)initialises once the real UI (with the canvas) renders
+        // after the auth gate — otherwise the canvas ref is null during the "Verifying access" loader.
+    }, [authChecked])
 
     const addFiles = (newFiles: File[]) => {
         setFiles(prev => {
@@ -401,6 +421,16 @@ export default function UploadPage() {
 
     const inp: React.CSSProperties = { width: '100%', background: 'rgba(10,10,20,0.8)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '10px', padding: '10px 14px', color: '#e2e8f0', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
     const lbl: React.CSSProperties = { fontSize: '11px', color: '#475569', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }
+
+    // Until the Supabase session is confirmed, show a minimal loader (unauthenticated visitors
+    // are redirected to /login by the guard above and never see the upload UI).
+    if (!authChecked) {
+        return (
+            <div style={{ minHeight: '100vh', background: '#020208', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontFamily: 'Inter, system-ui, sans-serif', fontSize: '13px', letterSpacing: '1px' }}>
+                Verifying access…
+            </div>
+        )
+    }
 
     return (
         <div style={{ minHeight: '100vh', background: '#020208', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', position: 'relative', overflow: 'hidden' }}>
