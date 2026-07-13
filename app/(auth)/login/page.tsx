@@ -18,7 +18,16 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
 
         if (error) {
-            setError('Email ya Password galat hai')
+            // Show the real reason instead of a generic message — the most common one is an
+            // unconfirmed email (when Supabase "Confirm email" is ON), which is NOT a wrong password.
+            const m = (error.message || '').toLowerCase()
+            if (m.includes('not confirmed') || m.includes('confirm')) {
+                setError('Email confirm nahi hua. Supabase me "Confirm email" OFF karo (ya inbox me confirmation link kholo), phir login karo.')
+            } else if (m.includes('invalid login')) {
+                setError('Email ya Password galat hai')
+            } else {
+                setError(error.message || 'Login nahi hua')
+            }
             setLoading(false)
         } else {
             router.push('/upload')
