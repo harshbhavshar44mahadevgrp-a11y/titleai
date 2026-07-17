@@ -103,6 +103,17 @@ function extractVerdict(t: string): string { const u = t.toUpperCase(); if (u.in
 // deterministic, duplicate-free, fast, and identical on every run for the same input.
 function esc(s: string): string { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
 
+// SOP terminology, enforced in CODE (not just asked for in a prompt) so it can never drift:
+//   • "Paiki" is ALWAYS "out of" in Gujarat property contexts
+//   • "registered under" — never "registered vide"
+//   • "were entered" — never "have been entered"
+function normTerms(s: string): string {
+    return String(s == null ? '' : s)
+        .replace(/\bpaiki\b/gi, 'out of')
+        .replace(/\bregistered\s+vide\b/gi, 'registered under')
+        .replace(/\bhave\s+been\s+entered\b/gi, 'were entered')
+}
+
 function buildPart4(revData: any, currentOwner: string): string {
     let h = '<hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>'
 
@@ -112,8 +123,8 @@ function buildPart4(revData: any, currentOwner: string): string {
         return h
     }
 
-    const village = revData.village || '', taluka = revData.taluka || '', district = revData.district || ''
-    const survey = revData.survey_block_no || '', area = revData.total_area || '', landUse = revData.land_use || ''
+    const village = normTerms(revData.village || ''), taluka = normTerms(revData.taluka || ''), district = normTerms(revData.district || '')
+    const survey = normTerms(revData.survey_block_no || ''), area = revData.total_area || '', landUse = normTerms(revData.land_use || '')
     const loc = [survey ? 'Survey/Block No. ' + survey : '', village ? 'Mouje: ' + village : '', taluka ? 'Taluka: ' + taluka : '', district ? 'District: ' + district : ''].filter(Boolean).join(', ')
 
     // De-duplicate by Nondh number (guarantees NO entry appears twice) and sort chronologically
@@ -128,19 +139,22 @@ function buildPart4(revData: any, currentOwner: string): string {
     const numOf = (m: any) => { const n = parseInt(String(m.e || m.entry_no || '').replace(/[^0-9]/g, ''), 10); return isNaN(n) ? Number.MAX_SAFE_INTEGER : n }
     const sorted = uniq.map((m: any, i: number) => ({ m, i })).sort((a, b) => { const d = numOf(a.m) - numOf(b.m); return d !== 0 ? d : a.i - b.i }).map(x => x.m)
 
-    // ONE clean opening line — NO list of entry numbers (that listing is what caused "2 baar").
-    h += '<p>The following chronological title chain is traced strictly from the certified Mutation/FERFAR (Nondh) entries appearing in the Revenue Record (Village Form 7/12 and Mutation Register)' + (loc ? ' for ' + esc(loc) : '') + (area ? ', admeasuring ' + esc(area) : '') + (landUse ? ', land use: ' + esc(landUse) : '') + '. A total of ' + sorted.length + ' Mutation/FERFAR entries are recorded against the subject survey number, each set out individually below in chronological order.</p>'
+    // ONE clean opening line, in the SOP's formal advocate phrasing — NO list of entry numbers
+    // (that listing is what caused the duplicate "2 baar" reading).
+    h += '<p>From the available revenue records and documents produced before me, it transpires that the subject land' + (loc ? ' bearing ' + esc(loc) : '') + (area ? ', admeasuring ' + esc(area) : '') + (landUse ? ', land use: ' + esc(landUse) : '') + ', is reflected in the Revenue Record (Village Form 7/12 and the computerized Mutation Register). A total of ' + sorted.length + ' certified Mutation/FERFAR (Nondh) entries are recorded against the subject survey number, and the chronological devolution of title is set out individually below.</p>'
 
     sorted.forEach((m: any, idx: number) => {
         const no = esc(m.e || m.entry_no || '—')
         const date = esc(m.d || m.entry_date || '')
         const cd = esc(m.cd || m.certification_date || '')
         const status = esc(m.s || m.status || 'Certified')
-        const narrative = String(m.r || m.reason_of_mutation || '').trim()
-        const po = String(m.po || m.previous_owner || '').trim()
-        const nowner = String(m.no || m.new_owner || '').trim()
-        const nature = String(m.n || m.nature || '').trim()
-        const doc = String(m.sd || m.supporting_document || '').trim()
+        // normTerms enforces the SOP terminology (Paiki -> out of, registered under, were entered)
+        // on every field, deterministically — the extraction cannot leak the wrong wording through.
+        const narrative = normTerms(m.r || m.reason_of_mutation || '').trim()
+        const po = normTerms(m.po || m.previous_owner || '').trim()
+        const nowner = normTerms(m.no || m.new_owner || '').trim()
+        const nature = normTerms(m.n || m.nature || '').trim()
+        const doc = normTerms(m.sd || m.supporting_document || '').trim()
 
         h += '<div class="sph">Nondh Entry No. ' + no + ' | Dated: ' + (date || 'Not stated in extract') + (cd ? ' | Certification Date: ' + cd : '') + ' | Status: ' + status + '</div>'
         const lead = idx === 0 ? '' : 'Thereafter, '
@@ -163,13 +177,13 @@ function buildPart4(revData: any, currentOwner: string): string {
     })
 
     // Non-Agricultural / land-use conversion order, if traced in the Revenue Record.
-    const na = String(revData.na_order || '').trim()
+    const na = normTerms(revData.na_order || '').trim()
     if (na && !/^(not stated|not provided|na|nil|none)$/i.test(na) && !/not stated in revenue/i.test(na)) {
         h += '<div class="sph">Non-Agricultural / Land-Use Conversion</div><p>The subject land is recorded as converted to Non-Agricultural use vide ' + esc(na) + ', as reflected in the Revenue Record.</p>'
     }
 
     // Current recorded status.
-    const ganot = String(revData.ganot_column || '').trim()
+    const ganot = normTerms(revData.ganot_column || '').trim()
     h += '<div class="sph">Current Revenue Record Status</div><p>' + (currentOwner ? esc(currentOwner) : 'The current recorded holder') + ' holds the right, title and interest in the subject land as the present recorded Kabjedar/Khatedar in the Revenue Record' + (landUse ? '. Land use: ' + esc(landUse) : '') + '. Tenant / Ganot column: ' + (ganot ? esc(ganot) : 'NIL') + '.</p>'
 
     // EC details, Permissions/Approvals and Regulatory Compliance are appended to Part IV by
@@ -259,6 +273,18 @@ PERMANENT RULES — NEVER BREAK:
 8. Dukan = Shop in English
 9. NEVER list mutation entries in Part I
 
+MANDATORY TERMINOLOGY AND DRAFTING STANDARD (SOP — apply to EVERY sentence you write):
+- "Paiki" is ALWAYS translated as "out of" in property contexts. e.g. "Survey No. 288 Paiki" MUST be written "Survey No. 288 out of". NEVER leave the word "Paiki" in the output.
+- Use "registered under" — NEVER "registered vide". e.g. "registered under Serial No. 4521".
+- Keep the phrase "unto and in favour of" exactly as-is.
+- Use "were entered" — NEVER "have been entered".
+- Keep units (Sq. Mtrs. / Hectares / Acres) EXACTLY as given in the documents — never convert.
+- Third person, formal legal drafting language throughout.
+- PRESERVE EVERY FACTUAL DETAIL EXACTLY: never alter dates, names, survey numbers, measurements, registration numbers, mutation numbers, authority names or project names. You may only improve grammar, structure and readability — never a fact.
+- Standard transition phrases to use: "From the available revenue records and documents produced before me, it transpires that...", "Thereafter,...", "Subsequently,...", "Further, it transpires that...", "Upon verification of the available records,..."
+- Write PROPERTY HISTORY, not document history. Never write a separate paragraph per uploaded document ("Sale Deed says... Mutation says... EC says..."). If a Sale Deed, a Mutation entry and an EC row all describe the SAME transfer, that is ONE ownership event and gets ONE paragraph.
+- Cross-verification between documents is INTERNAL reasoning only — never clutter the narrative with it.
+
 EC COLUMN RULE — PERMANENT:
 LEFT/Aapnar = WHO GIVES | RIGHT/Lenar = WHO RECEIVES
 BANK IN LEFT = RELEASE DEED | BANK IN RIGHT = MORTGAGE DEED
@@ -299,26 +325,49 @@ USE ALL TOKENS. MISS NOTHING.`
 // ================================================================
 // STEP 3A — PART I SYSTEM
 // ================================================================
-const S3A = `Generate HTML for PART III ONLY — List of Scrutinized Documents. SUMMARIZED.
+const S3A = `Generate HTML for PART III ONLY — Description of Documents Verified / Scrutinized.
 (Part I and Part II are generated separately and already appear before this. Start directly with Part III.)
 
-SOP RULES FOR PART III:
-- List ONLY documents that were actually submitted / produced for scrutiny.
-- SUMMARIZE each document in ONE short line — do NOT write long descriptions or reproduce full recitals.
-- Do NOT reproduce E-Application Receipt or E-Challan details. For the EC, only the EC Application No., date and search period may be mentioned — nothing else from the EC here (the EC's transactions belong in Part IV).
-- Do NOT add remarks like "ILLEGIBLE", "NOT PROVIDED FOR VERIFICATION", or "BLANK". If a document was not produced, simply do not list it.
-- Formal English only. No Gujarati script. NEVER "and others". NEVER list mutation entries here. NEVER stamp-paper numbers.
-- LATEST document first, oldest last.
+═══ STRICT INPUT-DRIVEN RULE — THIS OVERRIDES EVERY OTHER CONVENIENCE DEFAULT ═══
+- List ONLY documents that were ACTUALLY uploaded / produced for scrutiny. If one document was
+  produced, the list has exactly one entry; if ten were produced, exactly ten.
+- NEVER infer or add a document because it is "typically expected" in this kind of transaction.
+  NEVER add RERA, EC, Property Card, Mutation Entries, NA Order, BU Permission or Development
+  Permission unless that document was actually produced.
+- If a document is absent, OMIT IT ENTIRELY — no placeholder, no "Not Available", no assumption
+  of its existence.
+- NEVER add remarks like "ILLEGIBLE", "NOT PROVIDED FOR VERIFICATION" or "BLANK".
+- Do NOT mention E-Application Receipt / E-Challan details beyond the date and search period.
+- If a registration number (or any other field) is unavailable, write exactly
+  "Registration Number not available in the uploaded document" — NEVER fabricate it.
+- Formal English, third person. No Gujarati script. NEVER "and others" — name every party.
 
-FORMAT (one entry per submitted document, summarized):
-<div class="di"><p><span class="dn">1. [Document Type] — [Deed/App No. if any] | Dated: [date]</span><br>[one concise line: key parties and what it establishes]</p></div>
+═══ TERMINOLOGY (MANDATORY) ═══
+- "registered under" — NEVER "registered vide".
+- Keep the phrase "unto and in favour of" exactly.
+- "Paiki" is ALWAYS translated as "out of" (e.g. "Survey No. 288 Paiki" -> "Survey No. 288 out of").
+- Keep units (Sq. Mtrs. / Hectares / Acres) exactly as given.
 
-For the EC specifically (summarized, one line only):
-<div class="di"><p><span class="dn">N. Encumbrance Certificate — E-App. No.: [APP_NO] | Dated: [DATE] | Search Period: [FROM] to [TO]</span><br>Encumbrance Certificate produced for the search period [FROM] to [TO]; transactions examined and set out in Part IV.</p></div>
+═══ EXACT TEMPLATES — use the one matching each uploaded document ═══
+- Registered Deed: Copy of "[Document Type]" dated "[Execution Date]" registered under Serial No. "[Registration Number]" executed by "[Executant]" unto and in favour of "[Claimant]".
+- Government Order: Copy of "[Order Type]" bearing No. "[Order Number]" dated "[Order Date]" issued by "[Authority Name]".
+- Government Permission: Copy of "[Permission Type]" bearing No. "[Permission Number]" dated "[Permission Date]" issued by "[Authority Name]".
+- Certificate: Copy of "[Certificate Type]" bearing No. "[Certificate Number]" dated "[Certificate Date]".
+- RERA: Copy of Gujarat RERA Registration Certificate bearing Registration No. "[Registration Number]" dated "[Registration Date]".
+- Encumbrance Certificate: Encumbrance Certificate dated "[EC Date]" covering the search period from "[From Year]" to "[To Year]".
+- Revenue Record: Copy of Revenue Record pertaining to Survey No. "[Survey Number]".
+- Property Card: Copy of Property Card pertaining to City Survey No. "[City Survey Number]".
+- Mutation Entries: Computerized Mutation Entries for the Search Period.
+- Notarized Document: Copy of Notarized "[Document Type]" dated "[Date]" executed by "[Party Name]".
 
-START: <hr><div class="ph">PART III — LIST OF SCRUTINIZED DOCUMENTS</div>
+FORMAT — one <div class="di"> per ACTUALLY-PRODUCED document, nothing more:
+<div class="di"><p><span class="dn">1.</span> [the exact template sentence for that document]</p></div>
+
+ORDER: latest document first, oldest last.
+
+START: <hr><div class="ph">PART III — DESCRIPTION OF DOCUMENTS VERIFIED / SCRUTINIZED</div>
 <p>The following documents have been produced for examination and scrutiny:</p>
-END: after last document entry.`
+END: after the last document entry.`
 
 // ================================================================
 // STEP 3B — PART IV SYSTEM
@@ -705,6 +754,7 @@ export async function POST(req: NextRequest) {
         await Promise.all([ecPrescreen, revPrescreen, step1Promise])
 
         // Apply pre-screen releases
+        
         if (preReleases.length > 0) {
             const a = [...lc.active], r = [...lc.released]
             for (const ps of preReleases) {
@@ -877,9 +927,12 @@ export async function POST(req: NextRequest) {
             s = s.split(BT3).join('')
             return s.trim()
         }
-        const p1 = stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : '')
-        const p3 = stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : '')
-        const p4 = stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : '')
+        // normTerms on every generated section — the SOP terminology (Paiki -> out of,
+        // "registered under", "were entered") is enforced in code across the whole report,
+        // so no AI section can drift from it.
+        const p1 = normTerms(stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : ''))
+        const p3 = normTerms(stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : ''))
+        const p4 = normTerms(stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : ''))
 
         const finalApplicant = meta.applicant || applicantName
         const finalCoApp = meta.coApplicant || coApplicant || 'Not Applicable'
@@ -887,8 +940,10 @@ export async function POST(req: NextRequest) {
         const finalConstitution = meta.constitution || 'Individual'
         const finalModeAcq = meta.modeOfAcquisition || 'As per documents submitted'
         const finalRegDetails = meta.registrationDetails || 'As per documents submitted'
-        const finalPropDesc = meta.propertyDescription || ('As per documents submitted — ' + propertyAddress)
-        const finalBounds = meta.propertyBoundaries || ''
+        // normTerms: the property description is exactly where "Paiki" appears — SOP requires it
+        // always read "out of". Enforced in code so it can never slip through.
+        const finalPropDesc = normTerms(meta.propertyDescription || ('As per documents submitted — ' + propertyAddress))
+        const finalBounds = normTerms(meta.propertyBoundaries || '')
 
         // PART I — Borrower / Mortgagor / Current Ownership (built deterministically — always correct, never skipped)
         const part1 =
