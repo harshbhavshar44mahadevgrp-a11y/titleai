@@ -78,7 +78,7 @@ function buildLifecycleSection(lc: LC): string {
 // ================================================================
 // CSS
 // ================================================================
-const CSS = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Georgia','Times New Roman',serif;font-size:13px;line-height:1.9;color:#1a1a1a;max-width:920px;margin:0 auto;padding:48px 60px}.hdr{border-bottom:3px solid #1B3A6B;padding-bottom:18px;margin-bottom:18px;display:flex;justify-content:space-between}.firm{font-size:22px;font-weight:bold;color:#1B3A6B}.sub{font-size:11px;color:#555;margin-top:2px}.hdr-right{text-align:right;font-size:12px;line-height:2}.rtitle{font-size:14px;font-weight:bold;text-align:center;text-decoration:underline;text-transform:uppercase;margin:16px 0 4px}hr{border:none;border-top:1px solid #ccc;margin:16px 0}.ph{font-size:12px;font-weight:bold;text-transform:uppercase;margin:22px 0 10px;background:#1B3A6B;color:#fff;padding:7px 14px}.sph{font-size:12px;font-weight:bold;color:#1B3A6B;margin:14px 0 6px;border-left:4px solid #1B3A6B;padding-left:10px;text-transform:uppercase}.mt{width:100%;margin-bottom:10px;border-collapse:collapse}.mt td{font-size:12px;padding:5px 4px;vertical-align:top;border-bottom:1px solid #f0f0f0}.mt td:first-child{width:260px;color:#555}.mt td:nth-child(2){width:14px}.mt td:last-child{font-weight:500}p{margin-bottom:10px;text-align:justify}.prop-para{background:#f7f9fc;border-left:4px solid #1B3A6B;padding:12px 16px;margin:10px 0 14px;font-style:italic}.di{margin-bottom:16px;padding-bottom:12px;border-bottom:1px dotted #ddd}.dn{font-weight:bold}.ib{margin-bottom:18px;padding:12px 16px;border-left:4px solid #e5e7eb;background:#fafafa}.sh{display:inline-block;background:#b91c1c;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.sm{display:inline-block;background:#b45309;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.sl{display:inline-block;background:#1d4ed8;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.it{font-weight:bold;font-size:13px;margin-bottom:6px}.sg{font-weight:bold;font-style:italic;color:#1B3A6B}ol{padding-left:22px;margin-bottom:10px}ol li{margin-bottom:8px}table.ec-tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}table.ec-tbl th{background:#1B3A6B;color:#fff;padding:6px 8px;text-align:left;font-size:10px}table.ec-tbl td{border:1px solid #ddd;padding:6px 8px;vertical-align:top}table.ec-tbl tr:nth-child(even){background:#f7f9fc}.ec-rel{color:#15803d;font-weight:bold}.ec-act{color:#b91c1c;font-weight:bold}.vc{margin-top:20px;padding:14px 18px;border:2px solid #15803d;background:#f0fdf4}.vs{margin-top:20px;padding:14px 18px;border:2px solid #b45309;background:#fffbeb}.vnc{margin-top:20px;padding:14px 18px;border:2px solid #b91c1c;background:#fff5f5}.vt{font-size:13px;font-weight:bold;text-transform:uppercase;margin-bottom:6px}.final-rec{margin-top:22px;padding:18px 22px;border:3px solid #1B3A6B;background:#EFF3FB}.fr-title{font-size:11px;font-weight:bold;color:#1B3A6B;margin-bottom:8px;text-transform:uppercase}.fr-value{font-size:16px;font-weight:bold;color:#1B3A6B}.sigrow{margin-top:50px;display:flex;justify-content:space-between}.sigbox{text-align:center}.sigline{width:200px;border-bottom:1px solid #1a1a1a;margin:0 auto 6px;height:40px}.ftr{margin-top:36px;border-top:1px solid #ccc;padding-top:14px;font-size:11px;color:#666;text-align:center}.disc{margin-top:10px;font-size:10px;color:#999;text-align:justify}.wm{font-size:10px;color:#bbb;text-align:center;margin-top:8px;letter-spacing:2px;text-transform:uppercase}@media print{body{padding:30px 40px}.ib{page-break-inside:avoid}}`
+const CSS = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Georgia','Times New Roman',serif;font-size:13px;line-height:1.9;color:#1a1a1a;max-width:920px;margin:0 auto;padding:48px 60px}.hdr{border-bottom:3px solid #1B3A6B;padding-bottom:18px;margin-bottom:18px;display:flex;justify-content:space-between}.firm{font-size:22px;font-weight:bold;color:#1B3A6B}.sub{font-size:11px;color:#555;margin-top:2px}.hdr-right{text-align:right;font-size:12px;line-height:2}.rtitle{font-size:14px;font-weight:bold;text-align:center;text-decoration:underline;text-transform:uppercase;margin:16px 0 4px}hr{border:none;border-top:1px solid #ccc;margin:16px 0}.ph{font-size:12px;font-weight:bold;text-transform:uppercase;margin:22px 0 10px;background:#1B3A6B;color:#fff;padding:7px 14px}.sph{font-size:12px;font-weight:bold;color:#1B3A6B;margin:14px 0 6px;border-left:4px solid #1B3A6B;padding-left:10px;text-transform:uppercase}.mt{width:100%;margin-bottom:10px;border-collapse:collapse}.mt td{font-size:12px;padding:5px 4px;vertical-align:top;border-bottom:1px solid #f0f0f0}.mt td:first-child{width:260px;color:#555}.mt td:nth-child(2){width:14px}.mt td:last-child{font-weight:500}p{margin-bottom:10px;text-align:justify}.prop-para{background:#f7f9fc;border-left:4px solid #1B3A6B;padding:12px 16px;margin:10px 0 14px;font-style:italic}.di{margin-bottom:16px;padding-bottom:12px;border-bottom:1px dotted #ddd}.dn{font-weight:bold}.ib{margin-bottom:18px;padding:12px 16px;border-left:4px solid #e5e7eb;background:#fafafa}.sh{display:inline-block;background:#b91c1c;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.sm{display:inline-block;background:#b45309;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.sl{display:inline-block;background:#1d4ed8;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.it{font-weight:bold;font-size:13px;margin-bottom:6px}.sg{font-weight:bold;font-style:italic;color:#1B3A6B}ol,ul{padding-left:22px;margin-bottom:10px}ol li,ul li{margin-bottom:8px}ul.chain{padding-left:20px;margin:10px 0}ul.chain li{margin-bottom:10px;text-align:justify;line-height:1.9}table.ec-tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}table.ec-tbl th{background:#1B3A6B;color:#fff;padding:6px 8px;text-align:left;font-size:10px}table.ec-tbl td{border:1px solid #ddd;padding:6px 8px;vertical-align:top}table.ec-tbl tr:nth-child(even){background:#f7f9fc}.ec-rel{color:#15803d;font-weight:bold}.ec-act{color:#b91c1c;font-weight:bold}.vc{margin-top:20px;padding:14px 18px;border:2px solid #15803d;background:#f0fdf4}.vs{margin-top:20px;padding:14px 18px;border:2px solid #b45309;background:#fffbeb}.vnc{margin-top:20px;padding:14px 18px;border:2px solid #b91c1c;background:#fff5f5}.vt{font-size:13px;font-weight:bold;text-transform:uppercase;margin-bottom:6px}.final-rec{margin-top:22px;padding:18px 22px;border:3px solid #1B3A6B;background:#EFF3FB}.fr-title{font-size:11px;font-weight:bold;color:#1B3A6B;margin-bottom:8px;text-transform:uppercase}.fr-value{font-size:16px;font-weight:bold;color:#1B3A6B}.sigrow{margin-top:50px;display:flex;justify-content:space-between}.sigbox{text-align:center}.sigline{width:200px;border-bottom:1px solid #1a1a1a;margin:0 auto 6px;height:40px}.ftr{margin-top:36px;border-top:1px solid #ccc;padding-top:14px;font-size:11px;color:#666;text-align:center}.disc{margin-top:10px;font-size:10px;color:#999;text-align:justify}.wm{font-size:10px;color:#bbb;text-align:center;margin-top:8px;letter-spacing:2px;text-transform:uppercase}@media print{body{padding:30px 40px}.ib{page-break-inside:avoid}}`
 
 function buildReport(refNo: string, appId: string, today: string, bankName: string, loanType: string, body: string): string {
     return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Legal Scrutiny Report</title><style>' + CSS + '</style></head><body><div class="hdr"><div><div class="firm">TITLEMATRIXAI</div><div class="sub">ADVOCATES, TITLE SEARCH &amp; LEGAL SCRUTINY CONSULTANTS</div><div class="sub">Panel Legal Counsel — Mortgage, Banking &amp; Real Estate Transactions</div><div class="sub">support@titlematrixai.com | www.titlematrixai.com</div></div><div class="hdr-right"><div><strong>Reference No.:</strong> ' + refNo + '</div><div><strong>Application ID:</strong> ' + appId + '</div><div><strong>Report Date:</strong> ' + today + '</div><div><strong>Bank:</strong> ' + bankName + '</div></div></div><div class="rtitle">LEGAL SCRUTINY REPORT — ' + loanType + '</div><hr>' + body + '<hr><div class="sigrow"><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">TITLEMATRIXAI</div><div style="font-size:10px;color:#666;">Date: ' + today + '</div></div><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">Authorised Signatory</div><div style="font-size:10px;color:#666;">' + bankName + '</div></div></div><div class="ftr">Generated by TITLEMATRIXAI | support@titlematrixai.com<div class="disc">DISCLAIMER: This Report is prepared exclusively for ' + bankName + ' for Application ID ' + appId + '. Based solely on documents produced. Does not constitute a guarantee of title.</div><div class="wm">TITLEMATRIXAI — CONFIDENTIAL — FOR BANK USE ONLY</div></div></body></html>'
@@ -88,109 +88,17 @@ function parseMeta(t: string) { const b = t.match(/---META---\s*([\s\S]*?)---END
 
 function extractVerdict(t: string): string { const u = t.toUpperCase(); if (u.includes('TITLE NOT CLEAR') || u.includes('NOT CLEAR')) return 'NOT CLEAR'; if (u.includes('CLEAR SUBJECT TO')) return 'CLEAR SUBJECT TO'; if (u.includes('VERDICT: CLEAR')) return 'CLEAR'; return 'PENDING' }
 
-// ================================================================
-// PART IV — CHRONOLOGICAL TITLE CHAIN (BUILT DETERMINISTICALLY IN CODE)
-// ================================================================
-// Part IV used to be written by an AI call (S3B). That caused three problems the user hit:
-//   • duplicates ("2 baar entry") — an opening summary listed the Nondh numbers AND then each
-//     entry was written again as a full paragraph;
-//   • inconsistent flow — the same register read slightly differently each run;
-//   • time — it was the single slowest generation call (8000 tokens for ~27 entries).
-// The dedicated Revenue scan already produces fully-structured entries (number, date,
-// certification date, status, and a complete English narrative in `r`). So Part IV is now
-// assembled directly from that data, exactly like Part I and Part II: every Nondh appears
-// EXACTLY ONCE, sorted chronologically by entry number, in the user's required format —
-// deterministic, duplicate-free, fast, and identical on every run for the same input.
-function esc(s: string): string { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
-
-// SOP terminology, enforced in CODE (not just asked for in a prompt) so it can never drift:
-//   • "Paiki" is ALWAYS "out of" in Gujarat property contexts
+// House terminology, enforced in CODE (not just asked for in a prompt) so it can never drift:
 //   • "registered under" — never "registered vide"
 //   • "were entered" — never "have been entered"
+// NOTE: "paiki" is deliberately NOT rewritten. The firm's gold-standard chain example keeps it
+// verbatim ("14366 Sq. Mtrs. paiki 4788.66 Sq. Mtrs."), so the example — which is the authority
+// on the house format — governs over the earlier paiki->"out of" instruction.
 function normTerms(s: string): string {
     return String(s == null ? '' : s)
-        .replace(/\bpaiki\b/gi, 'out of')
         .replace(/\bregistered\s+vide\b/gi, 'registered under')
         .replace(/\bhave\s+been\s+entered\b/gi, 'were entered')
 }
-
-function buildPart4(revData: any, currentOwner: string): string {
-    let h = '<hr><div class="ph">PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>'
-
-    const entries: any[] = revData ? (revData.mutation_entries || revData.entries || []) : []
-    if (!revData || entries.length === 0) {
-        h += '<p>Revenue Record (Village Form 7/12 / Mutation Register / FERFAR / Property Card) was not available for independent extraction in this case. The title chain for the subject property cannot be independently traced from Revenue Record entries on the basis of the documents produced. Independent verification of the Revenue Record is strongly recommended before disbursement to confirm ownership continuity, land use, encumbrance status and Kabjedar/Khatedar details.</p>'
-        return h
-    }
-
-    const village = normTerms(revData.village || ''), taluka = normTerms(revData.taluka || ''), district = normTerms(revData.district || '')
-    const survey = normTerms(revData.survey_block_no || ''), area = revData.total_area || '', landUse = normTerms(revData.land_use || '')
-    const loc = [survey ? 'Survey/Block No. ' + survey : '', village ? 'Mouje: ' + village : '', taluka ? 'Taluka: ' + taluka : '', district ? 'District: ' + district : ''].filter(Boolean).join(', ')
-
-    // De-duplicate by Nondh number (guarantees NO entry appears twice) and sort chronologically
-    // by entry number (mutation numbers are assigned sequentially over time = oldest → newest).
-    const seen = new Set<string>()
-    const uniq = entries.filter((m: any) => {
-        const k = String(m.e || m.entry_no || '').trim()
-        if (!k) return true
-        if (seen.has(k)) return false
-        seen.add(k); return true
-    })
-    const numOf = (m: any) => { const n = parseInt(String(m.e || m.entry_no || '').replace(/[^0-9]/g, ''), 10); return isNaN(n) ? Number.MAX_SAFE_INTEGER : n }
-    const sorted = uniq.map((m: any, i: number) => ({ m, i })).sort((a, b) => { const d = numOf(a.m) - numOf(b.m); return d !== 0 ? d : a.i - b.i }).map(x => x.m)
-
-    // ONE clean opening line, in the SOP's formal advocate phrasing — NO list of entry numbers
-    // (that listing is what caused the duplicate "2 baar" reading).
-    h += '<p>From the available revenue records and documents produced before me, it transpires that the subject land' + (loc ? ' bearing ' + esc(loc) : '') + (area ? ', admeasuring ' + esc(area) : '') + (landUse ? ', land use: ' + esc(landUse) : '') + ', is reflected in the Revenue Record (Village Form 7/12 and the computerized Mutation Register). A total of ' + sorted.length + ' certified Mutation/FERFAR (Nondh) entries are recorded against the subject survey number, and the chronological devolution of title is set out individually below.</p>'
-
-    sorted.forEach((m: any, idx: number) => {
-        const no = esc(m.e || m.entry_no || '—')
-        const date = esc(m.d || m.entry_date || '')
-        const cd = esc(m.cd || m.certification_date || '')
-        const status = esc(m.s || m.status || 'Certified')
-        // normTerms enforces the SOP terminology (Paiki -> out of, registered under, were entered)
-        // on every field, deterministically — the extraction cannot leak the wrong wording through.
-        const narrative = normTerms(m.r || m.reason_of_mutation || '').trim()
-        const po = normTerms(m.po || m.previous_owner || '').trim()
-        const nowner = normTerms(m.no || m.new_owner || '').trim()
-        const nature = normTerms(m.n || m.nature || '').trim()
-        const doc = normTerms(m.sd || m.supporting_document || '').trim()
-
-        h += '<div class="sph">Nondh Entry No. ' + no + ' | Dated: ' + (date || 'Not stated in extract') + (cd ? ' | Certification Date: ' + cd : '') + ' | Status: ' + status + '</div>'
-        const lead = idx === 0 ? '' : 'Thereafter, '
-        const head = lead + 'vide Mutation Entry No. ' + no + (date ? ' dated ' + date : '') + ' (' + (cd ? 'Certification Date: ' + cd + '; ' : '') + 'Status: ' + status + ')'
-
-        if (narrative) {
-            h += '<p>' + head + ', ' + esc(narrative) + '</p>'
-        } else if (po || nowner || nature) {
-            const bits = [
-                po ? esc(po) + ', the then recorded Kabjedar/Khatedar,' : '',
-                nature ? ' by way of ' + esc(nature) + ',' : ' ',
-                nowner ? ' ' + esc(nowner) + ' came to be recorded as the Kabjedar/Khatedar' : ' a change of recorded holder was effected',
-                loc ? ' in respect of ' + esc(loc) : '',
-                doc ? ', vide ' + esc(doc) : '',
-            ].join('')
-            h += '<p>' + head + ', ' + bits.replace(/\s+/g, ' ').trim() + '.</p>'
-        } else {
-            h += '<p>' + head + ', a further entry is recorded against ' + (loc ? esc(loc) : 'the subject survey number') + ' in the Revenue Record. The date, the previous and new recorded Kabjedar/Khatedar, and the nature of the transaction are not stated or not legible in the extract produced; the entry is visible in the Entry Details list of the Mutation Register and its certified status is confirmed. Independent verification of this entry from the original Mutation Register is recommended.</p>'
-        }
-    })
-
-    // Non-Agricultural / land-use conversion order, if traced in the Revenue Record.
-    const na = normTerms(revData.na_order || '').trim()
-    if (na && !/^(not stated|not provided|na|nil|none)$/i.test(na) && !/not stated in revenue/i.test(na)) {
-        h += '<div class="sph">Non-Agricultural / Land-Use Conversion</div><p>The subject land is recorded as converted to Non-Agricultural use vide ' + esc(na) + ', as reflected in the Revenue Record.</p>'
-    }
-
-    // Current recorded status.
-    const ganot = normTerms(revData.ganot_column || '').trim()
-    h += '<div class="sph">Current Revenue Record Status</div><p>' + (currentOwner ? esc(currentOwner) : 'The current recorded holder') + ' holds the right, title and interest in the subject land as the present recorded Kabjedar/Khatedar in the Revenue Record' + (landUse ? '. Land use: ' + esc(landUse) : '') + '. Tenant / Ganot column: ' + (ganot ? esc(ganot) : 'NIL') + '.</p>'
-
-    // EC details, Permissions/Approvals and Regulatory Compliance are appended to Part IV by
-    // the Part IV-tail writer (S3C), per the report SOP — so Part IV ends here at the chain.
-    return h
-}
-
 
 // ================================================================
 // STEP 1 SYSTEM — PROVEN v5.3 EXTRACTION ENGINE
@@ -274,8 +182,8 @@ PERMANENT RULES — NEVER BREAK:
 9. NEVER list mutation entries in Part I
 
 MANDATORY TERMINOLOGY AND DRAFTING STANDARD (SOP — apply to EVERY sentence you write):
-- "Paiki" is ALWAYS translated as "out of" in property contexts. e.g. "Survey No. 288 Paiki" MUST be written "Survey No. 288 out of". NEVER leave the word "Paiki" in the output.
-- Use "registered under" — NEVER "registered vide". e.g. "registered under Serial No. 4521".
+- Keep "paiki" EXACTLY as it appears in the source, e.g. "admeasuring 14366 Sq. Mtrs. paiki 4788.66 Sq. Mtrs." — this is the firm's house wording; do NOT translate or drop it.
+- Use "registered under" — NEVER "registered vide". e.g. "registered under Sr. No. 4521".
 - Keep the phrase "unto and in favour of" exactly as-is.
 - Use "were entered" — NEVER "have been entered".
 - Keep units (Sq. Mtrs. / Hectares / Acres) EXACTLY as given in the documents — never convert.
@@ -345,7 +253,7 @@ const S3A = `Generate HTML for PART II ONLY — List of Scrutinised Documents.
 ═══ TERMINOLOGY (MANDATORY) ═══
 - "registered under" — NEVER "registered vide".
 - Keep the phrase "unto and in favour of" exactly.
-- "Paiki" is ALWAYS translated as "out of" (e.g. "Survey No. 288 Paiki" -> "Survey No. 288 out of").
+- Keep "paiki" exactly as it appears in the source (house wording) — do not translate it.
 - Keep units (Sq. Mtrs. / Hectares / Acres) exactly as given.
 
 ═══ EXACT TEMPLATES — use the one matching each uploaded document ═══
@@ -370,22 +278,95 @@ START: <hr><div class="ph">PART II — LIST OF SCRUTINISED DOCUMENTS</div>
 END: after the last document entry.`
 
 // ================================================================
+// STEP 3B — PART III — CHRONOLOGICAL TITLE CHAIN (house-format writer)
+// ================================================================
+// The firm's required chain format is a single flowing chronological narrative of PROPERTY
+// history — an opening "belonged to" line, then one bullet per title-affecting event.
+// Crucially the chain is NOT only Nondh entries: NA/Collector orders, NOCs, Development
+// Permission, construction, project mortgage and finally the Builder→Purchaser document all
+// appear as their own bullets, in date order, interleaved with the mutation bullets.
+const S3B = `You are writing PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY, in the firm's mandatory house format.
+
+LANGUAGE: Formal English, third person. NEVER Gujarati script. Dates ALWAYS as DD.MM.YYYY.
+
+═══════════════════════════════════════════
+THIS IS THE EXACT FORMAT — COPY ITS STRUCTURE AND PHRASING EXACTLY
+(The names/numbers below are ONLY a worked example. Use the REAL data from your context.)
+═══════════════════════════════════════════
+<p>For the available documents and revenue records presented before me, it transpires that Prior to the year 1994, the agricultural land bearing Survey No. 210 admeasuring 16299 Sq. Mtrs. belonged to Mathurbhai Parsottamdas, Prahladbhai Parsottamdas and Somabhai Parsottamdas.</p>
+<ul class="chain">
+<li>Thereafter, as per the Mutation Entry No. 2302 dated 14.02.1995 of the revenue records, it transpires that the said Somabhai Parsottamdas died. Hence name of his legal heirs i.e. Amrutbhai Somabhai, Ramanbhai Somabhai, Lilaben Somabhai, Indiraben Somabhai, Premilaben Somabhai and Puriben wd/o Somabhai Parsottambhai were mutated in the revenue records. A note to this entry has been certified by Concern Authority in the revenue records.</li>
+<li>Thereafter, as per the Mutation Entry No. 2369 dated 13.10.1995 of the revenue records, it transpires that the said Mathurbhai Parsottamdas had sold, conveyed and transferred his portion of share i.e. 1/3 portion of share from the survey No. 210 admeasuring 14366 Sq. Mtrs. paiki 4788.66 Sq. Mtrs. unto and in favour of Vinodchandra Shantilal Parikh HUF by executing sale deed registered under Sr. No. 4739 dated 28.09.1995. A note to this entry has been certified by Concern Authority in the revenue records.</li>
+<li>Thereafter, as per the Mutation Entry No. 2887 dated 15.11.2003 of the revenue records, it transpires that the Collector, Gandhinagar by vide its order dated 24.10.2003 granted Non-Agricultural use permission for residential purpose of the land bearing survey No. 210.</li>
+<li>Thereafter, as per the Mutation Entry No. 2933 dated 25.05.2004 of the revenue records, it transpires that the said Vinodchandra Shantilal Parikh HUF had sold, conveyed and transferred a non-agricultural land bearing the survey No. 210 admeasuring 14366 Sq. Mtrs. unto and in favour of Vardhaman Kutir (Koba) Co. Op. Housing Society Limited by executing sale deed registered under Sr. No. 6704 dated 23.10.2003. A note to this entry has been certified by Concern Authority on dated 07.04.2004 in the revenue records.</li>
+<li>Thereafter, as per the Mutation Entry No. 5815 dated 30.06.2021 of the revenue records, it transpires that pursuant to order No. KJP/SR/Gandhi/163/2020-21 dated 29.06.2021 issued by Concern officer, Gandhinagar, A KJP durasti order was passed. According to said order, a non-agricultural land bearing Survey No. 210 admeasuring 14366 Sq. Mtrs. was divided into two parts and New Survey No. 210/001 admeasuring 14265 Sq. Mtrs. was owned and occupied by M/s. Sevi Infrastructure Limited. A note to this entry has been certified by Concern Authority on dated 17.07.2021 in the revenue records.</li>
+<li>Thereafter, the Collector, Gandhinagar by vide its order No. 2248/06/03/054/2021 dated 03.11.2021 granted Non-Agricultural use permission for residential purpose of the land bearing survey No. 210/001 admeasuring 8569 Sq. Mtrs.</li>
+<li>Thereafter, Airport Authority of India had issued No Objection Certificate for Height Clearance vide NOC ID. AHME/WEST/B/032021/536203 dated 31.03.2021 in relation to the proposed scheme.</li>
+<li>Thereafter, Development Permission issued by Gandhinagar Municipal Corporation vide its Rajachithhi No. PRM:GUDA/KOBA/61/07/2020/1199/2021-22 dated 20.01.2022 and approved construction plans.</li>
+<li>Thereafter, said M/s. S.B REALTY, a Partnership firm developed and constructed residential units in a building known as "SATVAN HARMONY" on the said land.</li>
+<li>Thereafter, State Level Environment Impact Assessment Authority Gujarat had issued Environment Clearance Certificate vide No. SEIAA/GUJ/EC/8(a)/1984/2021 dated 20.12.2021 in relation to the said scheme.</li>
+<li>Thereafter, M/s. S.B REALTY, a partnership firm, had availed a project loan from Bajaj Housing Finance Limited by executing a Registered Mortgage Deed No. 37424 dated 24.08.2022.</li>
+<li>Thereafter, said M/s. S.B REALTY, a Partnership firm through its authorized partner had sold, conveyed and transferred the said property bearing Flat No. 401 on Fourth floor of Block "D" having RERA Carpet area admeasuring 138.09 Sq. Mtrs. along with wash area admeasuring 5.60 Sq. Mtrs. and Balcony area admeasuring 8.60 Sq. Mtrs.; Total area admeasuring 152.29 Sq. Mtrs. in the scheme known as "SATVAN HARMONY" together with undivided portion of share in land admeasuring 39.64 Sq. Mtrs.; constructed on Non-Agricultural land bearing Final Plot No. 49/1/2 admeasuring 8020 Sq. Mtrs. of Town Planning Scheme No. 01 (KOBA) allotted in lieu of Survey No. 210/001 admeasuring 8564 Sq. Mtrs.; situated, lying &amp; being at Mouje: Koba, Taluka: Gandhinagar of Registration District Gandhinagar &amp; Sub District Gandhinagar Zone – 02 within state of Gujarat unto and in favour of (1) Sunilkumar Rajendrabhai Patel &amp; (2) Pradip Rajendrabhai Patel by executing agreement to sale registered under Sr. No. 3342 dated 05.02.2026.</li>
+</ul>
+═══════════════════════════════════════════
+
+MANDATORY STRUCTURE:
+1. ONE opening <p>: "For the available documents and revenue records presented before me, it transpires that Prior to the year [YEAR], the agricultural land bearing Survey No. [X] admeasuring [X] Sq. Mtrs. belonged to [original owner names]." — take the earliest owner/year the documents actually establish. If the earliest year is not established, open with "For the available documents and revenue records presented before me, it transpires that the land bearing Survey No. [X] admeasuring [X] Sq. Mtrs. belonged to [names]."
+2. Then ONE <ul class="chain"> containing ONE <li> per title-affecting event, EARLIEST → LATEST. Every <li> starts with "Thereafter, ".
+3. Close </ul>. Write NOTHING after it.
+
+THE CHAIN IS PROPERTY HISTORY — NOT ONLY MUTATION ENTRIES:
+Include, in date order, EVERY title-affecting event the documents establish:
+• Mutation/FERFAR (Nondh) entries — from the Revenue Record Ground Truth
+• Collector / NA / Conversion orders, KJP durasti orders
+• Airport Authority NOC, Fire NOC, Environment Clearance
+• Development Permission / Rajachitthi / approved construction plans
+• RERA registration
+• Construction of the scheme by the builder
+• Project loan / Mortgage Deed, and its Release/Reconveyance if any
+• FINALLY the document in favour of the Proposed Purchaser (see MANDATORY LAST BULLET)
+
+SENTENCE PATTERNS — use these exactly:
+• Mutation entry: "Thereafter, as per the Mutation Entry No. [NO] dated [DD.MM.YYYY] of the revenue records, it transpires that [what happened]. A note to this entry has been certified by Concern Authority[ on dated [DD.MM.YYYY]] in the revenue records."
+• Sale: "the said [SELLER] had sold, conveyed and transferred [property/share/area] unto and in favour of [BUYER] by executing sale deed registered under Sr. No. [NO] dated [DD.MM.YYYY]."
+• Death/inheritance: "the said [NAME] died. Hence name of his legal heirs i.e. [all names] were mutated in the revenue records."
+• NA permission: "the [Authority] by vide its order[ No. [NO]] dated [DD.MM.YYYY] granted Non-Agricultural use permission for [purpose] purpose of the land bearing survey No. [X][ admeasuring [X] Sq. Mtrs.]."
+• Order-based event with no mutation: "Thereafter, the [Authority] by vide its order No. [NO] dated [DD.MM.YYYY] [what it granted]."
+• NOC/Clearance: "Thereafter, [Authority] had issued [document] vide [No./ID] [NO] dated [DD.MM.YYYY] in relation to the said scheme."
+• Development Permission: "Thereafter, Development Permission issued by [Authority] vide its Rajachithhi No. [NO] dated [DD.MM.YYYY] and approved construction plans."
+• Construction: "Thereafter, said [Builder] developed and constructed [residential/commercial] units in a building known as \\"[SCHEME]\\" on the said land."
+• Project mortgage: "Thereafter, [Builder] had availed a project loan from [Lender] by executing a Registered Mortgage Deed No. [NO] dated [DD.MM.YYYY]."
+
+MANDATORY LAST BULLET — NEVER OMIT:
+The FINAL <li> must record the document by which the Proposed Purchaser acquires the property:
+"Thereafter, said [BUILDER/SELLER][ through its authorized partner] had sold, conveyed and transferred the said property bearing [FULL unit description — unit no., floor, block, carpet/wash/balcony/total area, scheme name, undivided share, Final Plot No., T.P. Scheme No., in lieu of Survey No., Mouje/Taluka/District] unto and in favour of [(1) PURCHASER &amp; (2) CO-PURCHASER] by executing [agreement to sale / sale deed / allotment] registered under Sr. No. [NO] dated [DD.MM.YYYY]."
+Use the Draft Sale Deed / Registered Agreement for Sale (Banakhat) / Notarized Agreement for Sale / Letter of Allotment actually produced. If NONE was produced, write instead:
+"Thereafter, no Draft Sale Deed, Agreement for Sale, Banakhat or Letter of Allotment executed by the Builder unto and in favour of the Proposed Purchaser has been produced — NOT PROVIDED FOR VERIFICATION."
+
+ABSOLUTE RULES:
+- NEVER invent a Mutation Entry number. Only the numbers listed in the Revenue Record Ground Truth's VALID NONDH list may follow the words "Mutation Entry No.".
+- A NOC, Development Permission, RERA certificate, Environment Clearance, court order or bare deed is NOT a mutation entry — it gets its OWN bullet WITHOUT any "Mutation Entry No.".
+- Each event appears EXACTLY ONCE. Never repeat an entry, and never list entry numbers in a summary sentence.
+- If a Sale Deed, a Mutation entry and an EC row describe the SAME transfer, that is ONE event = ONE bullet.
+- Never assume or create facts. If a fact is not in the documents, leave it out or write NOT PROVIDED FOR VERIFICATION.
+- Keep areas/units exactly as given. Keep "paiki" exactly as it appears in the source (as in the example above).
+
+START: <hr><div class="ph">PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
+END: after the closing </ul>.`
+
+// ================================================================
 // STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
 // ================================================================
-const S3C = `You generate TWO things: (1) the TAIL of PART III (EC details + Approvals + the mandatory Builder-to-Purchaser paragraph — as sub-sections that CONTINUE Part III, so use <div class="sph"> sub-headings and do NOT write any new "PART" header for these), then (2) PART IV — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
+const S3C = `You generate TWO things: (1) ONE sub-section that CONTINUES Part III — "Details of Encumbrance Certificate (EC)" (use a <div class="sph"> sub-heading; do NOT write any new "PART" header for it), then (2) PART IV — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
 
 CORE RULE: Never assume facts. Never create facts. Wherever information is unavailable, expressly state: NOT PROVIDED FOR VERIFICATION.
 
-═══ PART III TAIL (sub-sections — NO new PART header) ═══
+IMPORTANT — DO NOT DUPLICATE THE CHAIN: the chronological chain (mutation entries, NA/Collector orders, NOCs, Development Permission, RERA, construction, project mortgage and the document in favour of the Proposed Purchaser) is ALREADY written above as Part III. Do NOT restate those events here. Write ONLY the EC sub-section, then Part IV.
+
+═══ PART III TAIL — EC SUB-SECTION ONLY (NO new PART header) ═══
 
 <div class="sph">Details of Encumbrance Certificate (EC)</div>
 <p>[ONE paragraph from the EC TABLE / MORTGAGE LIFECYCLE data: EC Date, Search Period (from → to), number of registered transactions, and a chronological summary of the material deeds (type, registration number, date, executing party, claimant party). State the overall encumbrance status — subsisting mortgage or all charges discharged (and by which Release/Reconveyance Deed). NEVER reproduce the EC last column or the EC applicant name. Released/discharged mortgages must be stated as discharged, never active. If no EC was produced: NOT PROVIDED FOR VERIFICATION.]</p>
-
-<div class="sph">Development Approvals and Regulatory Compliance</div>
-<p>[ONE paragraph. For EACH of the following state Authority, Number and Date where produced: N.A. / Conversion Order, Development Permission, Rajachitthi, Building Permission, Sanctioned Plan, Commencement Certificate, Fire NOC, Airport Authority NOC, Environmental Clearance, RERA Registration, Occupancy Certificate, BU Permission, Completion Certificate. Also state the land status from the Revenue Record Ground Truth (Village, Survey/Block No., Total Area, Tenure, whether Land Use is confirmed Non-Agricultural). For any approval NOT produced, expressly write "NOT PROVIDED FOR VERIFICATION" — never fabricate an authority, number or date.]</p>
-
-<div class="sph">Document in favour of the Proposed Purchaser</div>
-<p>[MANDATORY — this is the LAST paragraph of Part III and must never be omitted in a Builder Purchase case. State the Draft Sale Deed OR Registered Agreement for Sale (Banakhat) OR Notarized Agreement for Sale OR Letter of Allotment executed/issued by the Builder/Developer unto and in favour of the Proposed Purchaser/Borrower/Mortgagor, giving: Date, Registration Number (if available), Consideration Amount (if available), and the Unit Description. If none of these documents was produced, expressly write: "No Draft Sale Deed, Agreement for Sale, Banakhat or Letter of Allotment executed by the Builder in favour of the Proposed Purchaser has been produced — NOT PROVIDED FOR VERIFICATION." If the case is not a Builder Purchase, state the corresponding document by which the Proposed Purchaser is to acquire the property, or NOT PROVIDED FOR VERIFICATION.]</p>
 
 ═══ PART IV ═══
 <hr><div class="ph">PART IV — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS</div>
@@ -732,16 +713,43 @@ export async function POST(req: NextRequest) {
             console.log('STEP3 ' + label + ' err:', e?.message || e)
             return { content: [{ type: 'text', text: '<p style="color:#b91c1c;"><em>' + label + ' could not be generated (' + (e?.message ? String(e.message).substring(0, 150) : 'unknown error') + '). Please retry — other sections of this report are unaffected.</em></p>' }] }
         })
-        // PART IV is NO LONGER an AI call — it is built deterministically in code from the
-        // structured Revenue data (see buildPart4 below). That removes the single slowest
-        // generation call (8000 tokens for ~27 entries), eliminates duplicate ("2 baar")
-        // entries, and gives an identical, correctly-ordered chain on every run. The remaining
-        // four sections still run concurrently.
-        const [r3a, r3c, r3d1, r3d2] = await Promise.all([
-            safeStep3('Part III', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3A, messages: [{ role: 'user', content: ctx }] })),
-            safeStep3('Part IV-tail + V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
-            safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
-            safeStep3('Part VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
+        // PART III (the chain) is AI-written again — and it MUST be. The firm's house format is a
+        // single chronological PROPERTY history that interleaves mutation entries with NA/Collector
+        // orders, NOCs, Development Permission, construction, the project mortgage and finally the
+        // Builder→Purchaser document. Those non-mutation events live in the deeds/facts, not in the
+        // Revenue Record, so a chain built only from revData (as it was) could never produce them.
+        // The Revenue Ground Truth still pins the mutation bullets: only its VALID NONDH numbers may
+        // follow "Mutation Entry No.", which is what stops NOCs/permissions getting fake Nondh numbers.
+        const ctxS3B = [
+            '=== REVENUE RECORD GROUND TRUTH — the ONLY source of Mutation Entry numbers ===',
+            revGT || '(No Revenue Record Ground Truth available — see the flag below.)',
+            revenueProvidedFlag,
+            '',
+            '=== ALL OTHER TITLE EVENTS (deeds, NA/Collector orders, NOCs, Development Permission,',
+            'RERA, construction, project mortgage, and the document in favour of the Proposed',
+            'Purchaser) — take these from the facts and analysis below and give each its OWN bullet',
+            'in date order, WITHOUT any "Mutation Entry No." ===',
+            'EXTRACTED FACTS:\n' + facts.substring(0, 9000),
+            '',
+            'ANALYSIS:\n' + analysis.substring(0, 5000),
+            '',
+            '=== EC (for cross-reference of the same transfers — do NOT create separate bullets from EC rows) ===',
+            ecCrossVerifyLine,
+            '',
+            '=== FORM DATA — the Proposed Purchaser for the mandatory last bullet ===',
+            FORM,
+            'PROPOSED PURCHASER: ' + (meta.applicant || applicantName),
+            'CO-PURCHASER: ' + (meta.coApplicant || coApplicant || 'Not Applicable'),
+            'CURRENT OWNER / SELLER: ' + (meta.currentOwner || currentOwner),
+            'CASE TYPE: ' + caseType,
+        ].join('\n')
+
+        const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
+            safeStep3('Part II — documents', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3A, messages: [{ role: 'user', content: ctx }] })),
+            safeStep3('Part III — chain', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
+            safeStep3('Part III-tail + IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
+            safeStep3('Part V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
+            safeStep3('Closing sections', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
         ])
 
         const BT3 = String.fromCharCode(96).repeat(3)
@@ -754,18 +762,15 @@ export async function POST(req: NextRequest) {
             s = s.split(BT3).join('')
             return s.trim()
         }
-        // normTerms on every generated section — the SOP terminology (Paiki -> out of,
-        // "registered under", "were entered") is enforced in code across the whole report,
-        // so no AI section can drift from it.
+        // normTerms on every generated section — the house terminology ("registered under",
+        // "were entered") is enforced in code across the whole report, so no AI section can drift.
         const p1 = normTerms(stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : ''))
+        const part3 = normTerms(stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : ''))
         const p3 = normTerms(stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : ''))
         const p4 = normTerms(stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : ''))
 
         // Borrower / Mortgagor / Constitution / Mode-of-Acquisition fields are no longer rendered:
         // the Builder-Purchase master SOP's report structure has no Borrower/Mortgagor part.
-        const finalOwner = meta.currentOwner || currentOwner
-        // normTerms: the property description is exactly where "Paiki" appears — SOP requires it
-        // always read "out of". Enforced in code so it can never slip through.
         const finalPropDesc = normTerms(meta.propertyDescription || ('As per documents submitted — ' + propertyAddress))
         const finalBounds = normTerms(meta.propertyBoundaries || '')
 
@@ -795,10 +800,6 @@ export async function POST(req: NextRequest) {
             '<div class="prop-para">' + finalPropDesc + '</div>' +
             '<p><strong>Bounded as Under:</strong></p>' +
             '<table class="mt">' + boundsRows + '</table>'
-
-        // PART III — built deterministically from the structured Revenue data (no AI call):
-        // every Nondh exactly once, chronological order, duplicate-free, identical every run.
-        const part3 = buildPart4(revData, finalOwner)
 
         // Report order per the Builder-Purchase master SOP:
         //   PART I  — Property Description along with Boundaries   (part1, deterministic)
