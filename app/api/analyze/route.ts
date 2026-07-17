@@ -215,7 +215,7 @@ Start the chain from the EARLIEST point established by Revenue Record / deed evi
 Only state "chain limited to documents produced" if you have genuinely found zero Revenue Record or deed references to anything earlier after checking all documents.
 Construct the fullest, deepest, most complete chronological chain the Revenue Record and registered deeds support.
 
-EXHAUSTIVE ENTRY COVERAGE — MANDATORY, EVERY TIME: If Revenue Record Ground Truth lists Mutation/FERFAR entries, your analysis must walk through EVERY single one of them by Entry No. and Date — never compress several entries into a vague summary sentence. Count the entries listed, then confirm your analysis names each one individually before moving on. This feeds directly into how Part IV gets written downstream, so compressing here means the final report compresses too — do not let that happen.
+ENTRY COVERAGE: The Revenue Record Ground Truth lists the Mutation/FERFAR entries whose particulars are actually legible (number-only entries are already excluded). Walk through each of THOSE by Entry No. and Date — never compress several into a vague summary sentence. Do NOT invent or pad entries whose particulars were not legible, and never write filler such as "details not fully visible" — an entry with nothing to say does not belong in the history at all.
 
 EC ANALYSIS FORMAT (exactly like this):
 EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination.
@@ -344,6 +344,7 @@ Use the Draft Sale Deed / Registered Agreement for Sale (Banakhat) / Notarized A
 "Thereafter, no Draft Sale Deed, Agreement for Sale, Banakhat or Letter of Allotment executed by the Builder unto and in favour of the Proposed Purchaser has been produced — NOT PROVIDED FOR VERIFICATION."
 
 ABSOLUTE RULES:
+- ONLY WRITE EVENTS WITH REAL SUBSTANCE. If an event's particulars are not legible/available, LEAVE IT OUT of the chain entirely — do not write a bullet for it. NEVER write filler such as "The details of this entry are not fully visible in the available pages of the revenue records" or "an entry was recorded ... details not available". A bullet that does not say WHAT actually happened (who transferred what to whom, or which order/permission/NOC was granted) must not exist. The Ground Truth already excludes number-only mutation entries — do not reintroduce them.
 - NEVER invent a Mutation Entry number. Only the numbers listed in the Revenue Record Ground Truth's VALID NONDH list may follow the words "Mutation Entry No.".
 - A NOC, Development Permission, RERA certificate, Environment Clearance, court order or bare deed is NOT a mutation entry — it gets its OWN bullet WITHOUT any "Mutation Entry No.".
 - Each event appears EXACTLY ONCE. Never repeat an entry, and never list entry numbers in a summary sentence.
@@ -631,7 +632,19 @@ export async function POST(req: NextRequest) {
         let revGT = ''
         if (revData) {
             // Support both old field names and new compact field names
-            const entries = revData.mutation_entries || revData.entries || []
+            const allEntries = revData.mutation_entries || revData.entries || []
+            // A Nondh only belongs in the chain if its SUBSTANCE is legible — i.e. it says what
+            // actually happened (a narrative, the parties, or the nature of the change). A
+            // number-only entry produces nothing but filler ("the details of this entry are not
+            // fully visible..."), which is exactly what must NOT appear in the history. Filtering
+            // here means those entries never reach the chain writer at all.
+            const hasSubstance = (m: any) => !!String(
+                (m.r || m.reason_of_mutation || '') + (m.po || m.previous_owner || '') +
+                (m.no || m.new_owner || '') + (m.n || m.nature || '')
+            ).trim()
+            const entries = allEntries.filter(hasSubstance)
+            const skipped = allEntries.length - entries.length
+            console.log('Revenue entries: ' + allEntries.length + ' scanned, ' + entries.length + ' with legible particulars, ' + skipped + ' number-only (excluded from the chain)')
             const mutLines = entries.map((m: any, idx: number) =>
                 '  ' + (idx + 1) + '. Entry No.' + (m.e || m.entry_no || '?') +
                 ' | Date:' + (m.d || m.entry_date || 'not stated') +
@@ -660,16 +673,15 @@ export async function POST(req: NextRequest) {
                 // REV_PS extracts it as `na_order`, but it was never forwarded to the chain
                 // writer — so add it to the Ground Truth here.
                 'NA / Conversion Order: ' + (revData.na_order || 'NOT STATED IN REVENUE RECORD'),
-                // Hard whitelist of the ONLY valid Nondh (Mutation Entry) numbers. The chain
-                // was being built from EC/registered-DEED document numbers (e.g. 9871, 27734)
-                // which are NOT Nondh numbers. The chain paragraphs must use ONLY the numbers
-                // in this list — one paragraph per number, oldest to newest, nothing else.
-                'VALID NONDH (MUTATION ENTRY) NUMBERS — THE CHAIN MUST USE ONLY THESE, ONE PARAGRAPH EACH: ' +
+                // Hard whitelist of the ONLY valid Nondh (Mutation Entry) numbers. The chain was
+                // once built from EC/registered-DEED document numbers (e.g. 9871, 27734), which
+                // are NOT Nondh numbers. Only these numbers may follow "Mutation Entry No.".
+                'VALID NONDH (MUTATION ENTRY) NUMBERS — ONLY THESE MAY FOLLOW THE WORDS "Mutation Entry No.": ' +
                     (entries.map((m: any) => m.e || m.entry_no).filter(Boolean).join(', ') || 'NONE'),
-                'CRITICAL: A registered Sale/Mortgage/Release DEED document number (e.g. the number on the deed itself) is NOT a Nondh number. NEVER start a chain paragraph with "Nondh Entry No. <deed number>". Every chain paragraph MUST be headed by one of the VALID NONDH numbers listed above. If a deed number is not in that list, it may appear INSIDE a paragraph as "vide Registered Deed No. X" but must NEVER be the Nondh/entry number of the paragraph.',
-                'FERFAR/Mutation Entries (' + entries.length + ' found — ALL must be written in Part IV, oldest to newest):',
+                'CRITICAL: A registered Sale/Mortgage/Release DEED document number is NOT a Nondh number. NEVER write "Mutation Entry No. <deed number>". A deed number may appear inside a bullet as "registered under Sr. No. X" but is never the mutation entry number.',
+                'FERFAR/Mutation Entries with LEGIBLE PARTICULARS (' + entries.length + ' of ' + allEntries.length + ' scanned; the other ' + skipped + ' are number-only and have been deliberately EXCLUDED). Write ONE bullet for each of these, oldest to newest:',
                 ...mutLines,
-                'RULE: Use these entries to extend the title chain as far back as possible (20-25+ years). Treat this as authoritative revenue record data.',
+                'RULE: Every entry listed here has legible substance — write it. Entries whose particulars were not legible are already excluded and must NOT be mentioned in the chain at all: never write filler such as "the details of this entry are not fully visible". Use these entries to trace the title back as far as the records allow. Treat this as authoritative revenue record data.',
                 '==='
             ].join('\n')
             console.log('Revenue GT built: ' + entries.length + ' mutation entries')
@@ -693,7 +705,7 @@ export async function POST(req: NextRequest) {
         if (revData) {
             revenueProvidedFlag = (() => {
                 const ents = revData.mutation_entries || revData.entries || []
-                return 'REVENUE_RECORD_PROVIDED: YES — ' + ents.length + ' Mutation/FERFAR entries deep-scanned and available. ALL ' + ents.length + ' entries must be written as separate paragraphs in Part IV. DO NOT skip any entry.'
+                return 'REVENUE_RECORD_PROVIDED: YES — ' + ents.length + ' Mutation/FERFAR entries deep-scanned. Only the entries listed under "FERFAR/Mutation Entries with LEGIBLE PARTICULARS" in the Revenue Record Ground Truth belong in the chain — write one bullet for each of those. Mutation entries whose particulars were not legible are excluded on purpose and must NOT be mentioned at all.'
             })()
         } else if (revScanError) {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: SCAN_ERROR — a Revenue Record scan was attempted but failed due to a technical error (not a content issue). Do NOT claim Revenue Record was examined or was absent. State plainly: "Revenue Record verification could not be completed due to a technical error during processing; please retry or verify manually before disbursement."'
