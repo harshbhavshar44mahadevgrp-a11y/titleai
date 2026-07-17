@@ -1,7 +1,5 @@
 ﻿"use client"
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 
 const NAV = [
     {
@@ -25,20 +23,6 @@ const NAV = [
 export default function Sidebar() {
     const path = usePathname()
     const router = useRouter()
-    const [userEmail, setUserEmail] = useState('')
-
-    useEffect(() => {
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) setUserEmail(user.email || '')
-        }
-        getUser()
-    }, [])
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut()
-        router.push('/login')
-    }
 
     return (
         <div style={{
@@ -58,16 +42,6 @@ export default function Sidebar() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
                     <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '600', letterSpacing: '1px' }}>SYSTEM ONLINE</span>
-                </div>
-            </div>
-
-            {/* USER */}
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(99,102,241,0.08)' }}>
-                <div style={{ background: 'rgba(99,102,241,0.08)', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(99,102,241,0.15)' }}>
-                    <div style={{ fontSize: '10px', color: '#6366f1', fontWeight: '600', marginBottom: '2px' }}>LOGGED IN</div>
-                    <div style={{ fontSize: '11px', color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {userEmail || '...'}
-                    </div>
                 </div>
             </div>
 
@@ -102,16 +76,16 @@ export default function Sidebar() {
                 ))}
             </nav>
 
-            {/* LOGOUT */}
+            {/* HOME */}
             <div style={{ padding: '12px', borderTop: '1px solid rgba(99,102,241,0.1)' }}>
-                <button onClick={handleLogout}
+                <button onClick={() => router.push('/')}
                     style={{
                         width: '100%', padding: '10px', borderRadius: '10px',
-                        border: '1px solid rgba(239,68,68,0.2)',
-                        background: 'rgba(239,68,68,0.06)',
-                        color: '#f87171', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                        border: '1px solid rgba(99,102,241,0.2)',
+                        background: 'rgba(99,102,241,0.06)',
+                        color: '#a5b4fc', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                     }}>
-                    🚪 Logout
+                    🏠 Home
                 </button>
             </div>
         </div>

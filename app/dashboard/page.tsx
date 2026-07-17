@@ -38,7 +38,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { router.push("/login"); return }
+      // Login has been removed — there is no session to enforce. Without a user we simply
+      // skip the per-user stats fetch (dashboard shows empty counts) instead of redirecting
+      // to a /login route that no longer exists.
+      if (!user) { return }
       setEmail(user.email || "")
 
       const todayStr = new Date().toISOString().split("T")[0]

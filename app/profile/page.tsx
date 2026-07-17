@@ -178,9 +178,9 @@ export default function ProfilePage() {
         return () => clearInterval(interval)
     }, [])
 
+    // Login has been removed — this just returns to the landing page (the /login route is gone).
     const handleLogout = async () => {
-        await supabase.auth.signOut()
-        router.push('/login')
+        router.push('/')
     }
 
     return (
