@@ -344,6 +344,11 @@ Use the Draft Sale Deed / Registered Agreement for Sale (Banakhat) / Notarized A
 "Thereafter, no Draft Sale Deed, Agreement for Sale, Banakhat or Letter of Allotment executed by the Builder unto and in favour of the Proposed Purchaser has been produced — NOT PROVIDED FOR VERIFICATION."
 
 ABSOLUTE RULES:
+- SUBJECT-PROPERTY FILTER — READ THE "SUBJECT PROPERTY" BLOCK AT THE TOP OF YOUR CONTEXT FIRST. This report concerns exactly ONE property (e.g. "Flat No. 203 on Second Floor of Block E") standing on ONE land identification number. Write the history of THAT property and THAT land only:
+  • Land-level events on the subject Survey/Block/Final Plot number (including its earlier or renumbered forms) — INCLUDE; they trace how the land reached the builder.
+  • Events on the SUBJECT unit — INCLUDE, especially the document in its favour to the Proposed Purchaser.
+  • Events on ANY OTHER unit of the same scheme (different flat/shop/office number, different block or floor), or on a DIFFERENT survey/block number — EXCLUDE ENTIRELY. Another purchaser's flat, its sale, its mortgage or its mutation entry has no place in this chain; do not mention it even in passing.
+  • A unit-level event you cannot confidently tie to the subject unit — leave it out rather than report someone else's property.
 - ONLY WRITE EVENTS WITH REAL SUBSTANCE. If an event's particulars are not legible/available, LEAVE IT OUT of the chain entirely — do not write a bullet for it. NEVER write filler such as "The details of this entry are not fully visible in the available pages of the revenue records" or "an entry was recorded ... details not available". A bullet that does not say WHAT actually happened (who transferred what to whom, or which order/permission/NOC was granted) must not exist. The Ground Truth already excludes number-only mutation entries — do not reintroduce them.
 - NEVER invent a Mutation Entry number. Only the numbers listed in the Revenue Record Ground Truth's VALID NONDH list may follow the words "Mutation Entry No.".
 - A NOC, Development Permission, RERA certificate, Environment Clearance, court order or bare deed is NOT a mutation entry — it gets its OWN bullet WITHOUT any "Mutation Entry No.".
@@ -717,7 +722,37 @@ export async function POST(req: NextRequest) {
         // SPEED: 5k chars of analysis is enough for the report writers (they also have FORM +
         // GT + facts). Trimming from 8k trims input tokens across the parallel Part-III/V/VII-XI
         // writers without losing anything they need.
-        const ctx = FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 5000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
+        // SUBJECT-PROPERTY IDENTITY — the filter EVERY section is written through. A scheme has many
+        // units and the revenue records / EC carry entries for all of them; only the land under the
+        // scheme and THIS unit belong in this report. Built from the form + the extracted property
+        // description + the revenue survey number, so a writer can match on unit no./block/floor AND
+        // on the land identification number.
+        const subjectProperty = [
+            '=== SUBJECT PROPERTY — THIS REPORT IS ABOUT THIS ONE PROPERTY ONLY ===',
+            'As stated in the case form: ' + (propertyAddress || 'NOT PROVIDED'),
+            'Full description extracted from the documents: ' + normTerms(meta.propertyDescription || propertyAddress || 'NOT PROVIDED'),
+            'Land identification (Revenue Record): Survey/Block No. ' + ((revData && revData.survey_block_no) || 'NOT PROVIDED') +
+            (revData && revData.village ? ', Mouje: ' + revData.village : '') +
+            (revData && revData.taluka ? ', Taluka: ' + revData.taluka : '') +
+            (revData && revData.district ? ', District: ' + revData.district : ''),
+            'Boundaries: ' + (normTerms(meta.propertyBoundaries || '') || 'NOT PROVIDED'),
+            '',
+            'MANDATORY FILTER — apply this to EVERY event/entry/row before you write it:',
+            '1. INCLUDE land-level events for the land identification number above (its Survey/Block/',
+            '   Final Plot/T.P. Scheme number, including its earlier or renumbered forms) — these trace',
+            '   how the land devolved to the present owner/builder and are part of this property history.',
+            '2. INCLUDE events concerning THIS unit (the exact unit/flat/shop/office number, floor and',
+            '   block named above) — in particular the document in its favour to the Proposed Purchaser.',
+            '3. EXCLUDE every event concerning ANY OTHER unit in the same scheme (a different flat/shop/',
+            '   office number, a different block or a different floor) and any event on a DIFFERENT survey/',
+            '   block number. Another purchaser\'s flat, its sale, its mortgage or its mutation entry is NOT',
+            '   part of this report — omit it entirely, do not even mention it in passing.',
+            '4. If a unit-level event cannot be confidently tied to the subject unit, leave it out rather',
+            '   than risk reporting someone else\'s property.',
+            '===',
+        ].join('\n')
+
+        const ctx = subjectProperty + '\n\n' + FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 5000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
 
         // ── STEP 3: Parallel HTML generation (4x Sonnet) — each call isolated so one failure can't sink the whole report ──
@@ -733,6 +768,8 @@ export async function POST(req: NextRequest) {
         // The Revenue Ground Truth still pins the mutation bullets: only its VALID NONDH numbers may
         // follow "Mutation Entry No.", which is what stops NOCs/permissions getting fake Nondh numbers.
         const ctxS3B = [
+            subjectProperty,
+            '',
             '=== REVENUE RECORD GROUND TRUTH — the ONLY source of Mutation Entry numbers ===',
             revGT || '(No Revenue Record Ground Truth available — see the flag below.)',
             revenueProvidedFlag,
