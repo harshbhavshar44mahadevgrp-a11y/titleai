@@ -101,6 +101,36 @@ function normTerms(s: string): string {
 }
 
 // ================================================================
+// SUBJECT-UNIT FILTER
+// ================================================================
+// A scheme holds many units and the revenue records carry a mutation entry for each sale of
+// each one. Only the subject unit's own history (plus the land beneath the scheme) belongs in
+// this report — a bullet about "Unit No. 8" or "Flat No. 301" is somebody else's property.
+// Prompt rules alone were not enough, so the exclusion is done here, in code.
+const UNIT_RE = /\b(?:Flat|Unit|Shop|Office|Premises|Villa|Tenement)\s*No\.?\s*([A-Za-z]?-?\s?\d+[A-Za-z]?)/gi
+const unitKey = (s: string) => String(s || '').replace(/[^0-9a-z]/gi, '').toLowerCase()
+
+// Pull the subject unit identifier (e.g. "203" out of "Flat No. 203, Second Floor, Block E").
+function subjectUnitNo(desc: string): string {
+    const m = new RegExp(UNIT_RE.source, 'i').exec(String(desc || ''))
+    return m ? m[1].replace(/\s+/g, '') : ''
+}
+
+// True when a passage names one or more units but NONE of them is the subject unit — i.e. it is
+// about another flat in the same scheme. Land-level text (which names no unit at all) is kept.
+function aboutAnotherUnit(text: string, subjUnit: string): boolean {
+    if (!subjUnit) return false
+    const re = new RegExp(UNIT_RE.source, 'gi')
+    const want = unitKey(subjUnit)
+    let m: RegExpExecArray | null, named = false, isSubject = false
+    while ((m = re.exec(String(text || ''))) !== null) {
+        named = true
+        if (unitKey(m[1]) === want) isSubject = true
+    }
+    return named && !isSubject
+}
+
+// ================================================================
 // STEP 1 SYSTEM — PROVEN v5.3 EXTRACTION ENGINE
 // ================================================================
 const S1 = `You are a Senior Gujarat Property Law Expert. Extract ALL raw facts from documents accurately.
@@ -647,9 +677,25 @@ export async function POST(req: NextRequest) {
                 (m.r || m.reason_of_mutation || '') + (m.po || m.previous_owner || '') +
                 (m.no || m.new_owner || '') + (m.n || m.nature || '')
             ).trim()
-            const entries = allEntries.filter(hasSubstance)
+            // SUBJECT-UNIT FILTER — a scheme's register carries a mutation entry for every unit
+            // sold. An entry that names some OTHER flat/unit is another purchaser's property and
+            // must never reach the chain. Entries that name no unit at all are land-level and stay.
+            // The form's property field is the most reliable statement of which unit this report is
+            // about (meta.propertyDescription is not extracted yet at this point in the pipeline).
+            // If no unit can be identified there, the filter stays off rather than guessing.
+            const subjUnit = subjectUnitNo(propertyAddress)
+            const entryText = (m: any) => [
+                m.r || m.reason_of_mutation, m.po || m.previous_owner, m.no || m.new_owner,
+                m.sd || m.supporting_document, m.rm || m.remarks, m.sv || m.relevant_survey_no,
+            ].filter(Boolean).join(' ')
+            const otherUnit = (m: any) => aboutAnotherUnit(entryText(m), subjUnit)
+            const entries = allEntries.filter((m: any) => hasSubstance(m) && !otherUnit(m))
+            const skippedBlank = allEntries.filter((m: any) => !hasSubstance(m)).length
+            const skippedOther = allEntries.filter((m: any) => hasSubstance(m) && otherUnit(m)).length
             const skipped = allEntries.length - entries.length
-            console.log('Revenue entries: ' + allEntries.length + ' scanned, ' + entries.length + ' with legible particulars, ' + skipped + ' number-only (excluded from the chain)')
+            console.log('Revenue entries: ' + allEntries.length + ' scanned -> ' + entries.length + ' kept | ' +
+                skippedBlank + ' number-only | ' + skippedOther + ' about another unit' +
+                (subjUnit ? ' (subject unit = ' + subjUnit + ')' : ' (no subject unit identified — unit filter off)'))
             const mutLines = entries.map((m: any, idx: number) =>
                 '  ' + (idx + 1) + '. Entry No.' + (m.e || m.entry_no || '?') +
                 ' | Date:' + (m.d || m.entry_date || 'not stated') +
@@ -727,8 +773,12 @@ export async function POST(req: NextRequest) {
         // scheme and THIS unit belong in this report. Built from the form + the extracted property
         // description + the revenue survey number, so a writer can match on unit no./block/floor AND
         // on the land identification number.
+        const subjUnitNo = subjectUnitNo(propertyAddress) || subjectUnitNo(meta.propertyDescription || '')
         const subjectProperty = [
             '=== SUBJECT PROPERTY — THIS REPORT IS ABOUT THIS ONE PROPERTY ONLY ===',
+            subjUnitNo
+                ? ('*** THE SUBJECT UNIT IS No. ' + subjUnitNo + '. ANY event about a unit with a DIFFERENT number is FORBIDDEN in this report — do not write it, do not mention it. ***')
+                : '*** Identify the subject unit from the description below and report on that unit only. ***',
             'As stated in the case form: ' + (propertyAddress || 'NOT PROVIDED'),
             'Full description extracted from the documents: ' + normTerms(meta.propertyDescription || propertyAddress || 'NOT PROVIDED'),
             'Land identification (Revenue Record): Survey/Block No. ' + ((revData && revData.survey_block_no) || 'NOT PROVIDED') +
