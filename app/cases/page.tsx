@@ -89,7 +89,7 @@ export default function Cases() {
       <div style={{ flex: 1, marginLeft: '225px', position: 'relative', zIndex: 1 }}>
 
         {/* Topbar */}
-        <div style={{ borderBottom: '1px solid rgba(99,102,241,0.2)', padding: '0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(20px)' }}>
+        <div style={{ borderBottom: '1px solid rgba(99,102,241,0.2)', padding: '0 260px 0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(20px)' }}>
           <div>
             <div style={{ fontSize: '20px', fontWeight: '700', color: '#fff' }}>Cases <span style={{ color: '#6366f1' }}>Management</span></div>
             <div style={{ fontSize: '11px', color: '#4b5563', marginTop: '2px' }}>ALL PROPERTY CASES</div>

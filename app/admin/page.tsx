@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from '@/components/Sidebar'
 
 interface AdminUser {
@@ -10,13 +11,123 @@ interface AdminUser {
 const REFRESH_SECONDS = 10
 const PW_KEY = 'tmx_admin_pw'
 
-function StatBox({ n, label, color, icon }: { n: number | string; label: string; color: string; icon: string }) {
+// ── Design tokens ──
+const T = {
+    bg: '#04040c',
+    surface: 'rgba(10,10,26,0.85)',
+    surfaceSolid: '#0a0a1a',
+    border: 'rgba(99,102,241,0.14)',
+    borderHover: 'rgba(99,102,241,0.35)',
+    textHi: '#f1f5f9',
+    textMid: '#94a3b8',
+    textLow: '#64748b',
+    primary: '#6366f1',
+    violet: '#8b5cf6',
+    success: '#34d399',
+    danger: '#f87171',
+    warn: '#fbbf24',
+}
+
+// ── Inline SVG icons (lucide-style, consistent 2px stroke) ──
+const Icon = {
+    shield: (c: string, s = 18) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" />
+        </svg>
+    ),
+    users: (c: string, s = 18) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+    ),
+    file: (c: string, s = 18) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+    ),
+    activity: (c: string, s = 18) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+    ),
+    lock: (c: string, s = 18) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+    ),
+    unlock: (c: string, s = 18) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
+        </svg>
+    ),
+    search: (c: string, s = 16) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+    ),
+    refresh: (c: string, s = 14) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+        </svg>
+    ),
+    check: (c: string, s = 14) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+        </svg>
+    ),
+    zap: (c: string, s = 12) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill={c} stroke={c} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+    ),
+}
+
+// Avatar hue per user — email se stable color
+const AVATAR_GRADS = [
+    'linear-gradient(135deg,#6366f1,#8b5cf6)',
+    'linear-gradient(135deg,#0ea5e9,#6366f1)',
+    'linear-gradient(135deg,#f59e0b,#ef4444)',
+    'linear-gradient(135deg,#10b981,#0ea5e9)',
+    'linear-gradient(135deg,#ec4899,#8b5cf6)',
+]
+const gradFor = (email: string) => AVATAR_GRADS[(email || '?').charCodeAt(0) % AVATAR_GRADS.length]
+
+// Animated number — value badalte hi slide-up
+function Num({ value, color }: { value: number | string; color: string }) {
     return (
-        <div style={{ flex: 1, textAlign: 'center', padding: '20px 14px', background: 'rgba(6,6,18,0.9)', borderRadius: '14px', border: `1px solid ${color}25`, borderTop: `2px solid ${color}` }}>
-            <div style={{ fontSize: '20px', marginBottom: '6px' }}>{icon}</div>
-            <div style={{ fontSize: '28px', fontWeight: '900', color, fontFamily: 'monospace' }}>{n}</div>
-            <div style={{ fontSize: '9px', color: '#334155', letterSpacing: '2px', marginTop: '4px', fontWeight: '700' }}>{label}</div>
-        </div>
+        <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span key={String(value)}
+                initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{ display: 'inline-block', color, fontVariantNumeric: 'tabular-nums' }}>
+                {value}
+            </motion.span>
+        </AnimatePresence>
+    )
+}
+
+function StatCard({ icon, n, label, color, i }: { icon: React.ReactNode; n: number; label: string; color: string; i: number }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 + i * 0.07, type: 'spring', stiffness: 260, damping: 24 }}
+            whileHover={{ y: -3, transition: { duration: 0.18 } }}
+            style={{
+                flex: 1, padding: '22px 22px 20px', borderRadius: '18px', position: 'relative', overflow: 'hidden',
+                background: T.surface, border: `1px solid ${T.border}`, backdropFilter: 'blur(20px)',
+            }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: `${color}14`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {icon}
+                </div>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, boxShadow: `0 0 12px ${color}` }} />
+            </div>
+            <div style={{ fontSize: '34px', fontWeight: '900', lineHeight: 1, fontFamily: 'ui-monospace, monospace' }}>
+                <Num value={n} color={T.textHi} />
+            </div>
+            <div style={{ fontSize: '10px', color: T.textLow, letterSpacing: '2px', marginTop: '8px', fontWeight: '700' }}>{label}</div>
+        </motion.div>
     )
 }
 
@@ -25,6 +136,7 @@ export default function AdminPage() {
     const [pwInput, setPwInput] = useState('')
     const [pwError, setPwError] = useState('')
     const [checking, setChecking] = useState(false)
+    const [shake, setShake] = useState(0)
 
     const [users, setUsers] = useState<AdminUser[]>([])
     const [totalReports, setTotalReports] = useState(0)
@@ -41,7 +153,6 @@ export default function AdminPage() {
         try {
             const res = await fetch('/api/admin/users', { headers: { 'x-admin-password': pwRef.current } })
             if (res.status === 401) {
-                // Password badal gaya ya galat — dobara login
                 localStorage.removeItem(PW_KEY); pwRef.current = ''
                 setAuthed(false); setLoading(true)
                 return
@@ -56,13 +167,11 @@ export default function AdminPage() {
         if (!silent) setLoading(false)
     }, [])
 
-    // Saved password se auto-login
     useEffect(() => {
         const saved = localStorage.getItem(PW_KEY)
         if (saved) { pwRef.current = saved; setAuthed(true) }
     }, [])
 
-    // Panel khulte hi load + live auto-refresh
     useEffect(() => {
         if (!authed) return
         load()
@@ -71,11 +180,11 @@ export default function AdminPage() {
     }, [authed, load])
 
     const handleUnlock = async () => {
-        if (!pwInput.trim()) { setPwError('Password dalo'); return }
+        if (!pwInput.trim()) { setPwError('Password dalo'); setShake(s => s + 1); return }
         setChecking(true); setPwError('')
         try {
             const res = await fetch('/api/admin/users', { headers: { 'x-admin-password': pwInput.trim() } })
-            if (res.status === 401) { setPwError('Galat password'); setChecking(false); return }
+            if (res.status === 401) { setPwError('Galat password'); setShake(s => s + 1); setChecking(false); return }
             if (!res.ok) { setPwError('Server error — thodi der baad try karo'); setChecking(false); return }
             const data = await res.json()
             pwRef.current = pwInput.trim()
@@ -110,7 +219,7 @@ export default function AdminPage() {
                 setUsers(prev => prev.map(x => x.id === u.id ? { ...x, limit: n, left: Math.max(0, n - x.used) } : x))
                 setEdits(prev => { const p = { ...prev }; delete p[u.id]; return p })
                 setSavedFlash(u.id)
-                setTimeout(() => setSavedFlash(null), 1500)
+                setTimeout(() => setSavedFlash(null), 1600)
             }
         } catch { }
         setSaving(null)
@@ -119,129 +228,276 @@ export default function AdminPage() {
     const filtered = users.filter(u => !search || (u.email || '').toLowerCase().includes(search.toLowerCase()))
     const today = new Date().toISOString().split('T')[0]
     const activeToday = users.filter(u => u.last_sign_in_at?.startsWith(today)).length
+    const limitOver = users.filter(u => u.left === 0 && !u.subscribed).length
 
-    // ── PASSWORD SCREEN ──
+    // ══════════ PASSWORD SCREEN ══════════
     if (!authed) {
         return (
-            <div style={{ minHeight: '100vh', background: '#020208', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
-                <div style={{ width: '100%', maxWidth: '380px', padding: '0 20px' }}>
-                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                        <div style={{ fontSize: '44px', marginBottom: '12px' }}>🛠️</div>
-                        <div style={{ fontSize: '24px', fontWeight: '900', color: '#fff' }}>Admin <span style={{ color: '#6366f1' }}>Panel</span></div>
-                        <div style={{ fontSize: '11px', color: '#334155', letterSpacing: '2px', fontWeight: '600', marginTop: '4px' }}>TITLEMATRIX.AI — RESTRICTED</div>
+            <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
+                {/* ambient glow */}
+                <div style={{ position: 'absolute', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.12), transparent 65%)', top: '50%', left: '50%', transform: 'translate(-50%,-58%)', pointerEvents: 'none' }} />
+                <motion.div
+                    initial={{ opacity: 0, y: 28, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+                    style={{ width: '100%', maxWidth: '400px', padding: '0 20px', position: 'relative' }}>
+
+                    <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                        <motion.div
+                            animate={{ y: [0, -7, 0] }}
+                            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                            style={{
+                                width: '76px', height: '76px', borderRadius: '22px', margin: '0 auto 20px',
+                                background: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.08))',
+                                border: '1px solid rgba(99,102,241,0.35)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 0 50px rgba(99,102,241,0.25)',
+                            }}>
+                            {Icon.shield('#a5b4fc', 34)}
+                        </motion.div>
+                        <div style={{ fontSize: '26px', fontWeight: '900', color: T.textHi }}>Admin <span style={{ background: 'linear-gradient(135deg,#818cf8,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Panel</span></div>
+                        <div style={{ fontSize: '10px', color: T.textLow, letterSpacing: '3px', fontWeight: '700', marginTop: '6px' }}>TITLEMATRIX.AI — RESTRICTED ZONE</div>
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '20px', padding: '28px' }}>
-                        <label style={{ fontSize: '11px', color: '#6366f1', fontWeight: '700', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>ADMIN PASSWORD</label>
+
+                    <motion.div
+                        key={shake}
+                        animate={shake > 0 ? { x: [0, -12, 12, -8, 8, -4, 4, 0] } : {}}
+                        transition={{ duration: 0.45 }}
+                        style={{
+                            background: T.surface, backdropFilter: 'blur(24px)',
+                            border: `1px solid ${pwError ? 'rgba(248,113,113,0.4)' : T.border}`,
+                            borderRadius: '22px', padding: '28px',
+                            boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+                        }}>
+                        <label style={{ fontSize: '10px', color: '#a5b4fc', fontWeight: '800', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '12px' }}>
+                            {Icon.lock('#a5b4fc', 13)} ADMIN PASSWORD
+                        </label>
                         <input type="password" value={pwInput} autoFocus
                             onChange={e => { setPwInput(e.target.value); setPwError('') }}
                             onKeyDown={e => { if (e.key === 'Enter') handleUnlock() }}
                             placeholder="••••••••••••"
-                            style={{ width: '100%', boxSizing: 'border-box', padding: '13px 16px', background: 'rgba(6,6,20,0.95)', border: `1px solid ${pwError ? 'rgba(239,68,68,0.5)' : 'rgba(99,102,241,0.3)'}`, borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', letterSpacing: '2px', marginBottom: '10px' }} />
-                        {pwError && <div style={{ fontSize: '12px', color: '#ef4444', marginBottom: '10px', fontWeight: '600' }}>✗ {pwError}</div>}
-                        <button onClick={handleUnlock} disabled={checking}
-                            style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '14px', fontWeight: '800', letterSpacing: '0.5px', opacity: checking ? 0.6 : 1 }}>
-                            {checking ? 'CHECKING...' : '🔓 UNLOCK PANEL'}
-                        </button>
-                    </div>
-                </div>
+                            style={{
+                                width: '100%', boxSizing: 'border-box', padding: '14px 18px',
+                                background: 'rgba(4,4,14,0.9)',
+                                border: `1px solid ${pwError ? 'rgba(248,113,113,0.5)' : 'rgba(99,102,241,0.3)'}`,
+                                borderRadius: '12px', color: T.textHi, fontSize: '16px', outline: 'none',
+                                letterSpacing: '3px', marginBottom: '12px', transition: 'border-color 0.2s',
+                            }} />
+                        <AnimatePresence>
+                            {pwError && (
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                    style={{ fontSize: '12px', color: T.danger, marginBottom: '12px', fontWeight: '600', overflow: 'hidden' }}>
+                                    ✗ {pwError}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <motion.button onClick={handleUnlock} disabled={checking}
+                            whileHover={{ scale: 1.015, boxShadow: '0 8px 40px rgba(99,102,241,0.45)' }}
+                            whileTap={{ scale: 0.97 }}
+                            style={{
+                                width: '100%', padding: '15px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                                background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff',
+                                fontSize: '14px', fontWeight: '800', letterSpacing: '1px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px',
+                                opacity: checking ? 0.65 : 1, boxShadow: '0 6px 28px rgba(99,102,241,0.3)',
+                            }}>
+                            {Icon.unlock('#fff', 16)} {checking ? 'CHECKING...' : 'UNLOCK PANEL'}
+                        </motion.button>
+                    </motion.div>
+                </motion.div>
             </div>
         )
     }
 
-    // ── PANEL ──
+    // ══════════ PANEL ══════════
     return (
-        <div style={{ minHeight: '100vh', background: '#020208', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex' }}>
+        <div style={{ minHeight: '100vh', background: T.bg, fontFamily: 'Inter, system-ui, sans-serif', display: 'flex' }}>
             <style>{`
-                @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+                @keyframes livePulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.35; transform:scale(0.8)} }
                 @keyframes spin { to { transform: rotate(360deg) } }
+                input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
             `}</style>
             <Sidebar />
             <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto' }}>
 
                 {/* HEADER */}
-                <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.15)', background: 'rgba(2,2,8,0.95)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Admin <span style={{ color: '#6366f1' }}>Panel</span></div>
-                        <div style={{ fontSize: '10px', color: '#334155', letterSpacing: '2px', fontWeight: '600', marginTop: '2px' }}>USERS · REPORTS · ACCESS CONTROL</div>
-                    </div>
+                <motion.div
+                    initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                    style={{
+                        padding: '16px 32px', borderBottom: `1px solid ${T.border}`,
+                        background: 'rgba(4,4,14,0.9)', backdropFilter: 'blur(24px)',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        position: 'sticky', top: 0, zIndex: 20,
+                    }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
-                            <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '700', letterSpacing: '1px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.08))', border: '1px solid rgba(99,102,241,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {Icon.shield('#a5b4fc', 20)}
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '20px', fontWeight: '900', color: T.textHi }}>Admin <span style={{ background: 'linear-gradient(135deg,#818cf8,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Panel</span></div>
+                            <div style={{ fontSize: '9px', color: T.textLow, letterSpacing: '2px', fontWeight: '700', marginTop: '1px' }}>USERS · REPORTS · ACCESS CONTROL</div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.25)' }}>
+                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: T.success, animation: 'livePulse 2s infinite', boxShadow: `0 0 10px ${T.success}` }} />
+                            <span style={{ fontSize: '10px', color: T.success, fontWeight: '800', letterSpacing: '1px', fontVariantNumeric: 'tabular-nums' }}>
                                 LIVE{lastSync ? ` · ${lastSync.toLocaleTimeString('en-IN')}` : ''}
                             </span>
                         </div>
-                        <button onClick={() => load(true)} style={{ padding: '8px 18px', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.08)', color: '#a5b4fc', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>↻ REFRESH</button>
-                        <button onClick={lock} style={{ padding: '8px 18px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#f87171', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>🔒 LOCK</button>
+                        <motion.button onClick={() => load(true)} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.94, rotate: 180 }}
+                            style={{ padding: '9px 18px', borderRadius: '11px', border: `1px solid ${T.borderHover}`, background: 'rgba(99,102,241,0.08)', color: '#a5b4fc', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            {Icon.refresh('#a5b4fc')} REFRESH
+                        </motion.button>
+                        <motion.button onClick={lock} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.94 }}
+                            style={{ padding: '9px 18px', borderRadius: '11px', border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.06)', color: T.danger, fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            {Icon.lock(T.danger, 13)} LOCK
+                        </motion.button>
                     </div>
-                </div>
+                </motion.div>
 
-                <div style={{ padding: '28px 32px' }}>
+                <div style={{ padding: '28px 32px', maxWidth: '1200px' }}>
                     {loading ? (
-                        <div style={{ textAlign: 'center', paddingTop: '100px' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '3px solid rgba(99,102,241,0.15)', borderTop: '3px solid #6366f1', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                            <div style={{ fontSize: '11px', color: '#334155', letterSpacing: '3px' }}>LOADING...</div>
+                        <div style={{ textAlign: 'center', paddingTop: '110px' }}>
+                            <div style={{ width: '38px', height: '38px', borderRadius: '50%', border: '3px solid rgba(99,102,241,0.15)', borderTop: '3px solid #6366f1', animation: 'spin 0.75s linear infinite', margin: '0 auto 18px' }} />
+                            <div style={{ fontSize: '10px', color: T.textLow, letterSpacing: '3px', fontWeight: '700' }}>LOADING USERS...</div>
                         </div>
                     ) : (
                         <>
                             {/* STATS */}
-                            <div style={{ display: 'flex', gap: '14px', marginBottom: '28px' }}>
-                                <StatBox n={users.length} label="TOTAL USERS" color="#6366f1" icon="👥" />
-                                <StatBox n={totalReports} label="TOTAL REPORTS" color="#f59e0b" icon="📋" />
-                                <StatBox n={activeToday} label="ACTIVE TODAY" color="#10b981" icon="🟢" />
-                                <StatBox n={users.filter(u => u.left === 0 && !u.subscribed).length} label="LIMIT KHATAM" color="#ef4444" icon="🔒" />
+                            <div style={{ display: 'flex', gap: '16px', marginBottom: '26px' }}>
+                                <StatCard i={0} icon={Icon.users('#818cf8', 19)} n={users.length} label="TOTAL USERS" color={T.primary} />
+                                <StatCard i={1} icon={Icon.file('#fbbf24', 19)} n={totalReports} label="TOTAL REPORTS" color={T.warn} />
+                                <StatCard i={2} icon={Icon.activity('#34d399', 19)} n={activeToday} label="ACTIVE TODAY" color={T.success} />
+                                <StatCard i={3} icon={Icon.lock('#f87171', 19)} n={limitOver} label="LIMIT KHATAM" color={T.danger} />
                             </div>
 
                             {/* SEARCH */}
-                            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Email se search karo..."
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '12px 18px', marginBottom: '18px', background: 'rgba(6,6,20,0.95)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '12px', color: '#e2e8f0', fontSize: '13px', outline: 'none' }} />
+                            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                                style={{ position: 'relative', marginBottom: '20px' }}>
+                                <div style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                                    {Icon.search(T.textLow)}
+                                </div>
+                                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Email se search karo..."
+                                    style={{
+                                        width: '100%', boxSizing: 'border-box', padding: '14px 18px 14px 46px',
+                                        background: T.surface, border: `1px solid ${T.border}`, borderRadius: '14px',
+                                        color: T.textHi, fontSize: '13px', outline: 'none', backdropFilter: 'blur(16px)',
+                                    }}
+                                    onFocus={e => e.currentTarget.style.borderColor = T.borderHover}
+                                    onBlur={e => e.currentTarget.style.borderColor = T.border} />
+                            </motion.div>
 
-                            {/* TABLE */}
-                            <div style={{ background: 'rgba(6,6,18,0.9)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '16px', overflow: 'hidden' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1fr 0.7fr 1.2fr 0.7fr 1fr', gap: '8px', padding: '14px 20px', borderBottom: '1px solid rgba(99,102,241,0.15)', fontSize: '9px', fontWeight: '800', color: '#475569', letterSpacing: '1.5px' }}>
-                                    <div>EMAIL</div><div>JOINED</div><div>LAST LOGIN</div>
-                                    <div style={{ textAlign: 'center' }}>USED</div>
-                                    <div style={{ textAlign: 'center' }}>LIMIT (EDIT)</div>
+                            {/* USER TABLE */}
+                            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
+                                style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: '20px', overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '2.4fr 1fr 1.1fr 1.3fr 1fr 0.8fr 0.9fr', gap: '10px', padding: '15px 24px', borderBottom: `1px solid ${T.border}`, fontSize: '9px', fontWeight: '800', color: T.textLow, letterSpacing: '1.8px', background: 'rgba(99,102,241,0.03)' }}>
+                                    <div>USER</div><div>JOINED</div><div>LAST LOGIN</div>
+                                    <div>USAGE</div>
+                                    <div style={{ textAlign: 'center' }}>LIMIT</div>
                                     <div style={{ textAlign: 'center' }}>LEFT</div>
                                     <div style={{ textAlign: 'center' }}>ACTION</div>
                                 </div>
-                                {filtered.length === 0 && (
-                                    <div style={{ padding: '40px', textAlign: 'center', color: '#334155', fontSize: '13px' }}>Koi user nahi mila</div>
-                                )}
-                                {filtered.map(u => {
-                                    const editVal = edits[u.id] ?? String(u.limit)
-                                    const changed = edits[u.id] !== undefined && edits[u.id] !== String(u.limit)
-                                    return (
-                                        <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1fr 0.7fr 1.2fr 0.7fr 1fr', gap: '8px', padding: '13px 20px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center', background: savedFlash === u.id ? 'rgba(16,185,129,0.07)' : 'transparent', transition: 'background 0.4s' }}>
-                                            <div style={{ minWidth: 0 }}>
-                                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
-                                                {u.subscribed && <span style={{ fontSize: '9px', color: '#10b981', fontWeight: '800', letterSpacing: '1px' }}>⭐ SUBSCRIBED (UNLIMITED)</span>}
-                                            </div>
-                                            <div style={{ fontSize: '11px', color: '#475569' }}>{new Date(u.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
-                                            <div style={{ fontSize: '11px', color: '#475569' }}>{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                                            <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '800', color: '#f59e0b', fontFamily: 'monospace' }}>{u.used}</div>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <input type="number" min={0} value={editVal}
-                                                    onChange={e => setEdits(prev => ({ ...prev, [u.id]: e.target.value }))}
-                                                    style={{ width: '70px', padding: '7px 10px', textAlign: 'center', background: 'rgba(99,102,241,0.08)', border: `1px solid ${changed ? '#f59e0b' : 'rgba(99,102,241,0.3)'}`, borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: '800', outline: 'none', fontFamily: 'monospace' }} />
-                                            </div>
-                                            <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '800', fontFamily: 'monospace', color: u.left > 0 || u.subscribed ? '#10b981' : '#ef4444' }}>
-                                                {u.subscribed ? '∞' : u.left}
-                                            </div>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <button onClick={() => saveLimit(u)} disabled={!changed || saving === u.id}
-                                                    style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: changed ? 'pointer' : 'default', background: changed ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.04)', color: changed ? '#fff' : '#334155', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px' }}>
-                                                    {saving === u.id ? '...' : savedFlash === u.id ? '✓ SAVED' : 'SAVE'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
 
-                            <div style={{ marginTop: '14px', fontSize: '10px', color: '#1e293b', letterSpacing: '1px', textAlign: 'center' }}>
-                                AUTO-REFRESH HAR {REFRESH_SECONDS} SECOND · LIMIT BADALTE HI USER PAR TURANT LAGU HO JATA HAI
-                            </div>
+                                {filtered.length === 0 && (
+                                    <div style={{ padding: '52px', textAlign: 'center', color: T.textLow, fontSize: '13px' }}>Koi user nahi mila</div>
+                                )}
+
+                                <AnimatePresence initial={false}>
+                                    {filtered.map((u, i) => {
+                                        const editVal = edits[u.id] ?? String(u.limit)
+                                        const changed = edits[u.id] !== undefined && edits[u.id] !== String(u.limit)
+                                        const usagePct = u.subscribed ? 0 : Math.min(100, (u.used / Math.max(1, u.limit)) * 100)
+                                        const usageColor = usagePct >= 100 ? T.danger : usagePct >= 60 ? T.warn : T.success
+                                        return (
+                                            <motion.div key={u.id} layout
+                                                initial={{ opacity: 0, y: 14 }}
+                                                animate={{ opacity: 1, y: 0, backgroundColor: savedFlash === u.id ? 'rgba(52,211,153,0.08)' : 'rgba(0,0,0,0)' }}
+                                                exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+                                                transition={{ delay: Math.min(i * 0.035, 0.4), type: 'spring', stiffness: 300, damping: 28 }}
+                                                whileHover={{ backgroundColor: 'rgba(99,102,241,0.05)' }}
+                                                style={{ display: 'grid', gridTemplateColumns: '2.4fr 1fr 1.1fr 1.3fr 1fr 0.8fr 0.9fr', gap: '10px', padding: '15px 24px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
+
+                                                {/* USER */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0, background: gradFor(u.email), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: '800' }}>
+                                                        {(u.email || '?').charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div style={{ fontSize: '13px', fontWeight: '600', color: T.textHi, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                                                        {u.subscribed && (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                                                {Icon.zap(T.success)}
+                                                                <span style={{ fontSize: '9px', color: T.success, fontWeight: '800', letterSpacing: '1px' }}>SUBSCRIBED · UNLIMITED</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ fontSize: '11px', color: T.textMid, fontVariantNumeric: 'tabular-nums' }}>{new Date(u.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+                                                <div style={{ fontSize: '11px', color: T.textMid, fontVariantNumeric: 'tabular-nums' }}>{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+
+                                                {/* USAGE BAR */}
+                                                <div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                                        <span style={{ fontSize: '11px', fontWeight: '800', color: usageColor, fontFamily: 'ui-monospace, monospace' }}>{u.used} used</span>
+                                                        {!u.subscribed && <span style={{ fontSize: '10px', color: T.textLow, fontFamily: 'ui-monospace, monospace' }}>/{u.limit}</span>}
+                                                    </div>
+                                                    <div style={{ height: '4px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                                                        <motion.div
+                                                            animate={{ width: u.subscribed ? '100%' : `${usagePct}%` }}
+                                                            transition={{ type: 'spring', stiffness: 120, damping: 22 }}
+                                                            style={{ height: '100%', borderRadius: '4px', background: u.subscribed ? 'linear-gradient(90deg,#34d399,#0ea5e9)' : usageColor }} />
+                                                    </div>
+                                                </div>
+
+                                                {/* LIMIT EDIT */}
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <input type="number" min={0} value={editVal}
+                                                        onChange={e => setEdits(prev => ({ ...prev, [u.id]: e.target.value }))}
+                                                        style={{
+                                                            width: '72px', padding: '8px 10px', textAlign: 'center',
+                                                            background: changed ? 'rgba(251,191,36,0.08)' : 'rgba(99,102,241,0.07)',
+                                                            border: `1.5px solid ${changed ? 'rgba(251,191,36,0.55)' : 'rgba(99,102,241,0.28)'}`,
+                                                            borderRadius: '10px', color: T.textHi, fontSize: '13px', fontWeight: '800',
+                                                            outline: 'none', fontFamily: 'ui-monospace, monospace', transition: 'all 0.2s',
+                                                        }} />
+                                                </div>
+
+                                                {/* LEFT */}
+                                                <div style={{ textAlign: 'center', fontSize: '15px', fontWeight: '900', fontFamily: 'ui-monospace, monospace' }}>
+                                                    {u.subscribed ? <span style={{ color: T.success }}>∞</span> : <Num value={u.left} color={u.left > 0 ? T.success : T.danger} />}
+                                                </div>
+
+                                                {/* SAVE */}
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <motion.button onClick={() => saveLimit(u)} disabled={!changed || saving === u.id}
+                                                        whileHover={changed ? { scale: 1.06 } : {}}
+                                                        whileTap={changed ? { scale: 0.92 } : {}}
+                                                        style={{
+                                                            padding: '8px 18px', borderRadius: '10px', border: 'none',
+                                                            cursor: changed ? 'pointer' : 'default',
+                                                            background: savedFlash === u.id ? 'rgba(52,211,153,0.15)' : changed ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.04)',
+                                                            color: savedFlash === u.id ? T.success : changed ? '#fff' : '#3f475e',
+                                                            fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px',
+                                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                            boxShadow: changed ? '0 4px 18px rgba(99,102,241,0.35)' : 'none',
+                                                        }}>
+                                                        {saving === u.id ? '...' : savedFlash === u.id ? <>{Icon.check(T.success)} SAVED</> : 'SAVE'}
+                                                    </motion.button>
+                                                </div>
+                                            </motion.div>
+                                        )
+                                    })}
+                                </AnimatePresence>
+                            </motion.div>
+
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                                style={{ marginTop: '16px', fontSize: '10px', color: '#2a3348', letterSpacing: '1.5px', textAlign: 'center', fontWeight: '600' }}>
+                                AUTO-REFRESH HAR {REFRESH_SECONDS}s · LIMIT SAVE KARTE HI USER PAR TURANT LAGU
+                            </motion.div>
                         </>
                     )}
                 </div>

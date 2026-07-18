@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [today, setToday] = useState(0)
   const [month, setMonth] = useState(0)
   const [uptime, setUptime] = useState(0)
+  const [sessionStart, setSessionStart] = useState<number | null>(null)
   const [load, setLoad] = useState(42)
   const [hov, setHov] = useState<number | null>(null)
   const [pulse, setPulse] = useState(0)
@@ -43,6 +44,8 @@ export default function DashboardPage() {
       // to a /login route that no longer exists.
       if (!user) { return }
       setEmail(user.email || "")
+      // Session timer login ke waqt se chalta hai — page chhod ke wapas aane par reset nahi hota
+      if (user.last_sign_in_at) setSessionStart(new Date(user.last_sign_in_at).getTime())
 
       const todayStr = new Date().toISOString().split("T")[0]
       const monthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
@@ -120,11 +123,19 @@ export default function DashboardPage() {
     }
     const mid = setInterval(draw, 33)
     const tid = setInterval(() => setTime(new Date()), 1000)
-    const uid = setInterval(() => setUptime(p => p + 1), 1000)
     const lid = setInterval(() => setLoad(Math.floor(Math.random() * 25 + 30)), 3000)
     const pid = setInterval(() => setPulse(p => p + 1), 50)
-    return () => { clearInterval(mid); clearInterval(tid); clearInterval(uid); clearInterval(lid); clearInterval(pid) }
+    return () => { clearInterval(mid); clearInterval(tid); clearInterval(lid); clearInterval(pid) }
   }, [])
+
+  // SESSION timer — login time se ab tak, har second update
+  useEffect(() => {
+    if (!sessionStart) return
+    const tick = () => setUptime(Math.max(0, Math.floor((Date.now() - sessionStart) / 1000)))
+    tick()
+    const uid = setInterval(tick, 1000)
+    return () => clearInterval(uid)
+  }, [sessionStart])
 
   const pad = (n: number) => String(n).padStart(2, "0")
   const uptimeStr = `${pad(Math.floor(uptime / 3600))}:${pad(Math.floor((uptime % 3600) / 60))}:${pad(uptime % 60)}`
