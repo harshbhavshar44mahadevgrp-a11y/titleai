@@ -87,19 +87,27 @@ export default function SignupPage() {
                         <>
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>USERNAME <span style={{ color: '#f87171' }}>*</span></label>
-                                <input type="text" placeholder="Aapka naam / username" value={username} onChange={e => setUsername(e.target.value)} style={inputStyle} />
+                                <input type="text" placeholder="Aapka naam / username" value={username} onChange={e => setUsername(e.target.value)}
+                                    autoComplete="off" name="tmx-su-uname" readOnly onFocus={e => e.currentTarget.removeAttribute('readonly')}
+                                    onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} style={inputStyle} />
                             </div>
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>EMAIL</label>
-                                <input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
+                                <input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)}
+                                    autoComplete="off" name="tmx-su-email" readOnly onFocus={e => e.currentTarget.removeAttribute('readonly')}
+                                    onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} style={inputStyle} />
                             </div>
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>PASSWORD</label>
-                                <input type="password" placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} />
+                                <input type="password" placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)}
+                                    autoComplete="new-password" name="tmx-su-pass" readOnly onFocus={e => e.currentTarget.removeAttribute('readonly')}
+                                    onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} style={inputStyle} />
                             </div>
                             <div style={{ marginBottom: '24px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>CONFIRM PASSWORD</label>
-                                <input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} style={inputStyle} />
+                                <input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)}
+                                    autoComplete="new-password" name="tmx-su-confirm" readOnly onFocus={e => e.currentTarget.removeAttribute('readonly')}
+                                    onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} style={inputStyle} />
                             </div>
                             {error && (
                                 <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '10px 14px', color: '#f87171', fontSize: '13px', marginBottom: '16px' }}>

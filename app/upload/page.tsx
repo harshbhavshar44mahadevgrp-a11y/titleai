@@ -109,7 +109,7 @@ export default function UploadPage() {
     useEffect(() => {
         const checkAccess = async () => {
             const { data: { session } } = await supabase.auth.getSession()
-            if (!session) { router.replace('/signup'); return }
+            if (!session) { router.replace('/login'); return }
             // Fresh user record — admin ne abhi limit badli ho toh turant dikhe
             const { data: { user } } = await supabase.auth.getUser()
             const meta: any = user?.app_metadata || {}
@@ -224,7 +224,7 @@ export default function UploadPage() {
         try {
             // Login compulsory — session se userId (report save) + token (server-side gate)
             const { data: { session } } = await supabase.auth.getSession()
-            if (!session) { clearInterval(iv); setGenerating(false); router.replace('/signup'); return }
+            if (!session) { clearInterval(iv); setGenerating(false); router.replace('/login'); return }
             const userId = session.user.id
             const accessToken = session.access_token
 

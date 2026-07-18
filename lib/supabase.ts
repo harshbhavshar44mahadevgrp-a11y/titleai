@@ -8,4 +8,10 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://uenkifwpzqqxrcwmbjkr.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlbmtpZndwenFxeHJjd21iamtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MDY5NDEsImV4cCI6MjA5OTQ4Mjk0MX0.wJ7pcqmOQO_K8u8pxlf6j3B-XNsJHLB2RMD4U6iUuKE'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Session sessionStorage mein rehta hai — tab/browser band karte hi logout,
+// wapas aane par dobara login karna padta hai (business requirement).
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: typeof window !== 'undefined'
+        ? { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+        : { persistSession: false },
+})

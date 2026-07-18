@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import ProfileChip from '@/components/ProfileChip'
 
 const NAV = [
     {
@@ -27,16 +28,11 @@ export default function Sidebar() {
     const path = usePathname()
     const router = useRouter()
     const [userEmail, setUserEmail] = useState<string | null>(null)
-    const [userName, setUserName] = useState<string | null>(null)
 
     // Login/logout hote hi sidebar turant update ho
     useEffect(() => {
-        const apply = (session: any) => {
-            setUserEmail(session?.user?.email ?? null)
-            setUserName(session?.user?.user_metadata?.username ?? null)
-        }
-        supabase.auth.getSession().then(({ data: { session } }) => apply(session))
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => apply(session))
+        supabase.auth.getSession().then(({ data: { session } }) => setUserEmail(session?.user?.email ?? null))
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setUserEmail(session?.user?.email ?? null))
         return () => subscription.unsubscribe()
     }, [])
 
@@ -51,40 +47,10 @@ export default function Sidebar() {
         items: g.items.filter(item => !(item.path === '/login' && userEmail)),
     }))
 
-    const displayName = userName || userEmail
-    const initial = (displayName || '?').charAt(0).toUpperCase()
-
     return (
         <>
-            {/* TOP-RIGHT PROFILE CHIP — har page par (admin panel chhod ke) */}
-            {userEmail && path !== '/admin' && path !== '/dashboard' && (
-                <div style={{
-                    position: 'fixed', top: '12px', right: '20px', zIndex: 400,
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '6px 14px 6px 6px', borderRadius: '100px',
-                    background: 'rgba(8,8,22,0.92)', backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(99,102,241,0.3)',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-                }}>
-                    <div style={{
-                        width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
-                        background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#fff', fontSize: '14px', fontWeight: '800',
-                    }}>{initial}</div>
-                    <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '11px', fontWeight: '700', color: '#e2e8f0', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {displayName}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
-                            <span style={{ fontSize: '8px', color: userName ? '#64748b' : '#10b981', fontWeight: '700', letterSpacing: '0.5px', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {userName ? userEmail : 'LOGGED IN'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* TOP-RIGHT PROFILE CHIP — click par reports-left + logout dropdown */}
+            {path !== '/admin' && path !== '/dashboard' && <ProfileChip fixed />}
 
             <div style={{
                 width: '220px', minHeight: '100vh',

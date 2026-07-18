@@ -80,6 +80,9 @@ export default function LoginPage() {
                             type="email" placeholder="your@email.com"
                             value={email} onChange={e => setEmail(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                            autoComplete="off" name="tmx-login-email" readOnly
+                            onFocus={e => e.currentTarget.removeAttribute('readonly')}
+                            onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()}
                             style={inputStyle}
                         />
                     </div>
@@ -93,6 +96,9 @@ export default function LoginPage() {
                             type="password" placeholder="••••••••"
                             value={password} onChange={e => setPassword(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                            autoComplete="new-password" name="tmx-login-pass" readOnly
+                            onFocus={e => e.currentTarget.removeAttribute('readonly')}
+                            onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()}
                             style={inputStyle}
                         />
                     </div>
