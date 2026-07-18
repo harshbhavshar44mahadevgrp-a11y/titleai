@@ -13,6 +13,7 @@ export default function SignupPage() {
         })
     }, [router])
 
+    const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirm, setConfirm] = useState('')
@@ -21,7 +22,8 @@ export default function SignupPage() {
     const [success, setSuccess] = useState(false)
 
     const handleSignup = async () => {
-        if (!email || !password) { setError('Sab fields bharo'); return }
+        if (!username.trim() || !email || !password) { setError('Sab fields bharo — username bhi zaroori hai'); return }
+        if (!/^[a-zA-Z0-9._ ]{3,24}$/.test(username.trim())) { setError('Username 3-24 characters ka ho (letters, numbers, . _ allowed)'); return }
         if (password !== confirm) { setError('Password match nahi karta'); return }
         if (password.length < 6) { setError('Password kam se kam 6 characters ka hona chahiye'); return }
         setLoading(true)
@@ -33,7 +35,7 @@ export default function SignupPage() {
             const res = await fetch('/api/auth-signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, username: username.trim() }),
             })
             const data = await res.json()
             if (!res.ok || !data.success) throw new Error(data.error || 'Signup failed')
@@ -83,6 +85,10 @@ export default function SignupPage() {
                         </div>
                     ) : (
                         <>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>USERNAME <span style={{ color: '#f87171' }}>*</span></label>
+                                <input type="text" placeholder="Aapka naam / username" value={username} onChange={e => setUsername(e.target.value)} style={inputStyle} />
+                            </div>
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>EMAIL</label>
                                 <input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />

@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from '@/components/Sidebar'
 
 interface AdminUser {
-    id: string; email: string; created_at: string; last_sign_in_at: string | null
+    id: string; email: string; username: string | null
+    created_at: string; last_sign_in_at: string | null
     used: number; limit: number; left: number; subscribed: boolean
 }
 
@@ -15,9 +16,8 @@ const PW_KEY = 'tmx_admin_pw'
 const T = {
     bg: '#04040c',
     surface: 'rgba(10,10,26,0.85)',
-    surfaceSolid: '#0a0a1a',
     border: 'rgba(99,102,241,0.14)',
-    borderHover: 'rgba(99,102,241,0.35)',
+    borderHover: 'rgba(99,102,241,0.45)',
     textHi: '#f1f5f9',
     textMid: '#94a3b8',
     textLow: '#64748b',
@@ -80,9 +80,13 @@ const Icon = {
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
         </svg>
     ),
+    at: (c: string, s = 11) => (
+        <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
+        </svg>
+    ),
 }
 
-// Avatar hue per user — email se stable color
 const AVATAR_GRADS = [
     'linear-gradient(135deg,#6366f1,#8b5cf6)',
     'linear-gradient(135deg,#0ea5e9,#6366f1)',
@@ -90,7 +94,7 @@ const AVATAR_GRADS = [
     'linear-gradient(135deg,#10b981,#0ea5e9)',
     'linear-gradient(135deg,#ec4899,#8b5cf6)',
 ]
-const gradFor = (email: string) => AVATAR_GRADS[(email || '?').charCodeAt(0) % AVATAR_GRADS.length]
+const gradFor = (key: string) => AVATAR_GRADS[(key || '?').charCodeAt(0) % AVATAR_GRADS.length]
 
 // Animated number — value badalte hi slide-up
 function Num({ value, color }: { value: number | string; color: string }) {
@@ -106,27 +110,56 @@ function Num({ value, color }: { value: number | string; color: string }) {
     )
 }
 
+// Stat card with CURSOR SPOTLIGHT — cursor jahan jaye wahan glow follow kare
 function StatCard({ icon, n, label, color, i }: { icon: React.ReactNode; n: number; label: string; color: string; i: number }) {
+    const [pos, setPos] = useState({ x: -200, y: -200 })
+    const [hov, setHov] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
     return (
-        <motion.div
+        <motion.div ref={ref}
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 + i * 0.07, type: 'spring', stiffness: 260, damping: 24 }}
-            whileHover={{ y: -3, transition: { duration: 0.18 } }}
+            whileHover={{ y: -7, scale: 1.025 }}
+            onHoverStart={() => setHov(true)} onHoverEnd={() => setHov(false)}
+            onMouseMove={e => {
+                const r = ref.current?.getBoundingClientRect()
+                if (r) setPos({ x: e.clientX - r.left, y: e.clientY - r.top })
+            }}
             style={{
                 flex: 1, padding: '22px 22px 20px', borderRadius: '18px', position: 'relative', overflow: 'hidden',
-                background: T.surface, border: `1px solid ${T.border}`, backdropFilter: 'blur(20px)',
+                background: T.surface, backdropFilter: 'blur(20px)', cursor: 'default',
+                border: `1px solid ${hov ? color + '55' : T.border}`,
+                boxShadow: hov ? `0 18px 50px rgba(0,0,0,0.5), 0 0 40px ${color}22` : '0 4px 20px rgba(0,0,0,0.25)',
+                transition: 'border-color 0.25s, box-shadow 0.25s',
             }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: `${color}14`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* cursor-follow spotlight */}
+            <div style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: `radial-gradient(220px circle at ${pos.x}px ${pos.y}px, ${color}18, transparent 70%)`,
+                opacity: hov ? 1 : 0, transition: 'opacity 0.3s',
+            }} />
+            {/* top accent line */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent, ${color}, transparent)`, opacity: hov ? 1 : 0.55, transition: 'opacity 0.25s' }} />
+            {/* sheen sweep on hover */}
+            <div style={{
+                position: 'absolute', top: 0, bottom: 0, width: '55%', pointerEvents: 'none',
+                background: 'linear-gradient(105deg, transparent, rgba(255,255,255,0.05), transparent)',
+                transform: hov ? 'translateX(240%)' : 'translateX(-120%)',
+                transition: hov ? 'transform 0.7s ease' : 'none',
+            }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', position: 'relative' }}>
+                <motion.div
+                    animate={hov ? { rotate: [0, -10, 10, 0], scale: 1.12 } : { rotate: 0, scale: 1 }}
+                    transition={{ duration: 0.45, ease: 'easeOut' }}
+                    style={{ width: '38px', height: '38px', borderRadius: '11px', background: `${color}14`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {icon}
-                </div>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, boxShadow: `0 0 12px ${color}` }} />
+                </motion.div>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, boxShadow: `0 0 ${hov ? 18 : 10}px ${color}`, transition: 'box-shadow 0.25s' }} />
             </div>
-            <div style={{ fontSize: '34px', fontWeight: '900', lineHeight: 1, fontFamily: 'ui-monospace, monospace' }}>
+            <div style={{ fontSize: '34px', fontWeight: '900', lineHeight: 1, fontFamily: 'ui-monospace, monospace', position: 'relative' }}>
                 <Num value={n} color={T.textHi} />
             </div>
-            <div style={{ fontSize: '10px', color: T.textLow, letterSpacing: '2px', marginTop: '8px', fontWeight: '700' }}>{label}</div>
+            <div style={{ fontSize: '10px', color: hov ? T.textMid : T.textLow, letterSpacing: '2px', marginTop: '8px', fontWeight: '700', transition: 'color 0.25s' }}>{label}</div>
         </motion.div>
     )
 }
@@ -142,10 +175,12 @@ export default function AdminPage() {
     const [totalReports, setTotalReports] = useState(0)
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
+    const [searchFocus, setSearchFocus] = useState(false)
     const [edits, setEdits] = useState<Record<string, string>>({})
     const [saving, setSaving] = useState<string | null>(null)
     const [savedFlash, setSavedFlash] = useState<string | null>(null)
     const [lastSync, setLastSync] = useState<Date | null>(null)
+    const [hoveredRow, setHoveredRow] = useState<string | null>(null)
     const pwRef = useRef<string>('')
 
     const load = useCallback(async (silent = false) => {
@@ -225,7 +260,10 @@ export default function AdminPage() {
         setSaving(null)
     }
 
-    const filtered = users.filter(u => !search || (u.email || '').toLowerCase().includes(search.toLowerCase()))
+    const q = search.toLowerCase()
+    const filtered = users.filter(u => !q
+        || (u.username || '').toLowerCase().includes(q)
+        || (u.email || '').toLowerCase().includes(q))
     const today = new Date().toISOString().split('T')[0]
     const activeToday = users.filter(u => u.last_sign_in_at?.startsWith(today)).length
     const limitOver = users.filter(u => u.left === 0 && !u.subscribed).length
@@ -234,8 +272,12 @@ export default function AdminPage() {
     if (!authed) {
         return (
             <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
-                {/* ambient glow */}
-                <div style={{ position: 'absolute', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.12), transparent 65%)', top: '50%', left: '50%', transform: 'translate(-50%,-58%)', pointerEvents: 'none' }} />
+                <style>{`
+                    @keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,-40px)} }
+                    @keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,50px)} }
+                `}</style>
+                <div style={{ position: 'absolute', width: '520px', height: '520px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.14), transparent 65%)', top: '8%', left: '18%', animation: 'orbFloat1 11s ease-in-out infinite', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', width: '440px', height: '440px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.11), transparent 65%)', bottom: '5%', right: '12%', animation: 'orbFloat2 13s ease-in-out infinite', pointerEvents: 'none' }} />
                 <motion.div
                     initial={{ opacity: 0, y: 28, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -311,14 +353,20 @@ export default function AdminPage() {
 
     // ══════════ PANEL ══════════
     return (
-        <div style={{ minHeight: '100vh', background: T.bg, fontFamily: 'Inter, system-ui, sans-serif', display: 'flex' }}>
+        <div style={{ minHeight: '100vh', background: T.bg, fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', position: 'relative', overflow: 'hidden' }}>
             <style>{`
                 @keyframes livePulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.35; transform:scale(0.8)} }
                 @keyframes spin { to { transform: rotate(360deg) } }
+                @keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(70px,-50px)} }
+                @keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-60px,60px)} }
                 input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
             `}</style>
+            {/* ambient floating orbs */}
+            <div style={{ position: 'fixed', width: '560px', height: '560px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08), transparent 65%)', top: '-8%', right: '-5%', animation: 'orbFloat1 14s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
+            <div style={{ position: 'fixed', width: '480px', height: '480px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.07), transparent 65%)', bottom: '-10%', left: '20%', animation: 'orbFloat2 17s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
+
             <Sidebar />
-            <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto' }}>
+            <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 1 }}>
 
                 {/* HEADER */}
                 <motion.div
@@ -331,9 +379,10 @@ export default function AdminPage() {
                         position: 'sticky', top: 0, zIndex: 20,
                     }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.08))', border: '1px solid rgba(99,102,241,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <motion.div whileHover={{ rotate: [0, -8, 8, 0], scale: 1.08 }} transition={{ duration: 0.4 }}
+                            style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.08))', border: '1px solid rgba(99,102,241,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }}>
                             {Icon.shield('#a5b4fc', 20)}
-                        </div>
+                        </motion.div>
                         <div>
                             <div style={{ fontSize: '20px', fontWeight: '900', color: T.textHi }}>Admin <span style={{ background: 'linear-gradient(135deg,#818cf8,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Panel</span></div>
                             <div style={{ fontSize: '9px', color: T.textLow, letterSpacing: '2px', fontWeight: '700', marginTop: '1px' }}>USERS · REPORTS · ACCESS CONTROL</div>
@@ -346,11 +395,12 @@ export default function AdminPage() {
                                 LIVE{lastSync ? ` · ${lastSync.toLocaleTimeString('en-IN')}` : ''}
                             </span>
                         </div>
-                        <motion.button onClick={() => load(true)} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.94, rotate: 180 }}
+                        <motion.button onClick={() => load(true)}
+                            whileHover={{ scale: 1.05, borderColor: 'rgba(99,102,241,0.6)' }} whileTap={{ scale: 0.92 }}
                             style={{ padding: '9px 18px', borderRadius: '11px', border: `1px solid ${T.borderHover}`, background: 'rgba(99,102,241,0.08)', color: '#a5b4fc', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                            {Icon.refresh('#a5b4fc')} REFRESH
+                            <motion.span whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }} style={{ display: 'flex' }}>{Icon.refresh('#a5b4fc')}</motion.span> REFRESH
                         </motion.button>
-                        <motion.button onClick={lock} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.94 }}
+                        <motion.button onClick={lock} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.92 }}
                             style={{ padding: '9px 18px', borderRadius: '11px', border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.06)', color: T.danger, fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
                             {Icon.lock(T.danger, 13)} LOCK
                         </motion.button>
@@ -376,17 +426,19 @@ export default function AdminPage() {
                             {/* SEARCH */}
                             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                                 style={{ position: 'relative', marginBottom: '20px' }}>
-                                <div style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                                    {Icon.search(T.textLow)}
+                                <div style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'transform 0.2s' }}>
+                                    {Icon.search(searchFocus ? '#a5b4fc' : T.textLow)}
                                 </div>
-                                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Email se search karo..."
+                                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Username ya email se search karo..."
+                                    onFocus={() => setSearchFocus(true)} onBlur={() => setSearchFocus(false)}
                                     style={{
                                         width: '100%', boxSizing: 'border-box', padding: '14px 18px 14px 46px',
-                                        background: T.surface, border: `1px solid ${T.border}`, borderRadius: '14px',
+                                        background: T.surface, borderRadius: '14px',
+                                        border: `1px solid ${searchFocus ? 'rgba(99,102,241,0.55)' : T.border}`,
+                                        boxShadow: searchFocus ? '0 0 0 4px rgba(99,102,241,0.08), 0 8px 30px rgba(99,102,241,0.1)' : 'none',
                                         color: T.textHi, fontSize: '13px', outline: 'none', backdropFilter: 'blur(16px)',
-                                    }}
-                                    onFocus={e => e.currentTarget.style.borderColor = T.borderHover}
-                                    onBlur={e => e.currentTarget.style.borderColor = T.border} />
+                                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                                    }} />
                             </motion.div>
 
                             {/* USER TABLE */}
@@ -411,22 +463,42 @@ export default function AdminPage() {
                                         const changed = edits[u.id] !== undefined && edits[u.id] !== String(u.limit)
                                         const usagePct = u.subscribed ? 0 : Math.min(100, (u.used / Math.max(1, u.limit)) * 100)
                                         const usageColor = usagePct >= 100 ? T.danger : usagePct >= 60 ? T.warn : T.success
+                                        const rowHov = hoveredRow === u.id
+                                        const dispName = u.username || (u.email || '').split('@')[0]
                                         return (
                                             <motion.div key={u.id} layout
                                                 initial={{ opacity: 0, y: 14 }}
-                                                animate={{ opacity: 1, y: 0, backgroundColor: savedFlash === u.id ? 'rgba(52,211,153,0.08)' : 'rgba(0,0,0,0)' }}
+                                                animate={{ opacity: 1, y: 0, backgroundColor: savedFlash === u.id ? 'rgba(52,211,153,0.08)' : rowHov ? 'rgba(99,102,241,0.055)' : 'rgba(0,0,0,0)' }}
                                                 exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
                                                 transition={{ delay: Math.min(i * 0.035, 0.4), type: 'spring', stiffness: 300, damping: 28 }}
-                                                whileHover={{ backgroundColor: 'rgba(99,102,241,0.05)' }}
-                                                style={{ display: 'grid', gridTemplateColumns: '2.4fr 1fr 1.1fr 1.3fr 1fr 0.8fr 0.9fr', gap: '10px', padding: '15px 24px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
+                                                whileHover={{ x: 6 }}
+                                                onHoverStart={() => setHoveredRow(u.id)} onHoverEnd={() => setHoveredRow(null)}
+                                                style={{ display: 'grid', gridTemplateColumns: '2.4fr 1fr 1.1fr 1.3fr 1fr 0.8fr 0.9fr', gap: '10px', padding: '15px 24px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center', position: 'relative' }}>
 
-                                                {/* USER */}
+                                                {/* hover accent bar */}
+                                                <div style={{ position: 'absolute', left: 0, top: '18%', bottom: '18%', width: '3px', borderRadius: '3px', background: 'linear-gradient(180deg,#6366f1,#8b5cf6)', opacity: rowHov ? 1 : 0, transform: rowHov ? 'scaleY(1)' : 'scaleY(0.3)', transition: 'opacity 0.22s, transform 0.22s', boxShadow: '0 0 12px rgba(99,102,241,0.6)' }} />
+
+                                                {/* USER — username bold + email niche */}
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0, background: gradFor(u.email), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: '800' }}>
-                                                        {(u.email || '?').charAt(0).toUpperCase()}
+                                                    <div style={{
+                                                        width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
+                                                        background: gradFor(dispName), display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: '#fff', fontSize: '14px', fontWeight: '800',
+                                                        transform: rowHov ? 'scale(1.14)' : 'scale(1)',
+                                                        boxShadow: rowHov ? '0 0 20px rgba(99,102,241,0.5)' : 'none',
+                                                        transition: 'transform 0.22s, box-shadow 0.22s',
+                                                    }}>
+                                                        {dispName.charAt(0).toUpperCase()}
                                                     </div>
                                                     <div style={{ minWidth: 0 }}>
-                                                        <div style={{ fontSize: '13px', fontWeight: '600', color: T.textHi, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                                                        <div style={{ fontSize: '13.5px', fontWeight: '700', color: T.textHi, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {dispName}
+                                                            {!u.username && <span style={{ fontSize: '9px', color: '#3f475e', fontWeight: '600', marginLeft: '6px' }}>(no username)</span>}
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', minWidth: 0 }}>
+                                                            {Icon.at(T.textLow)}
+                                                            <span style={{ fontSize: '10.5px', color: T.textMid, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</span>
+                                                        </div>
                                                         {u.subscribed && (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                                                                 {Icon.zap(T.success)}
@@ -449,7 +521,7 @@ export default function AdminPage() {
                                                         <motion.div
                                                             animate={{ width: u.subscribed ? '100%' : `${usagePct}%` }}
                                                             transition={{ type: 'spring', stiffness: 120, damping: 22 }}
-                                                            style={{ height: '100%', borderRadius: '4px', background: u.subscribed ? 'linear-gradient(90deg,#34d399,#0ea5e9)' : usageColor }} />
+                                                            style={{ height: '100%', borderRadius: '4px', background: u.subscribed ? 'linear-gradient(90deg,#34d399,#0ea5e9)' : usageColor, boxShadow: rowHov ? `0 0 8px ${usageColor}` : 'none', transition: 'box-shadow 0.22s' }} />
                                                     </div>
                                                 </div>
 
@@ -460,7 +532,7 @@ export default function AdminPage() {
                                                         style={{
                                                             width: '72px', padding: '8px 10px', textAlign: 'center',
                                                             background: changed ? 'rgba(251,191,36,0.08)' : 'rgba(99,102,241,0.07)',
-                                                            border: `1.5px solid ${changed ? 'rgba(251,191,36,0.55)' : 'rgba(99,102,241,0.28)'}`,
+                                                            border: `1.5px solid ${changed ? 'rgba(251,191,36,0.55)' : rowHov ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.28)'}`,
                                                             borderRadius: '10px', color: T.textHi, fontSize: '13px', fontWeight: '800',
                                                             outline: 'none', fontFamily: 'ui-monospace, monospace', transition: 'all 0.2s',
                                                         }} />
@@ -474,8 +546,8 @@ export default function AdminPage() {
                                                 {/* SAVE */}
                                                 <div style={{ textAlign: 'center' }}>
                                                     <motion.button onClick={() => saveLimit(u)} disabled={!changed || saving === u.id}
-                                                        whileHover={changed ? { scale: 1.06 } : {}}
-                                                        whileTap={changed ? { scale: 0.92 } : {}}
+                                                        whileHover={changed ? { scale: 1.08, boxShadow: '0 6px 24px rgba(99,102,241,0.5)' } : {}}
+                                                        whileTap={changed ? { scale: 0.9 } : {}}
                                                         style={{
                                                             padding: '8px 18px', borderRadius: '10px', border: 'none',
                                                             cursor: changed ? 'pointer' : 'default',

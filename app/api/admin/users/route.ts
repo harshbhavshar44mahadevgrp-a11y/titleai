@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
         return {
             id: u.id,
             email: u.email,
+            username: (u.user_metadata as any)?.username || null,
             created_at: u.created_at,
             last_sign_in_at: u.last_sign_in_at,
             used,

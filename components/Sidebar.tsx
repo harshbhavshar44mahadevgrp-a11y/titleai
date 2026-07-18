@@ -27,15 +27,16 @@ export default function Sidebar() {
     const path = usePathname()
     const router = useRouter()
     const [userEmail, setUserEmail] = useState<string | null>(null)
+    const [userName, setUserName] = useState<string | null>(null)
 
     // Login/logout hote hi sidebar turant update ho
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        const apply = (session: any) => {
             setUserEmail(session?.user?.email ?? null)
-        })
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-            setUserEmail(session?.user?.email ?? null)
-        })
+            setUserName(session?.user?.user_metadata?.username ?? null)
+        }
+        supabase.auth.getSession().then(({ data: { session } }) => apply(session))
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => apply(session))
         return () => subscription.unsubscribe()
     }, [])
 
@@ -50,7 +51,8 @@ export default function Sidebar() {
         items: g.items.filter(item => !(item.path === '/login' && userEmail)),
     }))
 
-    const initial = (userEmail || '?').charAt(0).toUpperCase()
+    const displayName = userName || userEmail
+    const initial = (displayName || '?').charAt(0).toUpperCase()
 
     return (
         <>
@@ -72,11 +74,13 @@ export default function Sidebar() {
                     }}>{initial}</div>
                     <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: '11px', fontWeight: '700', color: '#e2e8f0', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {userEmail}
+                            {displayName}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }} />
-                            <span style={{ fontSize: '8px', color: '#10b981', fontWeight: '700', letterSpacing: '1px' }}>LOGGED IN</span>
+                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                            <span style={{ fontSize: '8px', color: userName ? '#64748b' : '#10b981', fontWeight: '700', letterSpacing: '0.5px', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {userName ? userEmail : 'LOGGED IN'}
+                            </span>
                         </div>
                     </div>
                 </div>
