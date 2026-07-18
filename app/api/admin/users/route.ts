@@ -1,27 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { isAdminEmail, effectiveReportLimit } from '@/lib/adminConfig'
+import { effectiveReportLimit } from '@/lib/adminConfig'
 
 const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Caller ka token verify karke admin check — sirf admin emails ko access
-async function requireAdmin(req: NextRequest) {
-    const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
-    if (!token) return { error: NextResponse.json({ error: 'Login required' }, { status: 401 }) }
-    const { data, error } = await admin.auth.getUser(token)
-    if (error || !data.user) return { error: NextResponse.json({ error: 'Invalid session' }, { status: 401 }) }
-    if (!isAdminEmail(data.user.email, process.env.ADMIN_EMAILS)) {
-        return { error: NextResponse.json({ error: 'Admin access only' }, { status: 403 }) }
-    }
-    return { user: data.user }
+// Password-based admin access — /admin page x-admin-password header bhejta hai
+function checkAdminPassword(req: NextRequest): NextResponse | null {
+    const expected = process.env.ADMIN_PANEL_PASSWORD
+    if (!expected) return NextResponse.json({ error: 'Admin password configured nahi hai' }, { status: 503 })
+    const given = req.headers.get('x-admin-password') || ''
+    if (given !== expected) return NextResponse.json({ error: 'Galat admin password' }, { status: 401 })
+    return null
 }
 
 export async function GET(req: NextRequest) {
-    const auth = await requireAdmin(req)
-    if (auth.error) return auth.error
+    const denied = checkAdminPassword(req)
+    if (denied) return denied
 
     // Saare registered users (1000 tak — abhi ke scale ke liye kaafi)
     const { data: usersData, error: usersErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })

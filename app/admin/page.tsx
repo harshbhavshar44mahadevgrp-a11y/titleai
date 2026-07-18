@@ -1,7 +1,5 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
 interface AdminUser {
@@ -10,6 +8,7 @@ interface AdminUser {
 }
 
 const REFRESH_SECONDS = 10
+const PW_KEY = 'tmx_admin_pw'
 
 function StatBox({ n, label, color, icon }: { n: number | string; label: string; color: string; icon: string }) {
     return (
@@ -22,26 +21,31 @@ function StatBox({ n, label, color, icon }: { n: number | string; label: string;
 }
 
 export default function AdminPage() {
-    const router = useRouter()
+    const [authed, setAuthed] = useState(false)
+    const [pwInput, setPwInput] = useState('')
+    const [pwError, setPwError] = useState('')
+    const [checking, setChecking] = useState(false)
+
     const [users, setUsers] = useState<AdminUser[]>([])
     const [totalReports, setTotalReports] = useState(0)
     const [loading, setLoading] = useState(true)
-    const [denied, setDenied] = useState(false)
     const [search, setSearch] = useState('')
     const [edits, setEdits] = useState<Record<string, string>>({})
     const [saving, setSaving] = useState<string | null>(null)
     const [savedFlash, setSavedFlash] = useState<string | null>(null)
     const [lastSync, setLastSync] = useState<Date | null>(null)
-    const tokenRef = useRef<string | null>(null)
+    const pwRef = useRef<string>('')
 
     const load = useCallback(async (silent = false) => {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) { router.replace('/login'); return }
-        tokenRef.current = session.access_token
+        if (!pwRef.current) return
         try {
-            const res = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${session.access_token}` } })
-            if (res.status === 403) { setDenied(true); setLoading(false); return }
-            if (res.status === 401) { router.replace('/login'); return }
+            const res = await fetch('/api/admin/users', { headers: { 'x-admin-password': pwRef.current } })
+            if (res.status === 401) {
+                // Password badal gaya ya galat — dobara login
+                localStorage.removeItem(PW_KEY); pwRef.current = ''
+                setAuthed(false); setLoading(true)
+                return
+            }
             const data = await res.json()
             if (data.success) {
                 setUsers(data.users)
@@ -50,14 +54,45 @@ export default function AdminPage() {
             }
         } catch { /* network blip — agla refresh sambhal lega */ }
         if (!silent) setLoading(false)
-    }, [router])
+    }, [])
 
-    // Pehli load + live auto-refresh
+    // Saved password se auto-login
     useEffect(() => {
+        const saved = localStorage.getItem(PW_KEY)
+        if (saved) { pwRef.current = saved; setAuthed(true) }
+    }, [])
+
+    // Panel khulte hi load + live auto-refresh
+    useEffect(() => {
+        if (!authed) return
         load()
         const iv = setInterval(() => load(true), REFRESH_SECONDS * 1000)
         return () => clearInterval(iv)
-    }, [load])
+    }, [authed, load])
+
+    const handleUnlock = async () => {
+        if (!pwInput.trim()) { setPwError('Password dalo'); return }
+        setChecking(true); setPwError('')
+        try {
+            const res = await fetch('/api/admin/users', { headers: { 'x-admin-password': pwInput.trim() } })
+            if (res.status === 401) { setPwError('Galat password'); setChecking(false); return }
+            if (!res.ok) { setPwError('Server error — thodi der baad try karo'); setChecking(false); return }
+            const data = await res.json()
+            pwRef.current = pwInput.trim()
+            localStorage.setItem(PW_KEY, pwRef.current)
+            setUsers(data.users); setTotalReports(data.totalReports); setLastSync(new Date())
+            setLoading(false); setAuthed(true)
+        } catch {
+            setPwError('Network error')
+        }
+        setChecking(false)
+    }
+
+    const lock = () => {
+        localStorage.removeItem(PW_KEY)
+        pwRef.current = ''
+        setAuthed(false); setPwInput(''); setLoading(true)
+    }
 
     const saveLimit = async (u: AdminUser) => {
         const raw = edits[u.id]
@@ -67,7 +102,7 @@ export default function AdminPage() {
         try {
             const res = await fetch('/api/admin/set-limit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenRef.current}` },
+                headers: { 'Content-Type': 'application/json', 'x-admin-password': pwRef.current },
                 body: JSON.stringify({ userId: u.id, limit: n }),
             })
             const data = await res.json()
@@ -85,19 +120,35 @@ export default function AdminPage() {
     const today = new Date().toISOString().split('T')[0]
     const activeToday = users.filter(u => u.last_sign_in_at?.startsWith(today)).length
 
-    if (denied) {
+    // ── PASSWORD SCREEN ──
+    if (!authed) {
         return (
             <div style={{ minHeight: '100vh', background: '#020208', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚫</div>
-                    <div style={{ fontSize: '20px', fontWeight: '900', color: '#fff', marginBottom: '8px' }}>Admin Access Only</div>
-                    <div style={{ fontSize: '13px', color: '#475569', marginBottom: '24px' }}>Ye panel sirf admin ke liye hai</div>
-                    <button onClick={() => router.push('/upload')} style={{ padding: '12px 32px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '13px', fontWeight: '700' }}>← Report Tool</button>
+                <div style={{ width: '100%', maxWidth: '380px', padding: '0 20px' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                        <div style={{ fontSize: '44px', marginBottom: '12px' }}>🛠️</div>
+                        <div style={{ fontSize: '24px', fontWeight: '900', color: '#fff' }}>Admin <span style={{ color: '#6366f1' }}>Panel</span></div>
+                        <div style={{ fontSize: '11px', color: '#334155', letterSpacing: '2px', fontWeight: '600', marginTop: '4px' }}>TITLEMATRIX.AI — RESTRICTED</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '20px', padding: '28px' }}>
+                        <label style={{ fontSize: '11px', color: '#6366f1', fontWeight: '700', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>ADMIN PASSWORD</label>
+                        <input type="password" value={pwInput} autoFocus
+                            onChange={e => { setPwInput(e.target.value); setPwError('') }}
+                            onKeyDown={e => { if (e.key === 'Enter') handleUnlock() }}
+                            placeholder="••••••••••••"
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '13px 16px', background: 'rgba(6,6,20,0.95)', border: `1px solid ${pwError ? 'rgba(239,68,68,0.5)' : 'rgba(99,102,241,0.3)'}`, borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', letterSpacing: '2px', marginBottom: '10px' }} />
+                        {pwError && <div style={{ fontSize: '12px', color: '#ef4444', marginBottom: '10px', fontWeight: '600' }}>✗ {pwError}</div>}
+                        <button onClick={handleUnlock} disabled={checking}
+                            style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '14px', fontWeight: '800', letterSpacing: '0.5px', opacity: checking ? 0.6 : 1 }}>
+                            {checking ? 'CHECKING...' : '🔓 UNLOCK PANEL'}
+                        </button>
+                    </div>
                 </div>
             </div>
         )
     }
 
+    // ── PANEL ──
     return (
         <div style={{ minHeight: '100vh', background: '#020208', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex' }}>
             <style>{`
@@ -121,6 +172,7 @@ export default function AdminPage() {
                             </span>
                         </div>
                         <button onClick={() => load(true)} style={{ padding: '8px 18px', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.08)', color: '#a5b4fc', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>↻ REFRESH</button>
+                        <button onClick={lock} style={{ padding: '8px 18px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#f87171', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>🔒 LOCK</button>
                     </div>
                 </div>
 

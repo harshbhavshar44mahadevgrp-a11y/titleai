@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { isAdminEmail } from '@/lib/adminConfig'
 
 const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,12 +7,10 @@ const admin = createClient(
 )
 
 export async function POST(req: NextRequest) {
-    const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
-    if (!token) return NextResponse.json({ error: 'Login required' }, { status: 401 })
-    const { data: caller, error: authErr } = await admin.auth.getUser(token)
-    if (authErr || !caller.user) return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    if (!isAdminEmail(caller.user.email, process.env.ADMIN_EMAILS)) {
-        return NextResponse.json({ error: 'Admin access only' }, { status: 403 })
+    const expected = process.env.ADMIN_PANEL_PASSWORD
+    if (!expected) return NextResponse.json({ error: 'Admin password configured nahi hai' }, { status: 503 })
+    if ((req.headers.get('x-admin-password') || '') !== expected) {
+        return NextResponse.json({ error: 'Galat admin password' }, { status: 401 })
     }
 
     const { userId, limit } = await req.json()

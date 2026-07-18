@@ -1,8 +1,5 @@
 ﻿"use client"
-import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { isAdminEmail } from '@/lib/adminConfig'
 
 const NAV = [
     {
@@ -27,18 +24,6 @@ const NAV = [
 export default function Sidebar() {
     const path = usePathname()
     const router = useRouter()
-    const [isAdmin, setIsAdmin] = useState(false)
-
-    // Admin ko hi Admin Panel link dikhta hai (asli security server-side hai)
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session && isAdminEmail(session.user.email)) setIsAdmin(true)
-        })
-    }, [])
-
-    const navGroups = isAdmin
-        ? [...NAV, { group: 'ADMIN', items: [{ path: '/admin', label: 'Admin Panel', icon: '🛠️' }] }]
-        : NAV
 
     return (
         <div style={{
@@ -63,7 +48,7 @@ export default function Sidebar() {
 
             {/* NAV */}
             <nav style={{ flex: 1, padding: '16px 12px' }}>
-                {navGroups.map(group => (
+                {NAV.map(group => (
                     <div key={group.group} style={{ marginBottom: '24px' }}>
                         <div style={{ fontSize: '10px', fontWeight: '700', color: '#475569', letterSpacing: '1.5px', padding: '0 8px', marginBottom: '8px' }}>
                             {group.group}
