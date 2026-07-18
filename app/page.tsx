@@ -215,7 +215,7 @@ export default function LandingPage() {
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button onClick={() => router.push('/login')} style={{ padding: '7px 20px', borderRadius: '7px', border: '1px solid rgba(99,102,241,0.15)', background: 'transparent', color: '#64748b', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#94a3b8' }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.15)'; e.currentTarget.style.color = '#64748b' }}>Sign In</button>
-          <button onClick={() => router.push('/upload')} onMouseEnter={() => setHoverBtn(true)} onMouseLeave={() => setHoverBtn(false)} style={{ padding: '8px 22px', borderRadius: '7px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '13px', fontWeight: '700', letterSpacing: '0.3px', boxShadow: hoverBtn ? '0 0 32px rgba(99,102,241,0.7)' : '0 0 16px rgba(99,102,241,0.3)', transition: 'all 0.25s' }}>Request Access</button>
+          <button onClick={() => router.push('/signup')} onMouseEnter={() => setHoverBtn(true)} onMouseLeave={() => setHoverBtn(false)} style={{ padding: '8px 22px', borderRadius: '7px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '13px', fontWeight: '700', letterSpacing: '0.3px', boxShadow: hoverBtn ? '0 0 32px rgba(99,102,241,0.7)' : '0 0 16px rgba(99,102,241,0.3)', transition: 'all 0.25s' }}>Request Access</button>
         </div>
       </nav>
 
@@ -258,11 +258,11 @@ export default function LandingPage() {
 
             {/* CTAs */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '52px', animation: 'fadeUp 0.6s ease 0.6s both' }}>
-              <button onClick={() => router.push('/upload')} style={{ padding: '14px 36px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '14px', fontWeight: '800', letterSpacing: '0.3px', boxShadow: '0 8px 32px rgba(99,102,241,0.45)', position: 'relative', overflow: 'hidden' }}>
+              <button onClick={() => router.push('/signup')} style={{ padding: '14px 36px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '14px', fontWeight: '800', letterSpacing: '0.3px', boxShadow: '0 8px 32px rgba(99,102,241,0.45)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent)', animation: 'scan 2.5s ease-in-out infinite' }} />
                 Start Free — 5 Reports
               </button>
-              <button onClick={() => router.push('/upload')} style={{ padding: '14px 28px', borderRadius: '8px', cursor: 'pointer', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', color: '#6366f1', fontSize: '14px', fontWeight: '600' }}>
+              <button onClick={() => router.push('/signup')} style={{ padding: '14px 28px', borderRadius: '8px', cursor: 'pointer', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', color: '#6366f1', fontSize: '14px', fontWeight: '600' }}>
                 Sign In →
               </button>
             </div>
@@ -471,7 +471,7 @@ export default function LandingPage() {
               Start with 5 complimentary reports. No payment required. Full platform access from day one.
             </p>
 
-            <button onClick={() => router.push('/upload')} style={{ padding: '16px 48px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '15px', fontWeight: '800', letterSpacing: '0.3px', boxShadow: '0 12px 48px rgba(99,102,241,0.5)', position: 'relative', overflow: 'hidden', marginBottom: '24px' }}>
+            <button onClick={() => router.push('/signup')} style={{ padding: '16px 48px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '15px', fontWeight: '800', letterSpacing: '0.3px', boxShadow: '0 12px 48px rgba(99,102,241,0.5)', position: 'relative', overflow: 'hidden', marginBottom: '24px' }}>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)', animation: 'scan 2s ease-in-out infinite' }} />
               Begin Free Access
             </button>

@@ -1,10 +1,18 @@
 "use client"
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function SignupPage() {
     const router = useRouter()
+
+    // Pehle se logged in ho toh seedha report tool par
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) router.replace('/upload')
+        })
+    }, [router])
+
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirm, setConfirm] = useState('')
@@ -64,7 +72,8 @@ export default function SignupPage() {
 
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '32px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#fff', margin: '0 0 6px' }}>Create Account</h2>
-                    <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 28px' }}>TITLEMATRIXAI pe join karo</p>
+                    <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 8px' }}>TITLEMATRIXAI pe join karo</p>
+                    <p style={{ fontSize: '12px', color: '#10b981', fontWeight: '700', margin: '0 0 28px' }}>🎁 Sign up karte hi 5 FREE reports milengi</p>
 
                     {success ? (
                         <div style={{ textAlign: 'center', padding: '20px' }}>

@@ -1,7 +1,10 @@
 ﻿"use client"
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { supabase } from '@/lib/supabase'
+
+const FREE_LIMIT = 5
 
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
@@ -41,7 +44,11 @@ const MIN_QUALITY = 0.35
 const MIN_MAXPX = 650
 
 export default function UploadPage() {
+    const router = useRouter()
     const [dragging, setDragging] = useState(false)
+    // Free-trial / subscription gate
+    const [freeLeft, setFreeLeft] = useState<number | null>(null)
+    const [subscribed, setSubscribed] = useState(false)
     const [files, setFiles] = useState<DocFile[]>([])
     const [selectedType, setSelectedType] = useState('')
     const [caseType, setCaseType] = useState('')
@@ -97,6 +104,22 @@ export default function UploadPage() {
         const interval = setInterval(draw, 40)
         return () => clearInterval(interval)
     }, [])
+
+    // Login compulsory + free credits load — bina signup ke report tool nahi khulta
+    useEffect(() => {
+        const checkAccess = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) { router.replace('/signup'); return }
+            const meta: any = session.user.app_metadata || {}
+            const expires = meta.subscription_expires ? Date.parse(meta.subscription_expires) : null
+            setSubscribed(meta.subscribed === true && (!expires || expires > Date.now()))
+            const { count } = await supabase.from('reports')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', session.user.id)
+            setFreeLeft(Math.max(0, FREE_LIMIT - (count || 0)))
+        }
+        checkAccess()
+    }, [router])
 
     const addFiles = (newFiles: File[]) => {
         setFiles(prev => {
@@ -185,18 +208,21 @@ export default function UploadPage() {
         if (!applicantName.trim()) { setErrorMsg('Applicant Name bharo!'); return }
         if (!bankName.trim()) { setErrorMsg('Bank Name bharo!'); return }
         if (!currentOwner.trim()) { setErrorMsg('Current Owner / Mortgagor bharo!'); return }
+        if (!subscribed && freeLeft !== null && freeLeft <= 0) {
+            setErrorMsg(`Aapki ${FREE_LIMIT} free reports khatam ho gayi hain — aage ke liye subscription lo.`)
+            return
+        }
 
         setGenerating(true); setReportData(null); setStep(0); setErrorMsg(''); setProgress('')
         let s = 0
         const iv = setInterval(() => { s++; setStep(s); if (s >= steps.length) clearInterval(iv) }, 8000)
 
         try {
-            // Logged-in user ki id — isi se report My Reports (Supabase) mein save hoti hai
-            let userId: string | null = null
-            try {
-                const { data: { user } } = await supabase.auth.getUser()
-                userId = user?.id ?? null
-            } catch { /* auth down ho toh bhi report generation chalti rahe */ }
+            // Login compulsory — session se userId (report save) + token (server-side gate)
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) { clearInterval(iv); setGenerating(false); router.replace('/signup'); return }
+            const userId = session.user.id
+            const accessToken = session.access_token
 
             const pdfFiles = files.filter(f => f.fileRef)
             const fileCount = pdfFiles.length
@@ -357,7 +383,7 @@ export default function UploadPage() {
             setProgress('AI analysis: ' + (precomputedRevData ? 'Revenue ✓ + ' : '') + (ecCount > 0 ? ecCount + ' EC pages + ' : '') + mainImages.length + ' pages...')
 
             const res = await fetch('/api/analyze', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
                 body: JSON.stringify({
                     images: mainImages.map((img: any) => ({
                         data: img.base64, mediaType: img.mediaType,
@@ -377,6 +403,14 @@ export default function UploadPage() {
             if (res.status === 413) {
                 throw new Error('Files bahut zyada hain ya bade hain. Kam files upload karo (max 8-10 ek baar mein), ya kam pages wale documents use karo.')
             }
+            if (res.status === 401) {
+                clearInterval(iv); setGenerating(false); setProgress('')
+                router.replace('/login'); return
+            }
+            if (res.status === 402) {
+                setFreeLeft(0)
+                throw new Error(`Aapki ${FREE_LIMIT} free reports khatam ho gayi hain — subscription ke baad hi aage generate hoga.`)
+            }
             if (!res.ok) {
                 const errText = await res.text()
                 // Try to parse as JSON and pull the clean error field; fall back to raw text.
@@ -391,6 +425,7 @@ export default function UploadPage() {
             const data = await res.json()
             clearInterval(iv); setStep(steps.length)
             if (data.success) {
+                if (!subscribed) setFreeLeft(prev => prev === null ? prev : Math.max(0, prev - 1))
                 setTimeout(() => { setReportData({ htmlReport: data.report }); setGenerating(false); setProgress('') }, 300)
             } else throw new Error(data.error || 'Analysis failed')
         } catch (err: any) {
@@ -608,7 +643,34 @@ export default function UploadPage() {
                                 </div>
                             </div>
 
-                            {files.length > 0 && (
+                            {/* FREE CREDITS / SUBSCRIPTION STATUS */}
+                            {freeLeft !== null && (
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+                                    {subscribed ? (
+                                        <span style={{ padding: '6px 18px', borderRadius: '100px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', fontSize: '11px', fontWeight: '800', letterSpacing: '1px' }}>
+                                            ⭐ PRO — UNLIMITED REPORTS
+                                        </span>
+                                    ) : (
+                                        <span style={{ padding: '6px 18px', borderRadius: '100px', background: freeLeft > 0 ? 'rgba(99,102,241,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${freeLeft > 0 ? 'rgba(99,102,241,0.4)' : 'rgba(239,68,68,0.4)'}`, color: freeLeft > 0 ? '#a5b4fc' : '#ef4444', fontSize: '11px', fontWeight: '800', letterSpacing: '1px' }}>
+                                            🎁 FREE REPORTS LEFT: {freeLeft} / {FREE_LIMIT}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* PAYWALL — 5 free khatam, ab subscription compulsory */}
+                            {!subscribed && freeLeft === 0 ? (
+                                <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '36px', marginBottom: '12px' }}>🔒</div>
+                                    <div style={{ fontSize: '17px', fontWeight: '900', color: '#fff', marginBottom: '8px' }}>Free Limit Khatam</div>
+                                    <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.7 }}>
+                                        Aapki {FREE_LIMIT} free reports use ho chuki hain.<br />Aage unlimited reports ke liye subscription lo.
+                                    </div>
+                                    <button onClick={() => router.push('/plans')} style={{ padding: '15px 40px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '14px', fontWeight: '800', letterSpacing: '0.5px', boxShadow: '0 8px 32px rgba(99,102,241,0.4)' }}>
+                                        ⚡ VIEW PLANS — SUBSCRIBE
+                                    </button>
+                                </div>
+                            ) : files.length > 0 && (
                                 <button onClick={handleGenerate} style={{ width: '100%', background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#000', border: 'none', borderRadius: '12px', padding: '18px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>
                                     📋 GENERATE REPORT — {selectedCase.icon} {selectedCase.label}
                                 </button>
