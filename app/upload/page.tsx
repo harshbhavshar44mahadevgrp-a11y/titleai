@@ -3,8 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { supabase } from '@/lib/supabase'
-
-const FREE_LIMIT = 5
+import { effectiveReportLimit, DEFAULT_REPORT_LIMIT } from '@/lib/adminConfig'
 
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
@@ -46,8 +45,9 @@ const MIN_MAXPX = 650
 export default function UploadPage() {
     const router = useRouter()
     const [dragging, setDragging] = useState(false)
-    // Free-trial / subscription gate
+    // Free-trial / subscription gate — limit admin panel se per-user set hoti hai
     const [freeLeft, setFreeLeft] = useState<number | null>(null)
+    const [reportLimit, setReportLimit] = useState(DEFAULT_REPORT_LIMIT)
     const [subscribed, setSubscribed] = useState(false)
     const [files, setFiles] = useState<DocFile[]>([])
     const [selectedType, setSelectedType] = useState('')
@@ -105,18 +105,22 @@ export default function UploadPage() {
         return () => clearInterval(interval)
     }, [])
 
-    // Login compulsory + free credits load — bina signup ke report tool nahi khulta
+    // Login compulsory + credits load — bina signup ke report tool nahi khulta
     useEffect(() => {
         const checkAccess = async () => {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) { router.replace('/signup'); return }
-            const meta: any = session.user.app_metadata || {}
+            // Fresh user record — admin ne abhi limit badli ho toh turant dikhe
+            const { data: { user } } = await supabase.auth.getUser()
+            const meta: any = user?.app_metadata || {}
             const expires = meta.subscription_expires ? Date.parse(meta.subscription_expires) : null
             setSubscribed(meta.subscribed === true && (!expires || expires > Date.now()))
+            const limit = effectiveReportLimit(meta)
+            setReportLimit(limit)
             const { count } = await supabase.from('reports')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', session.user.id)
-            setFreeLeft(Math.max(0, FREE_LIMIT - (count || 0)))
+            setFreeLeft(Math.max(0, limit - (count || 0)))
         }
         checkAccess()
     }, [router])
@@ -209,7 +213,7 @@ export default function UploadPage() {
         if (!bankName.trim()) { setErrorMsg('Bank Name bharo!'); return }
         if (!currentOwner.trim()) { setErrorMsg('Current Owner / Mortgagor bharo!'); return }
         if (!subscribed && freeLeft !== null && freeLeft <= 0) {
-            setErrorMsg(`Aapki ${FREE_LIMIT} free reports khatam ho gayi hain — aage ke liye subscription lo.`)
+            setErrorMsg(`Aapki ${reportLimit} reports ki limit khatam ho gayi hai — aage ke liye subscription lo.`)
             return
         }
 
@@ -409,7 +413,7 @@ export default function UploadPage() {
             }
             if (res.status === 402) {
                 setFreeLeft(0)
-                throw new Error(`Aapki ${FREE_LIMIT} free reports khatam ho gayi hain — subscription ke baad hi aage generate hoga.`)
+                throw new Error(`Aapki ${reportLimit} reports ki limit khatam ho gayi hai — subscription ke baad hi aage generate hoga.`)
             }
             if (!res.ok) {
                 const errText = await res.text()
@@ -652,7 +656,7 @@ export default function UploadPage() {
                                         </span>
                                     ) : (
                                         <span style={{ padding: '6px 18px', borderRadius: '100px', background: freeLeft > 0 ? 'rgba(99,102,241,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${freeLeft > 0 ? 'rgba(99,102,241,0.4)' : 'rgba(239,68,68,0.4)'}`, color: freeLeft > 0 ? '#a5b4fc' : '#ef4444', fontSize: '11px', fontWeight: '800', letterSpacing: '1px' }}>
-                                            🎁 FREE REPORTS LEFT: {freeLeft} / {FREE_LIMIT}
+                                            🎁 REPORTS LEFT: {freeLeft} / {reportLimit}
                                         </span>
                                     )}
                                 </div>
@@ -662,9 +666,9 @@ export default function UploadPage() {
                             {!subscribed && freeLeft === 0 ? (
                                 <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
                                     <div style={{ fontSize: '36px', marginBottom: '12px' }}>🔒</div>
-                                    <div style={{ fontSize: '17px', fontWeight: '900', color: '#fff', marginBottom: '8px' }}>Free Limit Khatam</div>
+                                    <div style={{ fontSize: '17px', fontWeight: '900', color: '#fff', marginBottom: '8px' }}>Report Limit Khatam</div>
                                     <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.7 }}>
-                                        Aapki {FREE_LIMIT} free reports use ho chuki hain.<br />Aage unlimited reports ke liye subscription lo.
+                                        Aapki {reportLimit} reports use ho chuki hain.<br />Aur reports ke liye subscription lo — WhatsApp par contact karo.
                                     </div>
                                     <button onClick={() => router.push('/plans')} style={{ padding: '15px 40px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '14px', fontWeight: '800', letterSpacing: '0.5px', boxShadow: '0 8px 32px rgba(99,102,241,0.4)' }}>
                                         ⚡ VIEW PLANS — SUBSCRIBE
