@@ -1,6 +1,7 @@
 ﻿"use client"
 import { useState, useRef, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
+import { supabase } from '@/lib/supabase'
 
 const DOC_TYPES = ['Sale Deed', 'Encumbrance Certificate (EC)', 'Revenue Record 7/12', 'NA Order', 'Development Permission', 'Draft Sale Deed', 'Property Card', 'Layout Approval', 'Mutation Entry', 'Completion Certificate', 'Mortgage Document', 'Other']
 
@@ -190,6 +191,13 @@ export default function UploadPage() {
         const iv = setInterval(() => { s++; setStep(s); if (s >= steps.length) clearInterval(iv) }, 8000)
 
         try {
+            // Logged-in user ki id — isi se report My Reports (Supabase) mein save hoti hai
+            let userId: string | null = null
+            try {
+                const { data: { user } } = await supabase.auth.getUser()
+                userId = user?.id ?? null
+            } catch { /* auth down ho toh bhi report generation chalti rahe */ }
+
             const pdfFiles = files.filter(f => f.fileRef)
             const fileCount = pdfFiles.length
 
@@ -362,7 +370,7 @@ export default function UploadPage() {
                     currentOwner: currentOwner.trim(), propertyAddress: propertyAddress.trim(),
                     boundaryEast: boundaryEast.trim(), boundaryWest: boundaryWest.trim(),
                     boundaryNorth: boundaryNorth.trim(), boundarySouth: boundarySouth.trim(),
-                    userId: null,
+                    userId,
                 })
             })
 

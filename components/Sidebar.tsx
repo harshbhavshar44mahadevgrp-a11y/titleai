@@ -16,6 +16,7 @@ const NAV = [
             { path: '/payments', label: 'Payments', icon: '💳' },
             { path: '/feedback', label: 'Feedback', icon: '💬' },
             { path: '/profile', label: 'Profile', icon: '👤' },
+            { path: '/login', label: 'Login', icon: '🔐' },
         ]
     },
 ]
