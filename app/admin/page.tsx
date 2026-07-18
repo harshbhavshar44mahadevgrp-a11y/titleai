@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Sidebar from '@/components/Sidebar'
 
 interface AdminUser {
     id: string; email: string; username: string | null
@@ -365,8 +364,7 @@ export default function AdminPage() {
             <div style={{ position: 'fixed', width: '560px', height: '560px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08), transparent 65%)', top: '-8%', right: '-5%', animation: 'orbFloat1 14s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
             <div style={{ position: 'fixed', width: '480px', height: '480px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.07), transparent 65%)', bottom: '-10%', left: '20%', animation: 'orbFloat2 17s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
 
-            <Sidebar />
-            <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 1 }}>
+            <div style={{ flex: 1, overflow: 'auto', position: 'relative', zIndex: 1 }}>
 
                 {/* HEADER */}
                 <motion.div
@@ -407,7 +405,7 @@ export default function AdminPage() {
                     </div>
                 </motion.div>
 
-                <div style={{ padding: '28px 32px', maxWidth: '1200px' }}>
+                <div style={{ padding: '28px 32px', maxWidth: '1200px', margin: '0 auto' }}>
                     {loading ? (
                         <div style={{ textAlign: 'center', paddingTop: '110px' }}>
                             <div style={{ width: '38px', height: '38px', borderRadius: '50%', border: '3px solid rgba(99,102,241,0.15)', borderTop: '3px solid #6366f1', animation: 'spin 0.75s linear infinite', margin: '0 auto 18px' }} />
