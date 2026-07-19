@@ -97,7 +97,7 @@ export default function FeedbackPage() {
             <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: 0, opacity: 0.5, pointerEvents: 'none' }} />
             <Sidebar />
 
-            <div style={{ flex: 1, marginLeft: '225px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 10, padding: '32px' }}>
+            <div className="pg-main" style={{ flex: 1, marginLeft: '225px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 10, padding: '32px' }}>
 
                 {/* HEADER */}
                 <div style={{ position: 'fixed', top: 0, left: '225px', right: 0, padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.15)', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)', zIndex: 50 }}>

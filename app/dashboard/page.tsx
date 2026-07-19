@@ -167,7 +167,7 @@ export default function DashboardPage() {
       <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none", backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px)" }} />
       <Sidebar />
 
-      <main style={{ marginLeft: "220px", flex: 1, padding: "28px 40px", position: "relative", zIndex: 1, overflowY: 'auto' }}>
+      <main className="pg-main m-pad" style={{ marginLeft: "220px", flex: 1, padding: "28px 40px", position: "relative", zIndex: 1, overflowY: 'auto' }}>
 
         {/* STATUS BAR */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "28px", padding: "10px 18px", background: "rgba(6,6,18,0.95)", border: "1px solid rgba(99,102,241,0.1)", borderRadius: "10px", backdropFilter: "blur(20px)" }}>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
         </div>
 
         {/* STAT CARDS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "20px" }}>
+        <div className="m-grid2" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "20px" }}>
           {stats.map((s, i) => (
             <div key={i}
               onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)}
@@ -228,7 +228,7 @@ export default function DashboardPage() {
         </div>
 
         {/* BOTTOM SECTION */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 0.8fr", gap: "16px", marginBottom: "20px" }}>
+        <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 0.8fr", gap: "16px", marginBottom: "20px" }}>
 
           {/* RECENT REPORTS — REAL DATA */}
           <div style={{ borderRadius: "20px", padding: "24px", background: "rgba(8,8,24,0.8)", border: "1px solid rgba(255,255,255,0.05)", backdropFilter: "blur(32px)", position: "relative", overflow: "hidden" }}>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
         <div style={{ borderRadius: "20px", padding: "20px 24px", background: "rgba(8,8,24,0.8)", border: "1px solid rgba(255,255,255,0.05)", backdropFilter: "blur(32px)", position: "relative" }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg,rgba(99,102,241,0.8),transparent)" }} />
           <div style={{ fontSize: "9px", letterSpacing: "4px", color: "#6366f1", fontWeight: "700", marginBottom: "16px" }}>// SYSTEM STATUS</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px' }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px' }}>
             {[
               { label: "AI PIPELINE", status: "OPERATIONAL", color: "#10b981" },
               { label: "CLAUDE HAIKU 4.5", status: "ACTIVE", color: "#10b981" },

@@ -175,9 +175,9 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
+      <div className="pg-main" style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
         {/* HEADER */}
-        <div style={{ padding: '18px 260px 18px 32px', borderBottom: '1px solid rgba(99,102,241,0.15)', background: 'rgba(2,2,8,0.95)', backdropFilter: 'blur(30px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="m-padr m-pad" style={{ padding: '18px 260px 18px 32px', borderBottom: '1px solid rgba(99,102,241,0.15)', background: 'rgba(2,2,8,0.95)', backdropFilter: 'blur(30px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>Case <span style={{ color: '#6366f1' }}>Archive</span></div>
             <div style={{ fontSize: '10px', color: '#334155', letterSpacing: '2px', fontWeight: '600', marginTop: '2px' }}>TITLEMATRIXAI — LEGAL SCRUTINY REPORTS</div>
@@ -250,7 +250,7 @@ export default function ReportsPage() {
             <div style={{ animation: 'fadeSlide 0.4s ease' }}>
 
               {/* STATS */}
-              <div style={{ display: 'flex', gap: '14px', marginBottom: '32px' }}>
+              <div className="m-statrow" style={{ display: 'flex', gap: '14px', marginBottom: '32px' }}>
                 <StatBox n={reports.length} label="TOTAL" color="#6366f1" icon="📁" />
                 <StatBox n={reports.filter(r => r.verdict === 'CLEAR').length} label="CLEAR" color="#10b981" icon="✓" />
                 <StatBox n={reports.filter(r => r.verdict === 'CLEAR SUBJECT TO').length} label="SUBJECT TO" color="#f59e0b" icon="◎" />

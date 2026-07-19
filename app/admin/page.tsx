@@ -370,10 +370,11 @@ export default function AdminPage() {
                 <motion.div
                     initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                    className="m-pad m-wrap"
                     style={{
                         padding: '16px 32px', borderBottom: `1px solid ${T.border}`,
                         background: 'rgba(4,4,14,0.9)', backdropFilter: 'blur(24px)',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px',
                         position: 'sticky', top: 0, zIndex: 20,
                     }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -405,7 +406,7 @@ export default function AdminPage() {
                     </div>
                 </motion.div>
 
-                <div style={{ padding: '28px 32px', maxWidth: '1200px', margin: '0 auto' }}>
+                <div className="m-pad" style={{ padding: '28px 32px', maxWidth: '1200px', margin: '0 auto' }}>
                     {loading ? (
                         <div style={{ textAlign: 'center', paddingTop: '110px' }}>
                             <div style={{ width: '38px', height: '38px', borderRadius: '50%', border: '3px solid rgba(99,102,241,0.15)', borderTop: '3px solid #6366f1', animation: 'spin 0.75s linear infinite', margin: '0 auto 18px' }} />
@@ -414,7 +415,7 @@ export default function AdminPage() {
                     ) : (
                         <>
                             {/* STATS */}
-                            <div style={{ display: 'flex', gap: '16px', marginBottom: '26px' }}>
+                            <div className="m-statrow" style={{ display: 'flex', gap: '16px', marginBottom: '26px' }}>
                                 <StatCard i={0} icon={Icon.users('#818cf8', 19)} n={users.length} label="TOTAL USERS" color={T.primary} />
                                 <StatCard i={1} icon={Icon.file('#fbbf24', 19)} n={totalReports} label="TOTAL REPORTS" color={T.warn} />
                                 <StatCard i={2} icon={Icon.activity('#34d399', 19)} n={activeToday} label="ACTIVE TODAY" color={T.success} />
@@ -441,6 +442,7 @@ export default function AdminPage() {
 
                             {/* USER TABLE */}
                             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
+                                className="m-scroll"
                                 style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: '20px', overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '2.4fr 1fr 1.1fr 1.3fr 1fr 0.8fr 0.9fr', gap: '10px', padding: '15px 24px', borderBottom: `1px solid ${T.border}`, fontSize: '9px', fontWeight: '800', color: T.textLow, letterSpacing: '1.8px', background: 'rgba(99,102,241,0.03)' }}>

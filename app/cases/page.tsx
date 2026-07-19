@@ -86,10 +86,10 @@ export default function Cases() {
     <div style={{ background: '#020208', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex' }}>
       <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, zIndex: 0, opacity: 0.6, pointerEvents: 'none' }} />
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: '225px', position: 'relative', zIndex: 1 }}>
+      <div className="pg-main" style={{ flex: 1, marginLeft: '225px', position: 'relative', zIndex: 1 }}>
 
         {/* Topbar */}
-        <div style={{ borderBottom: '1px solid rgba(99,102,241,0.2)', padding: '0 260px 0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(20px)' }}>
+        <div className="m-padr m-pad" style={{ borderBottom: '1px solid rgba(99,102,241,0.2)', padding: '0 260px 0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(20px)' }}>
           <div>
             <div style={{ fontSize: '20px', fontWeight: '700', color: '#fff' }}>Cases <span style={{ color: '#6366f1' }}>Management</span></div>
             <div style={{ fontSize: '11px', color: '#4b5563', marginTop: '2px' }}>ALL PROPERTY CASES</div>
@@ -140,7 +140,7 @@ export default function Cases() {
           )}
 
           {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
             {[
               { label: 'TOTAL CASES', value: cases.length, color: '#6366f1' },
               { label: 'ACTIVE', value: cases.filter(c => c.status === 'active').length, color: '#10b981' },

@@ -335,7 +335,7 @@ export default function PaymentsPage() {
             <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, zIndex: 0, opacity: 0.3, pointerEvents: 'none' }} />
             <Sidebar />
 
-            <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
+            <div className="pg-main" style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
 
                 {/* HEADER */}
                 <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.2)', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)' }}>

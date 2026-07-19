@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ProfileChip from '@/components/ProfileChip'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const NAV = [
     {
@@ -27,6 +28,8 @@ const NAV = [
 export default function Sidebar() {
     const path = usePathname()
     const router = useRouter()
+    const isMobile = useIsMobile()
+    const [open, setOpen] = useState(false)
     const [userEmail, setUserEmail] = useState<string | null>(null)
 
     // Login/logout hote hi sidebar turant update ho
@@ -36,10 +39,15 @@ export default function Sidebar() {
         return () => subscription.unsubscribe()
     }, [])
 
+    // Route change par drawer band
+    useEffect(() => { setOpen(false) }, [path])
+
     const handleLogout = async () => {
         await supabase.auth.signOut()
         router.push('/login')
     }
+
+    const go = (p: string) => { setOpen(false); router.push(p) }
 
     // Logged in ho toh Login item chhupa do
     const navGroups = NAV.map(g => ({
@@ -47,18 +55,56 @@ export default function Sidebar() {
         items: g.items.filter(item => !(item.path === '/login' && userEmail)),
     }))
 
+    const drawerVisible = !isMobile || open
+
     return (
         <>
             {/* TOP-RIGHT PROFILE CHIP — click par reports-left + logout dropdown */}
             {path !== '/admin' && path !== '/dashboard' && <ProfileChip fixed />}
 
+            {/* MOBILE: hamburger button */}
+            {isMobile && (
+                <button onClick={() => setOpen(o => !o)} aria-label="Menu"
+                    style={{
+                        position: 'fixed', top: '12px', left: '16px', zIndex: 460,
+                        width: '44px', height: '44px', borderRadius: '12px', cursor: 'pointer',
+                        background: 'rgba(8,8,22,0.92)', backdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(99,102,241,0.35)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+                    }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2.2" strokeLinecap="round">
+                        {open
+                            ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                            : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>}
+                    </svg>
+                </button>
+            )}
+
+            {/* MOBILE: overlay */}
+            {isMobile && (
+                <div onClick={() => setOpen(false)} style={{
+                    position: 'fixed', inset: 0, zIndex: 440,
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)',
+                    opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
+                    transition: 'opacity 0.25s ease',
+                }} />
+            )}
+
+            {/* SIDEBAR / DRAWER */}
             <div style={{
-                width: '220px', minHeight: '100vh',
+                width: '250px', minHeight: '100vh',
                 background: '#0a0a0f',
                 borderRight: '1px solid rgba(99,102,241,0.15)',
                 display: 'flex', flexDirection: 'column',
                 fontFamily: 'sans-serif', position: 'fixed',
-                left: 0, top: 0, bottom: 0, zIndex: 50,
+                left: 0, top: 0, bottom: 0,
+                zIndex: isMobile ? 450 : 50,
+                maxWidth: isMobile ? '250px' : '220px',
+                transform: drawerVisible ? 'translateX(0)' : 'translateX(-105%)',
+                transition: 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+                boxShadow: isMobile && open ? '20px 0 60px rgba(0,0,0,0.55)' : 'none',
+                overflowY: 'auto',
             }}>
 
                 {/* LOGO */}
@@ -82,10 +128,10 @@ export default function Sidebar() {
                             {group.items.map(item => {
                                 const active = path === item.path
                                 return (
-                                    <button key={item.path} onClick={() => router.push(item.path)}
+                                    <button key={item.path} onClick={() => go(item.path)}
                                         style={{
                                             width: '100%', display: 'flex', alignItems: 'center',
-                                            gap: '10px', padding: '10px 12px', marginBottom: '2px',
+                                            gap: '10px', padding: '12px', marginBottom: '2px',
                                             borderRadius: '10px', border: 'none', cursor: 'pointer',
                                             background: active ? 'rgba(99,102,241,0.15)' : 'transparent',
                                             borderLeft: active ? '3px solid #6366f1' : '3px solid transparent',
@@ -108,7 +154,7 @@ export default function Sidebar() {
                     {userEmail && (
                         <button onClick={handleLogout}
                             style={{
-                                width: '100%', padding: '10px', borderRadius: '10px',
+                                width: '100%', padding: '12px', borderRadius: '10px',
                                 border: '1px solid rgba(239,68,68,0.25)',
                                 background: 'rgba(239,68,68,0.06)',
                                 color: '#f87171', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
@@ -120,9 +166,9 @@ export default function Sidebar() {
                             Logout
                         </button>
                     )}
-                    <button onClick={() => router.push('/')}
+                    <button onClick={() => go('/')}
                         style={{
-                            width: '100%', padding: '10px', borderRadius: '10px',
+                            width: '100%', padding: '12px', borderRadius: '10px',
                             border: '1px solid rgba(99,102,241,0.2)',
                             background: 'rgba(99,102,241,0.06)',
                             color: '#a5b4fc', fontSize: '12px', fontWeight: '600', cursor: 'pointer',

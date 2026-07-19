@@ -315,7 +315,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
+      <div className="pg-main" style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
 
         <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.2)', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>

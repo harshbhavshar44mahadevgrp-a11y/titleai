@@ -453,7 +453,7 @@ export default function UploadPage() {
         <div style={{ minHeight: '100vh', background: '#020208', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', position: 'relative', overflow: 'hidden' }}>
             <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, zIndex: 0, opacity: 0.4, pointerEvents: 'none' }} />
             <Sidebar />
-            <div style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
+            <div className="pg-main" style={{ flex: 1, marginLeft: '225px', overflow: 'auto', position: 'relative', zIndex: 10 }}>
 
                 <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)' }}>
                     <div>
@@ -617,11 +617,11 @@ export default function UploadPage() {
                                     📋 CASE DETAILS SHEET
                                     <span style={{ fontSize: '11px', color: '#475569', fontWeight: '400', marginLeft: '10px' }}>Yeh sab report mein print hoga — sahi bharo</span>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                                <div className="m-grid1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                                     <div><label style={lbl}>Bank Name *</label><input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Axis Bank Ltd." style={inp} /></div>
                                     <div><label style={lbl}>Applicant Name *</label><input value={applicantName} onChange={e => setApplicantName(e.target.value)} placeholder="Full name as in documents" style={inp} /></div>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                                <div className="m-grid1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                                     <div><label style={lbl}>Co-Applicant (if any)</label><input value={coApplicant} onChange={e => setCoApplicant(e.target.value)} placeholder="Optional" style={inp} /></div>
                                     <div><label style={lbl}>Current Owner / Mortgagor *</label><input value={currentOwner} onChange={e => setCurrentOwner(e.target.value)} placeholder="Owner name as in documents" style={inp} /></div>
                                 </div>
@@ -631,7 +631,7 @@ export default function UploadPage() {
                                 </div>
                                 <div>
                                     <label style={{ ...lbl, marginBottom: '10px' }}>Property Boundaries (4 Dishayen) — Optional</label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <div className="m-grid1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                         {[
                                             { label: '↑ East (Purva)', val: boundaryEast, set: setBoundaryEast },
                                             { label: '↑ West (Pashchim)', val: boundaryWest, set: setBoundaryWest },

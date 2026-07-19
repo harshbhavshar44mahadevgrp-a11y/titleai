@@ -215,12 +215,12 @@ export default function LandingPage() {
       <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
 
       {/* NAV */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 56px', background: 'rgba(4,4,15,0.85)', backdropFilter: 'blur(28px)', borderBottom: '1px solid rgba(99,102,241,0.08)' }}>
+      <nav className="m-pad" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 56px', background: 'rgba(4,4,15,0.85)', backdropFilter: 'blur(28px)', borderBottom: '1px solid rgba(99,102,241,0.08)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '30px', height: '30px', borderRadius: '7px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#fff', fontSize: '14px', animation: 'glow 3s ease-in-out infinite' }}>T</div>
           <span style={{ fontWeight: '900', fontSize: '17px' }}>TITLEMATRIX<span style={{ color: '#6366f1' }}>.AI</span></span>
         </div>
-        <div style={{ display: 'flex', gap: '40px' }}>
+        <div className="m-hide" style={{ display: 'flex', gap: '40px' }}>
           {['Platform', 'Case Types', 'Security', 'Pricing'].map(l => <span key={l} style={{ fontSize: '13px', color: '#475569', cursor: 'pointer', letterSpacing: '0.3px', transition: 'color 0.2s' }} onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')} onMouseLeave={e => (e.currentTarget.style.color = '#475569')}>{l}</span>)}
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -236,10 +236,10 @@ export default function LandingPage() {
       </nav>
 
       {/* ═══ HERO ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh', paddingTop: '60px', position: 'relative', zIndex: 10 }}>
+      <div className="m-grid1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh', paddingTop: '60px', position: 'relative', zIndex: 10 }}>
 
         {/* LEFT */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '0 40px 0 64px' }}>
+        <div className="m-pad" style={{ display: 'flex', alignItems: 'center', padding: '0 40px 0 64px' }}>
           <div style={{ width: '100%' }}>
 
             {/* Status badge */}
@@ -299,7 +299,7 @@ export default function LandingPage() {
         </div>
 
         {/* RIGHT — HUD */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '32px', padding: '20px 48px 20px 0' }}>
+        <div className="m-hide" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '32px', padding: '20px 48px 20px 0' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '9px', color: '#1e293b', letterSpacing: '3px' }}>LAT: 23.0225°N &nbsp;·&nbsp; LON: 72.5714°E &nbsp;·&nbsp; AHMEDABAD, GUJARAT</div>
 
           {/* HUD */}
@@ -336,7 +336,7 @@ export default function LandingPage() {
       </div>
 
       {/* ═══ STATS ═══ */}
-      <div ref={statsRef.ref} style={{ borderTop: '1px solid rgba(99,102,241,0.06)', borderBottom: '1px solid rgba(99,102,241,0.06)', background: 'rgba(8,8,22,0.7)', backdropFilter: 'blur(20px)', padding: '56px 80px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', position: 'relative', zIndex: 10 }}>
+      <div ref={statsRef.ref} className="m-grid2 m-pad" style={{ borderTop: '1px solid rgba(99,102,241,0.06)', borderBottom: '1px solid rgba(99,102,241,0.06)', background: 'rgba(8,8,22,0.7)', backdropFilter: 'blur(20px)', padding: '56px 80px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', position: 'relative', zIndex: 10 }}>
         {[
           { v: '< 3', u: ' min', l: 'Per Report', s: 'vs 3 days manual', c: '#6366f1' },
           { v: '99.2', u: '%', l: 'Extraction Accuracy', s: 'EC entries, names, dates', c: '#8b5cf6' },
@@ -345,7 +345,7 @@ export default function LandingPage() {
         ].map((s, i) => (
           <div key={i} style={{ textAlign: 'center', borderRight: i < 3 ? '1px solid rgba(99,102,241,0.06)' : 'none', opacity: statsRef.inView ? 1 : 0, animation: statsRef.inView ? `fadeUp 0.5s ease ${i * 0.12}s both` : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '3px', marginBottom: '6px' }}>
-              <span style={{ fontSize: '52px', fontWeight: '900', color: '#f8fafc', lineHeight: 1, letterSpacing: '-2px' }}>{s.v}</span>
+              <span className="m-stat-big" style={{ fontSize: '52px', fontWeight: '900', color: '#f8fafc', lineHeight: 1, letterSpacing: '-2px' }}>{s.v}</span>
               <span style={{ fontSize: '22px', fontWeight: '700', color: s.c }}>{s.u}</span>
             </div>
             <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '600', marginBottom: '4px' }}>{s.l}</div>
@@ -358,7 +358,7 @@ export default function LandingPage() {
       <div ref={pipeRef.ref} style={{ padding: '120px 80px', position: 'relative', zIndex: 10 }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           {/* Header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginBottom: '80px', alignItems: 'end' }}>
+          <div className="m-grid1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginBottom: '80px', alignItems: 'end' }}>
             <div>
               <div style={{ fontSize: '10px', color: '#334155', letterSpacing: '3px', fontWeight: '700', fontFamily: 'monospace', marginBottom: '16px' }}>INTELLIGENCE PROTOCOL</div>
               <div style={{ fontSize: 'clamp(28px,3vw,46px)', fontWeight: '900', letterSpacing: '-1.5px', lineHeight: 1.1, color: '#f8fafc' }}>
@@ -371,7 +371,7 @@ export default function LandingPage() {
           </div>
 
           {/* Pipeline Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '0', position: 'relative' }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '0', position: 'relative' }}>
             {/* Connector line */}
             <div style={{ position: 'absolute', top: '44px', left: '10%', right: '10%', height: '1px', background: 'linear-gradient(90deg,#6366f1,#8b5cf6,#a78bfa,#10b981,#f59e0b)', opacity: 0.3, zIndex: 0 }} />
 
@@ -417,7 +417,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px' }}>
+          <div className="m-grid1" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px' }}>
             {FEATURES.map((f, i) => (
               <div key={i} style={{ padding: '28px', borderRadius: '8px', background: 'rgba(8,8,22,0.8)', border: '1px solid rgba(255,255,255,0.04)', opacity: featRef.inView ? 1 : 0, animation: featRef.inView ? `fadeUp 0.5s ease ${i * 0.07}s both` : 'none', cursor: 'default', transition: 'border-color 0.3s, background 0.3s' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = f.color + '30'; e.currentTarget.style.background = 'rgba(10,10,28,0.9)' }}
@@ -445,7 +445,7 @@ export default function LandingPage() {
             <p style={{ fontSize: '14px', color: '#475569', maxWidth: '480px', margin: '0 auto', lineHeight: 1.8 }}>Each case type has dedicated rules, verification logic, and report sections — none of them share the same analysis path.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px' }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px' }}>
             {CASES.map((c, i) => (
               <div key={i} style={{ padding: '28px 20px', borderRadius: '8px', background: 'rgba(8,8,22,0.8)', border: `1px solid ${c.color}15`, borderTop: `3px solid ${c.color}`, textAlign: 'center', opacity: caseRef.inView ? 1 : 0, animation: caseRef.inView ? `fadeUp 0.5s ease ${i * 0.1}s both` : 'none', cursor: 'default', transition: 'box-shadow 0.3s' }}
                 onMouseEnter={e => (e.currentTarget.style.boxShadow = `0 8px 32px ${c.color}20`)}
@@ -505,7 +505,7 @@ export default function LandingPage() {
       </div>
 
       {/* FOOTER */}
-      <div style={{ borderTop: '1px solid rgba(99,102,241,0.06)', padding: '32px 80px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center', position: 'relative', zIndex: 10, background: 'rgba(4,4,12,0.9)' }}>
+      <div className="m-grid1 m-pad" style={{ borderTop: '1px solid rgba(99,102,241,0.06)', padding: '32px 80px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center', position: 'relative', zIndex: 10, background: 'rgba(4,4,12,0.9)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#fff', fontSize: '13px' }}>T</div>
           <span style={{ fontWeight: '900', fontSize: '15px' }}>TITLEMATRIX<span style={{ color: '#6366f1' }}>.AI</span></span>

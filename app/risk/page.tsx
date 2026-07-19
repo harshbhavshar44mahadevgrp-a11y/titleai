@@ -64,7 +64,7 @@ export default function RiskEngine() {
 
             <Sidebar />
 
-            <div style={{ flex: 1, overflow: 'auto', position: 'relative', zIndex: 10, marginLeft: '225px' }}>
+            <div className="pg-main" style={{ flex: 1, overflow: 'auto', position: 'relative', zIndex: 10, marginLeft: '225px' }}>
                 <div style={{ padding: '18px 32px', borderBottom: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2,2,8,0.9)', backdropFilter: 'blur(30px)' }}>
                     <div>
                         <div style={{ fontSize: '22px', fontWeight: '900', color: '#fff' }}>
