@@ -1,9 +1,10 @@
 ﻿// TITLEMATRIXAI FINAL v6 — PERFECT REPORT ENGINE
 // Based on proven v5.3 + EC Pre-Screen + DocType Support
-// 800s, not 300. A 14-file Builder Purchase runs three vision passes over every page, then the
-// legal analysis, then five report writers — and at 300s that job was being killed by Vercel with
-// FUNCTION_INVOCATION_TIMEOUT before it could finish. 800 is the Fluid Compute ceiling.
-export const maxDuration = 800
+// 300 is this plan's hard ceiling — 800 was tried and the deploy was rejected at the
+// "Deploying outputs" stage even though the build itself passed. So the pipeline has to FIT in
+// 300s rather than ask for more: see the compact fact-sweep below, which is what a 14-file job
+// was overrunning on.
+export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -576,11 +577,11 @@ END: after the closing </ul>. The EC details, the regulatory-compliance sub-sect
 // ================================================================
 // STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
 // ================================================================
-const S3C = `You generate FOUR things, in this exact order: (1) a sub-section that CONTINUES Part IV — "Details of Encumbrance Certificate (EC)"; (2) a sub-section that CONTINUES Part IV — "Regulatory and Statutory Compliance"; (3) a sub-section that CONTINUES Part IV — "Summary of Title Chain"; then (4) PART V — ALERTS. Items 1-3 use a <div class="sph"> sub-heading and carry NO "PART" header of their own. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
+const S3C = `You generate THREE sub-sections that CONTINUE Part IV, in this exact order: (1) the EC narrative; (2) "Regulatory and Statutory Compliance"; (3) "Summary of Title Chain". Items 2-3 use a <div class="sph"> sub-heading. Write NO "PART" header at all — Part IV is already open, and PART V is written separately by another writer. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
 
 CORE RULE: Never assume facts. Never create facts. Never suppress an adverse finding. Wherever information is unavailable, expressly state: NOT PROVIDED FOR VERIFICATION.
 
-IMPORTANT — DO NOT DUPLICATE THE CHAIN: the chronological chain (mutation entries, NA/Collector orders, NOCs, Development Permission, RERA, construction, project mortgage and the document in favour of the Proposed Purchaser) is ALREADY written above as the body of Part IV. Do NOT restate those events. Write only the three sub-sections, then Part V.
+IMPORTANT — DO NOT DUPLICATE THE CHAIN: the chronological chain (mutation entries, NA/Collector orders, NOCs, Development Permission, RERA, construction, project mortgage and the document in favour of the Proposed Purchaser) is ALREADY written above as the body of Part IV. Do NOT restate those events. Write only the three sub-sections.
 
 ═══ (1) PART IV SUB-SECTION — EC NARRATIVE (NO new PART header, NO sub-heading) ═══
 
@@ -604,7 +605,20 @@ Your output CONTINUES from there and begins with these two paragraphs:
 <div class="sph">Summary of Title Chain</div>
 <p>[3-5 sentences closing Part IV: the earliest established owner and year; how title devolved to the present owner/builder in one line; the present owner and the instrument vesting title in them; the encumbrance position; and whether the chain is continuous and unbroken on the documents produced. State the conclusion only — do not re-list the events.]</p>
 
-═══ (4) PART V ═══
+END: after the Summary of Title Chain paragraph. Do NOT write PART V.`
+
+// ================================================================
+// STEP 3C2 — PART V (ALERTS) — split out of S3C so it runs in parallel.
+// S3C was writing four sections in one call and had become the slowest branch of the
+// parallel wave, which is what pushed a 14-file job past the 300s platform ceiling.
+// ================================================================
+const S3C2 = `Generate HTML for PART V — ALERTS ONLY. Formal English, NEVER Gujarati script.
+Write nothing before the PART V header and nothing after the last alert. The Part IV sub-sections
+(EC details, Regulatory and Statutory Compliance, Summary of Title Chain) are written separately —
+do not write or repeat them.
+
+CORE RULE: Never assume facts. Never create facts. Never suppress an adverse finding.
+
 <hr><div class="ph">PART V — ALERTS</div>
 [Each alert, most severe first, as concise standalone text with NO surrounding commentary — no preamble, no closing remark. Format:
 CRITICAL/HIGH: <div class="ib"><div><span class="sh">CRITICAL</span></div><div class="it">N. [Title]</div><p>[2-3 sentences with exact deed/entry numbers]</p><p><span class="sg">Direction:</span> [action required]</p></div>
@@ -949,11 +963,15 @@ export async function POST(req: NextRequest) {
         const s1Imgs = revImgs.length > 0
             ? images.filter((img: any) => img.docType !== 'revenue').map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
             : allImgs
-        // 10000, not 6000: S1 now also extracts party addresses, litigation/entity/builder signals
-        // and per-document detail. At 6000 its output truncated, and every downstream section was
-        // being written from an incomplete fact base — the "missing data from documents that WERE
-        // provided" symptom. The per-document sweep below is what Part III depends on.
-        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 10000, system: S1, messages: [{ role: 'user', content: [...s1Imgs, { type: 'text', text: docInventory + '\n\n' + FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress + '\n\nWork through the uploaded pages ONE DOCUMENT AT A TIME. For EVERY document produce a block headed with its exact title as printed, then its date, its registration/order number, its parties, and the property it concerns. Do not merge two documents into one block and do not skip a document because it is hard to read — for an illegible one, state its title and write what IS legible. Finish every document before you stop.' }] }] })
+        // The per-document sweep is what Parts III and IV depend on, so it stays — but it is written
+        // as COMPACT pipe-delimited lines, not prose blocks. Prose blocks over 14 files pushed this
+        // call to ~10k generated tokens and it became the long pole that overran the 300s ceiling.
+        // Same completeness, a fraction of the tokens.
+        const sweep = '\n\nFIRST, sweep the uploaded pages ONE DOCUMENT AT A TIME and output a section headed "DOCUMENT SWEEP" containing ONE COMPACT LINE per document, in this exact pipe format and nothing more:\n' +
+            'TITLE AS PRINTED | Date: DD.MM.YYYY | No.: <registration/order number or "not stated"> | Parties: <executant> -> <claimant> | Property: <unit/survey identifier> | Authority: <issuing authority, if any>\n' +
+            'Rules for the sweep: one line per document, never two documents on one line, never one document on two lines. Do NOT skip a document because it is hard to read — write its title and "not legible" in the fields you cannot read. Do NOT add a line for a document that is not in the uploaded pages. Keep each line to a single line — no prose, no commentary.\n' +
+            'THEN, below the sweep, give the detailed facts (ownership history, boundaries, addresses, encumbrances, approvals) in your normal form.'
+        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 7000, system: S1, messages: [{ role: 'user', content: [...s1Imgs, { type: 'text', text: docInventory + '\n\n' + FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress + sweep }] }] })
             .then(s1 => {
                 facts = s1.content[0].type === 'text' ? s1.content[0].text : ''
                 console.log('STEP1: facts extracted, length=' + facts.length)
@@ -1192,13 +1210,14 @@ export async function POST(req: NextRequest) {
         ].join('\n')
 
         const TS3 = Date.now()
-        const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
+        const [r3a, r3b, r3c, r3c2, r3d1, r3d2] = await Promise.all([
             // Token budgets sized to what each section now has to WRITE. They were left at their old
             // values when the sections grew, and every one of them was truncating mid-output — which
             // is what dropped documents from Part III and detail from Parts IV-VI.
             safeStep3('Part III — documents', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
             safeStep3('Part IV — chain', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
-            safeStep3('Part IV-tail + V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 6500, system: S3C, messages: [{ role: 'user', content: ctx + '\n\n=== EC DATA — ALREADY RENDERED INTO THE REPORT ABOVE YOUR OUTPUT. This is source data for your narrative paragraphs ONLY. Do NOT output any of this HTML. ===\n' + ecTbl + '\n' + lcSection }] })),
+            safeStep3('Part IV tail', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\n=== EC DATA — ALREADY RENDERED INTO THE REPORT ABOVE YOUR OUTPUT. This is source data for your narrative paragraphs ONLY. Do NOT output any of this HTML. ===\n' + ecTbl + '\n' + lcSection }] })),
+            safeStep3('Part V — alerts', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C2, messages: [{ role: 'user', content: ctx + '\n\n=== EC DATA (source for encumbrance-related alerts) ===\n' + ecTbl + '\n' + lcSection }] })),
             safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] })),
             safeStep3('Parts VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] }))
         ])
@@ -1221,7 +1240,7 @@ export async function POST(req: NextRequest) {
         const part3 = normTerms(stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : ''))
         // The EC heading and table are emitted deterministically as ecBlock. If the model echoes
         // them anyway, drop the duplicate rather than print the table twice.
-        const p3 = normTerms(stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : ''))
+        const p3 = normTerms(stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : '') + stripFences(r3c2.content[0].type === 'text' ? r3c2.content[0].text : ''))
             .replace(/<table class="ec-tbl">[\s\S]*?<\/table>/gi, '')
             .replace(/<div class="sph">\s*Details of Encumbrance Certificate[^<]*<\/div>/gi, '')
         const p4 = normTerms(stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : ''))
