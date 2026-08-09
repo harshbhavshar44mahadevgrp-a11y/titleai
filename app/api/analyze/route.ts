@@ -1,6 +1,9 @@
 ﻿// TITLEMATRIXAI FINAL v6 — PERFECT REPORT ENGINE
 // Based on proven v5.3 + EC Pre-Screen + DocType Support
-export const maxDuration = 300
+// 800s, not 300. A 14-file Builder Purchase runs three vision passes over every page, then the
+// legal analysis, then five report writers — and at 300s that job was being killed by Vercel with
+// FUNCTION_INVOCATION_TIMEOUT before it could finish. 800 is the Fluid Compute ceiling.
+export const maxDuration = 800
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -957,7 +960,14 @@ export async function POST(req: NextRequest) {
             })
             .catch(e => console.log('STEP1 err:', e))
 
+        // Per-phase timings. The pipeline has three sequential phases and when the whole thing is
+        // killed at the platform timeout the 504 says nothing about WHICH phase ran long. These
+        // lines make the next slow run diagnosable instead of guesswork.
+        const T0 = Date.now()
+        const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1) + 's'
+
         await Promise.all([ecPrescreen, revPrescreen, step1Promise])
+        console.log('TIMING phase A (EC + Revenue + facts, parallel over ' + images.length + ' pages): ' + secs(T0))
 
         // Apply pre-screen releases
         
@@ -1063,9 +1073,13 @@ export async function POST(req: NextRequest) {
         const GT = ecGT + revGT
 
         // ── STEP 2: Deep legal analysis (Sonnet) — facts already extracted in parallel above ──
-        // 6000, not 4000: the META block grew by four fields, so at 4000 the analysis that follows
-        // it was being squeezed out — and the analysis is what the report sections are written from.
-        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 6000, system: getS2(caseType), messages: [{ role: 'user', content: docInventory + '\n\n' + FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
+        // 4500: enough that the enlarged META block cannot squeeze out the analysis behind it, but
+        // this call is the one fully SEQUENTIAL block in the pipeline, so every token here is
+        // wall-clock the whole request pays for. The writers no longer depend on the analysis alone
+        // — they get the raw facts too — so it does not need to be exhaustive.
+        const TS2 = Date.now()
+        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: getS2(caseType), messages: [{ role: 'user', content: docInventory + '\n\n' + FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
+        console.log('TIMING phase B (legal analysis): ' + secs(TS2))
         const analysis = s2.content[0].type === 'text' ? s2.content[0].text : ''
         const meta = parseMeta(analysis)
 
@@ -1177,6 +1191,7 @@ export async function POST(req: NextRequest) {
             'CASE TYPE: ' + caseType,
         ].join('\n')
 
+        const TS3 = Date.now()
         const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
             // Token budgets sized to what each section now has to WRITE. They were left at their old
             // values when the sections grew, and every one of them was truncating mid-output — which
@@ -1187,6 +1202,8 @@ export async function POST(req: NextRequest) {
             safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] })),
             safeStep3('Parts VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] }))
         ])
+
+        console.log('TIMING phase C (5 report writers, parallel): ' + secs(TS3) + ' | TOTAL pipeline: ' + secs(T0))
 
         const BT3 = String.fromCharCode(96).repeat(3)
         const stripFences = (t: string): string => {
