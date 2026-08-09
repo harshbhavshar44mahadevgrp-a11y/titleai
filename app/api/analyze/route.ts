@@ -987,6 +987,17 @@ export async function POST(req: NextRequest) {
         await Promise.all([ecPrescreen, revPrescreen, step1Promise])
         console.log('TIMING phase A (EC + Revenue + facts, parallel over ' + images.length + ' pages): ' + secs(T0))
 
+        // ── RELEASE THE PAGE IMAGES ──
+        // Everything from here on is pure text. Holding the base64 for every uploaded page — plus
+        // the copies the SDK made to serialise each vision request — all the way to the end of the
+        // request is what killed a 10-page run: the pipeline finished in 235s but the process was
+        // then OOM-killed, which the platform reports as INTERNAL_FUNCTION_INVOCATION_FAILED with
+        // no JS exception to log. Dropping the references here lets the collector reclaim it before
+        // the analysis and the six report writers run.
+        const revImgCount = revImgs.length
+        for (const arr of [allImgs, ecImgs, relImgs, revImgs, psImgs, s1Imgs, images as any[]]) arr.length = 0
+        if (global.gc) global.gc()
+
         // Apply pre-screen releases
         
         if (preReleases.length > 0) {
@@ -1119,7 +1130,7 @@ export async function POST(req: NextRequest) {
             })()
         } else if (revScanError) {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: SCAN_ERROR — a Revenue Record scan was attempted but failed due to a technical error (not a content issue). Do NOT claim Revenue Record was examined or was absent. State plainly: "Revenue Record verification could not be completed due to a technical error during processing; please retry or verify manually before disbursement."'
-        } else if (revImgs.length > 0 || usePreScan) {
+        } else if (revImgCount > 0 || usePreScan) {   // revImgs was emptied above — use the saved count
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: TAGGED_BUT_NOT_RECOGNIZED — a document WAS specifically tagged as Revenue Record/7-12, and was scanned, but the scan could not identify recognizable 7/12, Mutation, or FERFAR content in it. Do NOT say "not tagged or produced." Instead state plainly: "A Revenue Record document was submitted for this case; however, the content could not be positively identified as a Village Form 7/12, Property Card, or Mutation Register extract on automated review. Independent manual verification of the Revenue Record is recommended before disbursement."'
         } else {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: NOT_FOUND — a complete scan of all uploaded documents was performed automatically but no recognizable Revenue Record (7/12 / Property Card / Mutation Register / FERFAR) was identified. Do NOT claim Revenue Record was examined. State plainly: Revenue Record (7/12 / Mutation extract) was not found in the documents produced for examination; independent verification of the Revenue Record is recommended before disbursement.'
