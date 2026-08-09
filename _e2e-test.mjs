@@ -57,8 +57,44 @@ const hits = {
   'Entry 1410 (sale to Shreeji)': /1410/.test(html),
   'Rejected entry 1250 shown': /1250/.test(html),
   'NA order NAB/GNR/245': /NAB\/GNR\/245|NA.*245|Non-Agricultural.*[Oo]rder/i.test(html),
-  'PART IV chain present': /PART IV/i.test(html),
   'NOT provided / scan error (BAD)': /verification could not be completed|NOT PROVIDED FOR VERIFICATION|not found in the documents/i.test(html),
 }
 console.log('\n=== REVENUE RECORD CAPTURE CHECK ===')
 for (const [k,v] of Object.entries(hits)) console.log((v?'YES':'no ').padEnd(4), k)
+
+// ── MASTER SPEC §12 — the nine fixed Parts, in order, and the vocabulary they must use ──
+const PARTS = [
+  ['PART I', /PART I\s*[—-]\s*BORROWER, MORTGAGOR AND CURRENT OWNERSHIP/i],
+  ['PART II', /PART II\s*[—-]\s*PROPERTY DESCRIPTION ALONG WITH BOUNDARIES/i],
+  ['PART III', /PART III\s*[—-]\s*DESCRIPTION OF DOCUMENTS VERIFIED/i],
+  ['PART IV', /PART IV\s*[—-]\s*CHRONOLOGICAL TITLE CHAIN/i],
+  ['PART V', /PART V\s*[—-]\s*ALERTS/i],
+  ['PART VI', /PART VI\s*[—-]\s*LEGAL OPINION/i],
+  ['PART VII', /PART VII\s*[—-]\s*DOCUMENTS REQUIRED PRE-DISBURSEMENT/i],
+  ['PART VIII', /PART VIII\s*[—-]\s*DOCUMENTS REQUIRED POST-DISBURSEMENT/i],
+  ['PART IX', /PART IX\s*[—-]\s*FINAL RECOMMENDATION/i],
+]
+console.log('\n=== REPORT STRUCTURE (master spec §12) ===')
+let prev = -1, ordered = true
+for (const [name, re] of PARTS) {
+  const at = html.search(re)
+  if (at < 0 || at < prev) ordered = false
+  if (at >= 0) prev = at
+  console.log((at >= 0 ? 'YES' : 'no ').padEnd(4), name)
+}
+const vocab = {
+  'Parts appear in order': ordered,
+  'Sub-sections A/B/C in Part I': /A\. Borrower Details/i.test(html) && /B\. Mortgagor Details/i.test(html) && /C\. Current Ownership/i.test(html),
+  'Part IV has EC sub-section': /Details of Encumbrance Certificate/i.test(html),
+  'Part IV has Regulatory sub-section': /Regulatory and Statutory Compliance/i.test(html),
+  'Part IV has Summary sub-section': /Summary of Title Chain/i.test(html),
+  'Mortgageability classified': /Mortgageable|Conditionally Mortgageable|Not Mortgageable/i.test(html),
+  'Risk tier is MODERATE or LOW only': /Lending Risk Tier/i.test(html) && !/HIGH RISK|UNACCEPTABLE RISK/i.test(html),
+  'Confidence has no HIGH tier (BAD if yes)': /HIGH CONFIDENCE/i.test(html),
+  'Final recommendation uses spec wording': /CLEAR AND MARKETABLE TITLE|CLEAR TITLE SUBJECT TO CONDITIONS|INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION/i.test(html),
+  'Old "TITLE NOT CLEAR" wording gone (BAD if yes)': /TITLE NOT CLEAR/i.test(html),
+  'EC table carries raw type + match confidence': /Type as Printed/i.test(html) && /Match Confidence/i.test(html),
+  'paiki still in report body (BAD only inside prop-para)': /class="prop-para"[^>]*>[^<]*\bpaiki\b/i.test(html),
+}
+for (const [k,v] of Object.entries(vocab)) console.log((v?'YES':'no ').padEnd(4), k)
+console.log('\nverdict returned by API:', j.verdict)

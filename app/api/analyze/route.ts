@@ -14,7 +14,10 @@ const DB = (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE
 // ================================================================
 // EC LIFECYCLE ENGINE — PERMANENT RELEASE DETECTION
 // ================================================================
-interface ECRow { row_number: number; col1_type: string; col3_aapnar: string; col4_lenar: string; col5_date: string; col6_deed_no: string }
+// raw_type / match_conf are the two fields the master spec §4.7 requires ALONGSIDE the
+// classified "Type of Document" — the text exactly as printed, and how the classification was
+// reached. They supplement the classified type, they never replace it.
+interface ECRow { row_number: number; col1_type: string; col2_property?: string; col3_aapnar: string; col4_lenar: string; col5_date: string; col6_deed_no: string; raw_type?: string; match_conf?: string }
 interface Charge { lender: string; deed_no: string; date: string; release_deed_no: string; release_date: string }
 interface LC { active: Charge[]; released: Charge[]; status: string; summary: string }
 interface ECMeta { ec_app_number: string; ec_date: string; ec_from: string; ec_to: string }
@@ -52,20 +55,69 @@ function runLC(rows: ECRow[]): LC {
 function parseJSON(raw: string): any { try { const c = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim(); const f = c.indexOf('{'); const l = c.lastIndexOf('}'); if (f >= 0 && l >= 0) return JSON.parse(c.substring(f, l + 1)); return JSON.parse(c) } catch { return null } }
 
 // ================================================================
+// CANONICAL BILINGUAL DOCUMENT-TYPE TAXONOMY (master spec §8)
+// ================================================================
+// Single source of truth for Agent-1 style document-type matching. The classifier may output
+// ONLY a type from this list; a term that matches nothing here must be flagged, never silently
+// mapped to the nearest-sounding entry.
+const TAXONOMY = `Sale Deed / વેચાણ દસ્તાવેજ | Absolute Sale Deed / સંપૂર્ણ વેચાણખત | Conveyance Deed / હસ્તાંતરણ દસ્તાવેજ | Gift Deed / બક્ષિસખત | Release Deed / મુક્તિખત | Relinquishment Deed / હક ત્યાગખત | Partition Deed / ભાગલા દસ્તાવેજ | Family Settlement Deed / કુટુંબ સમાધાન દસ્તાવેજ | Exchange Deed / અદલાબદલી દસ્તાવેજ | Mortgage Deed / ગીરો દસ્તાવેજ | Simple Mortgage / સાદો ગીરો દસ્તાવેજ | Equitable Mortgage / સમન્યાયી ગીરો | Mortgage Release Deed / ગીરો મુક્તિખત | Reconveyance Deed / પુનઃ હસ્તાંતરણ દસ્તાવેજ | Lease Deed / ભાડાપટ્ટા દસ્તાવેજ | Leave & License / ઉપયોગ પરવાનગી કરાર | Rent Agreement / ભાડા કરાર | Development Agreement / વિકાસ કરાર | JDA / સંયુક્ત વિકાસ કરાર | Agreement to Sell / વેચાણ કરાર | Banakhat / બનાખત | POA / મુખત્યારનામું | GPA / સામાન્ય મુખત્યારનામું | SPA / વિશેષ મુખત્યારનામું | Revocation of POA / મુખત્યારનામું રદ કરવાનું દસ્તાવેજ | Will / વસિયતનામું | Probate / વસિયત પ્રમાણપત્ર | Succession Certificate / વારસાઈ પ્રમાણપત્ર | Legal Heir Certificate / વારસદાર પ્રમાણપત્ર | Affidavit / સોગંદનામું | Declaration Deed / જાહેરનામું | Indemnity Bond / વળતર બાંહેધરી | Rectification Deed / સુધારા દસ્તાવેજ | Confirmation Deed / પુષ્ટિ દસ્તાવેજ | Cancellation Deed / રદબાતલ દસ્તાવેજ | Settlement Deed / સમાધાન દસ્તાવેજ | Trust Deed / ટ્રસ્ટ દસ્તાવેજ | Partnership Deed / ભાગીદારી દસ્તાવેજ | Deed of Admission / પ્રવેશ દસ્તાવેજ | Deed of Retirement / નિવૃત્તિ દસ્તાવેજ | Deed of Dissolution / વિસર્જન દસ્તાવેજ | Lis Pendens / લિસ પેન્ડન્સી`
+
+// §4.6 — the ONLY permitted document-type match-confidence values. Anything else the model
+// returns is honestly reported as UNIDENTIFIED rather than dressed up as a confident read.
+// Returns '' when the classifier stated nothing — which is NOT the same as it saying the type is
+// unidentifiable. Collapsing the two would flag every row as unidentifiable whenever the field is
+// simply absent from the JSON.
+const MATCH_TIERS = ['EXACT MATCH', 'SYNONYM MATCH', 'CONTEXTUAL MATCH', 'UNIDENTIFIED']
+const normMatchConf = (c: string): string => {
+    const u = String(c || '').toUpperCase().trim()
+    return MATCH_TIERS.find(t => u.includes(t.split(' ')[0])) || ''
+}
+
+// §8 — EC entries must be presented chronologically, earliest to most recent. Dates arrive as
+// DD/MM/YYYY, DD-MM-YYYY or DD.MM.YYYY. An unreadable date sorts last instead of being dropped.
+function ecDateKey(d: string): number {
+    const m = String(d || '').match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/)
+    if (!m) return Number.MAX_SAFE_INTEGER
+    const yy = Number(m[3])
+    const y = m[3].length === 2 ? (yy <= 30 ? 2000 + yy : 1900 + yy) : yy
+    return y * 10000 + Number(m[2]) * 100 + Number(m[1])
+}
+
+// §5 / §17.11 — "Paiki" is always rendered "out of" IN PROPERTY DESCRIPTIONS. Deliberately NOT
+// applied to the Part IV narrative, where the firm's gold-standard chain keeps the source
+// wording ("14366 Sq. Mtrs. paiki 4788.66 Sq. Mtrs.") verbatim.
+const paikiOut = (s: string) => String(s == null ? '' : s).replace(/\bpaiki\b/gi, 'out of')
+
+// ================================================================
 // EC TABLE HTML BUILDER
 // ================================================================
 function buildECTable(rows: ECRow[], lc: LC, metas: ECMeta[]): string {
     if (!rows.length) return '<p style="color:#888;font-size:12px;">No EC entries found.</p>'
-    let h = '<table class="ec-tbl"><tr><th>Sr.</th><th>Classified Type</th><th>Match Confidence</th><th>Deed No.</th><th>Date</th><th>Col 3 — Aapnar (Executing)</th><th>Col 4 — Lenar (Claimant)</th><th>Status</th></tr>'
-    for (const r of rows) {
+    // §8 — chronological, earliest to most recent (the extraction order is page order, not date order).
+    const ordered = [...rows].sort((a, b) => ecDateKey(a.col5_date) - ecDateKey(b.col5_date))
+    let h = '<table class="ec-tbl"><tr><th>Sr.</th><th>Type as Printed (Raw)</th><th>Classified Type</th><th>Match Confidence</th><th>Deed No.</th><th>Date</th><th>Col 3 — Aapnar (Executing)</th><th>Col 4 — Lenar (Claimant)</th><th>Status</th></tr>'
+    ordered.forEach((r, i) => {
         const isRel = lc.released.some(x => x.release_deed_no === r.col6_deed_no) || (isBank(r.col3_aapnar) && !isBank(r.col4_lenar))
         const isAct = lc.active.some(x => x.deed_no === r.col6_deed_no)
         const cls = isRel ? 'ec-rel' : isAct ? 'ec-act' : ''
         const st = isRel ? '✅ DISCHARGED — Released and extinguished. No subsisting charge.' : isAct ? '⚠ ACTIVE MORTGAGE — Subsisting as on date. No Release Deed found.' : '✅ TITLE DOCUMENT — No encumbrance.'
-        const ct = isRel ? 'Reconveyance / Mortgage Release Deed' : isAct ? 'Mortgage Deed — Active' : r.col1_type || 'Transaction'
-        const conf = isRel ? 'HIGH — Bank in Col 3 as releasing party. Release confirmed.' : isAct ? 'HIGH — Bank in Col 4 as mortgagee. Active charge confirmed.' : 'HIGH — Establishes title vesting in claimant.'
-        h += '<tr><td>' + r.row_number + '</td><td>' + ct + '</td><td>' + conf + '</td><td>' + (r.col6_deed_no || '--') + '</td><td>' + (r.col5_date || '--') + '</td><td>' + (r.col3_aapnar || '--') + '</td><td>' + (r.col4_lenar || '--') + '</td><td class="' + cls + '">' + st + '</td></tr>'
-    }
+        // §4.5 failure protocol: an unmatched type is flagged honestly, never mapped to the
+        // nearest-sounding taxonomy entry. §4.6: only the four permitted tiers may appear here.
+        const raw = r.raw_type || r.col1_type || ''
+        const stated = normMatchConf(r.match_conf || '')
+        const unmatched = !r.col1_type || stated === 'UNIDENTIFIED'
+        // Release/mortgage is settled by EC column position + the prior mortgage in the same EC —
+        // that is precisely §4.6's CONTEXTUAL MATCH, not a literal reading of the printed text.
+        const ct = isRel ? 'Reconveyance / Mortgage Release Deed'
+            : isAct ? 'Mortgage Deed'
+                : unmatched ? 'DOCUMENT TYPE NOT IDENTIFIABLE — RAW TEXT: ' + (raw || '(blank)') + ' — REQUIRES MANUAL REVIEW'
+                    : r.col1_type
+        const conf = (isRel || isAct) ? 'CONTEXTUAL MATCH — derived from EC column position (judgment call, verify)'
+            : unmatched ? 'UNIDENTIFIED'
+                : stated ? (stated + (stated === 'CONTEXTUAL MATCH' ? ' — judgment call, verify' : ''))
+                    : 'NOT STATED BY CLASSIFIER — REQUIRES MANUAL REVIEW'
+        h += '<tr><td>' + (i + 1) + '</td><td>' + (raw || '--') + '</td><td>' + ct + '</td><td>' + conf + '</td><td>' + (r.col6_deed_no || '--') + '</td><td>' + (r.col5_date || '--') + '</td><td>' + (r.col3_aapnar || '--') + '</td><td>' + (r.col4_lenar || '--') + '</td><td class="' + cls + '">' + st + '</td></tr>'
+    })
     return h + '</table>'
 }
 
@@ -84,9 +136,35 @@ function buildReport(refNo: string, appId: string, today: string, bankName: stri
     return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Legal Scrutiny Report</title><style>' + CSS + '</style></head><body><div class="hdr"><div><div class="firm">TITLEMATRIXAI</div><div class="sub">ADVOCATES, TITLE SEARCH &amp; LEGAL SCRUTINY CONSULTANTS</div><div class="sub">Panel Legal Counsel — Mortgage, Banking &amp; Real Estate Transactions</div><div class="sub">support@titlematrixai.com | www.titlematrixai.com</div></div><div class="hdr-right"><div><strong>Reference No.:</strong> ' + refNo + '</div><div><strong>Application ID:</strong> ' + appId + '</div><div><strong>Report Date:</strong> ' + today + '</div><div><strong>Bank:</strong> ' + bankName + '</div></div></div><div class="rtitle">LEGAL SCRUTINY REPORT — ' + loanType + '</div><hr>' + body + '<hr><div class="sigrow"><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">TITLEMATRIXAI</div><div style="font-size:10px;color:#666;">Date: ' + today + '</div></div><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">Authorised Signatory</div><div style="font-size:10px;color:#666;">' + bankName + '</div></div></div><div class="ftr">Generated by TITLEMATRIXAI | support@titlematrixai.com<div class="disc">DISCLAIMER: This Report is prepared exclusively for ' + bankName + ' for Application ID ' + appId + '. Based solely on documents produced. Does not constitute a guarantee of title.</div><div class="wm">TITLEMATRIXAI — CONFIDENTIAL — FOR BANK USE ONLY</div></div></body></html>'
 }
 
-function parseMeta(t: string) { const b = t.match(/---META---\s*([\s\S]*?)---END META---/i)?.[1] || ''; const g = (k: string) => b.match(new RegExp('^' + k + ':\\s*(.+)$', 'mi'))?.[1]?.trim() || ''; return { applicant: g('APPLICANT'), coApplicant: g('CO_APPLICANT'), propertyDescription: g('PROPERTY_DESCRIPTION'), propertyBoundaries: g('PROPERTY_BOUNDARIES'), currentOwner: g('CURRENT_OWNER'), constitution: g('CONSTITUTION'), modeOfAcquisition: g('MODE_OF_ACQUISITION'), registrationDetails: g('REGISTRATION_DETAILS') } }
+function parseMeta(t: string) { const b = t.match(/---META---\s*([\s\S]*?)---END META---/i)?.[1] || ''; const g = (k: string) => b.match(new RegExp('^' + k + ':\\s*(.+)$', 'mi'))?.[1]?.trim() || ''; return { applicant: g('APPLICANT'), applicantAddress: g('APPLICANT_ADDRESS'), coApplicant: g('CO_APPLICANT'), coApplicantAddress: g('CO_APPLICANT_ADDRESS'), mortgagor: g('MORTGAGOR'), mortgagorAddress: g('MORTGAGOR_ADDRESS'), propertyDescription: g('PROPERTY_DESCRIPTION'), propertyBoundaries: g('PROPERTY_BOUNDARIES'), currentOwner: g('CURRENT_OWNER'), constitution: g('CONSTITUTION'), modeOfAcquisition: g('MODE_OF_ACQUISITION'), registrationDetails: g('REGISTRATION_DETAILS') } }
 
+// Internal verdict CODES stay exactly as they were — the dashboard, reports list and the
+// `reports.verdict` column all filter on 'CLEAR' / 'CLEAR SUBJECT TO' / 'NOT CLEAR' / 'PENDING'.
+// The master spec's wording is applied at RENDER time via VERDICT_LABEL, so Part IX reads exactly
+// as the spec requires without breaking a single existing consumer.
 function extractVerdict(t: string): string { const u = t.toUpperCase(); if (u.includes('TITLE NOT CLEAR') || u.includes('NOT CLEAR')) return 'NOT CLEAR'; if (u.includes('CLEAR SUBJECT TO')) return 'CLEAR SUBJECT TO'; if (u.includes('VERDICT: CLEAR')) return 'CLEAR'; return 'PENDING' }
+
+// §12 PART IX offers exactly two recommendations. §1's Title Certification Rule supplies the
+// third outcome — where ownership, continuity, encumbrance, revenue reconciliation and
+// mortgageability are NOT all established, the report must not certify at all.
+const VERDICT_LABEL: Record<string, string> = {
+    'CLEAR': 'CLEAR AND MARKETABLE TITLE',
+    'CLEAR SUBJECT TO': 'CLEAR TITLE SUBJECT TO CONDITIONS',
+    'NOT CLEAR': 'INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION',
+    'PENDING': 'INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION',
+}
+
+// §1 — "Never certify title continuity if documentary support is missing" and "certify title only
+// when ownership, title continuity, encumbrances, revenue reconciliation and mortgageability are
+// ALL established." A subsisting mortgage means encumbrances are NOT established, so a full
+// clear-title certificate is refused HERE, in code — a prompt instruction alone can drift.
+function gateVerdict(v: string, lc: LC): string {
+    if (v === 'CLEAR' && lc.active.length > 0) {
+        console.log('VERDICT GATE: CLEAR downgraded to CLEAR SUBJECT TO — ' + lc.active.length + ' subsisting charge(s)')
+        return 'CLEAR SUBJECT TO'
+    }
+    return v
+}
 
 // House terminology, enforced in CODE (not just asked for in a prompt) so it can never drift:
 //   • "registered under" — never "registered vide"
@@ -142,6 +220,46 @@ NEVER "AND OTHERS" — every person named individually.
 APPLICANT = from AoS/Draft Sale Deed Buyer section ONLY. NEVER from stamp paper.
 CURRENT OWNER = from latest submitted deed.
 
+ADDRESSES — MANDATORY EXTRACTION (needed for Part I of the report):
+Extract the FULL POSTAL ADDRESS of: (a) each Borrower/Applicant (proposed purchaser), (b) each
+Co-Borrower/Co-Applicant, and (c) the Mortgagor. Take them from the address block of the
+Draft Sale Deed / Agreement for Sale / Banakhat / Allotment Letter, or from any KYC or deed
+recital that states the party's residential address. If an address genuinely does not appear in
+any produced document, write exactly "NOT PROVIDED FOR VERIFICATION" — never invent one and
+never substitute the property address for a party's residential address.
+MORTGAGOR = the person who will create the mortgage. In a purchase case that is the
+Applicant/Purchaser; in a LAP / Balance Transfer / Seller-BT case it is the existing owner of
+the property. State who it is and why in one short line.
+
+BOUNDARIES — SOURCE RULE: take the four boundaries from the LATEST provided deed. In a BUILDER
+PURCHASE case take them instead from the Allotment Letter / Agreement for Sale / Draft Sale Deed
+executed in favour of the proposed purchaser.
+
+DOCUMENT-TYPE NAMING — use ONLY these canonical English names (bilingual reference):
+${TAXONOMY}
+Record the document's heading EXACTLY as printed as well. If a document's type matches nothing in
+the list above, do NOT map it to the nearest-sounding entry — report it as
+"DOCUMENT TYPE NOT IDENTIFIABLE — RAW TEXT: [exact printed text] — REQUIRES MANUAL REVIEW".
+Disambiguation you must apply: Sale Deed vs Agreement to Sell/Banakhat (completed conveyance vs
+promise of future sale); Gift vs Relinquishment vs Family Settlement (voluntary transfer without
+consideration vs co-owner giving up own share vs multilateral family arrangement); Release vs
+Reconveyance/Mortgage Release (generic release of a right vs restoration of title after the loan
+is repaid — if a Mortgage Deed on the same survey number appears earlier, it is a Reconveyance);
+Mortgage Deed vs Simple vs Equitable (use the generic name unless the text itself says Simple or
+Equitable); POA vs GPA vs SPA (use GPA/SPA only when the text says General/Special); Partition vs
+Family Settlement (one jointly-owned property vs broader or dispute-driven arrangement).
+Where two remain equally plausible, choose the BROADER category and flag it for manual review —
+never guess the subtype.
+
+LITIGATION / ENTITY / BUILDER SIGNALS — extract if visible anywhere:
+- Court case, stay order, injunction, attachment, acquisition, SARFAESI, DRT, NCLT proceeding,
+  revenue appeal (RTS), mutation dispute, family dispute, partition suit, specific performance suit.
+- Where an owner is a company/firm: CIN, director/authorised signatory, board resolution, charge,
+  charge satisfaction, CERSAI, liquidation or strike-off status.
+- Builder project: Development Agreement, RERA registration, development permission, commencement
+  certificate, approved building plan, occupancy/completion certificate, BU permission, society
+  registration, conveyance to society, share certificate.
+
 EC COLUMN MAPPING — PERMANENT CRITICAL RULE:
 LEFT COLUMN = Aapnar = SELLER/EXECUTOR = WHO GIVES THE DEED
 RIGHT COLUMN = Lenar = BUYER/CLAIMANT = WHO TAKES THE DEED
@@ -157,9 +275,9 @@ Release Deed / Giro Mukeli / Reconveyance / NOC / Discharge
 Bank in LEFT EC column = RELEASED — NEVER report as active
 
 ALL 4 BOUNDARIES MANDATORY. Check every page including Gujarati "Khunt Charne Vigat".
-EC RULE 4A: Count ALL entries. EVERY entry matters. NEVER miss second or subsequent entry. (This is for Part V encumbrance verification only — EC is NOT used to build the chain.)
+EC RULE 4A: Count ALL entries. EVERY entry matters. NEVER miss second or subsequent entry. (This is for encumbrance verification only — EC is NOT used to build the chain.)
 RULE 30 (REVISED): If a transaction's actual deed copy was not submitted but it is confirmed by Revenue Record (Mutation/FERFAR entry) — include it naturally in the chain using the Revenue Record details, NO flag as missing. Do NOT use EC entries for this purpose — only Revenue Record / Mutation entries may fill a chain link when the deed itself is absent.
-MUTATION ENTRIES: NEVER in Part I — only in Part II narration.
+MUTATION ENTRIES: NEVER in the property description — only in the chronological title chain narration.
 
 20-25 YEAR TITLE HISTORY — MANDATORY DEEP SEARCH:
 Do NOT limit extraction to only the EC search period (e.g., if EC covers 2011-2026, do not stop there).
@@ -179,22 +297,51 @@ If genuinely no document references anything before the earliest EC entry, state
 // ================================================================
 // STEP 2 SYSTEMS — CASE SPECIFIC
 // ================================================================
+// §2 — every case type carries its own mandatory rules once selected. Kept as one compact block
+// per type rather than a module system: same effect, nothing to maintain.
+const CASE_SOP: Record<string, string> = {
+    builder_purchase: 'Builder Purchase: verify the BUILDER\'s own title to the land, the Development Agreement/JDA, RERA registration, development permission, commencement certificate, approved plans, BU/Occupancy Certificate and the project mortgage (and whether the subject unit is released from it). Boundaries come from the Allotment Letter / Agreement for Sale / Draft Sale Deed in favour of the proposed purchaser. If the Builder\'s name does not appear in the revenue record, raise it as a MAJOR OBJECTION. Confirm the subject unit is traceable in the sanctioned plan / RERA / allotment records.',
+    resale: 'Resale Purchase: verify the seller\'s acquisition deed and its registration, an unbroken chain to the seller, the mutation entry recording the seller\'s name, that any earlier mortgage stands discharged, society/association NOC and share certificate where applicable, and up-to-date tax/maintenance receipts.',
+    bt: 'Balance Transfer: verify the existing lender\'s charge, the list of original title deeds held by that lender, the outstanding/foreclosure position, and confirm the existing charge will be released on takeover. The prior mortgage must be shown as subsisting until a Release/Reconveyance is produced.',
+    seller_bt: 'Seller Balance Transfer: the seller\'s existing loan is being cleared out of the sale consideration. Verify the seller\'s lender, the subsisting charge, the tripartite arrangement, and require the Release/Reconveyance and return of original deeds as a pre-disbursement condition.',
+    lap: 'LAP / Mortgage: the borrower is the existing owner. Verify the owner\'s title and possession, all subsisting charges, that the property is free of prior equitable mortgage, and its SARFAESI enforceability.',
+    self_construction: 'Self-Construction: verify plot title, approved building plan, commencement permission, NA order, and stage-wise construction compliance. Report the property as land plus proposed construction.',
+    composite: 'Composite Loan: treat plot acquisition and construction as two limbs — verify plot title AND construction approvals, and state both in the opinion.',
+    plot_purchase: 'Plot Purchase: verify the NA/Conversion order, Final Plot / T.P. Scheme allotment, layout approval, fragmentation-act compliance, and that the plot is not agricultural or restricted-tenure land.',
+    industrial: 'Industrial Property: verify GIDC/industrial allotment terms, lease conditions, transfer permission from the allotting authority, land-use compliance and pollution/environment consents.',
+    commercial: 'Commercial Property: verify commercial land-use permission, BU permission for commercial use, and any occupancy or trade restrictions in the scheme documents.',
+    agricultural: 'Agricultural Property: verify Old/New Tenure (Juni/Naa Sharat), Section 43 restrictions, agriculturist status of the purchaser, Fragmentation Act compliance, Ganot/tenancy entries and any Collector permission required for transfer. Flag every restriction expressly.',
+    leasehold: 'Leasehold Property: verify the Lease Deed, unexpired lease term, lessor\'s consent to mortgage, transfer/assignment clauses, renewal terms and ground-rent position. State that the security is leasehold, not freehold.',
+    govt_allotted: 'Government Allotted Property: verify the allotment/grant order, its conditions, lock-in or non-transfer period, premium payment, regularisation order and the allotting authority\'s permission to mortgage.',
+    inherited: 'Inherited Property: verify the death certificate, Will/Probate/Succession or Legal Heir Certificate, the family tree, the legal-heir mutation entry, and that EVERY heir has joined the transaction. A missing heir is a CRITICAL defect.',
+    gift: 'Gift Property: verify the registered Gift Deed, acceptance by the donee, the donor\'s competence and title, whether the gift is conditional or revocable, and the mutation entry recording it.',
+}
+
 function getS2(ct: string): string {
     const base = `You are a Senior Gujarat Property Law Advocate with 30+ years of experience.
-Prepare a complete Legal Scrutiny Report for a ${ct.replace('_', ' ').toUpperCase()} case.
+Prepare a complete Legal Scrutiny Report for a ${ct.replace(/_/g, ' ').toUpperCase()} case.
+
+CASE-SPECIFIC MANDATORY RULES FOR THIS CASE TYPE:
+${CASE_SOP[ct] || 'Apply the general title-verification SOP. Identify the case type from the documents produced and apply the rules proper to it.'}
 
 MANDATORY META BLOCK FIRST:
 ---META---
 APPLICANT: [PRIMARY proposed purchaser only — the FIRST named buyer from Draft/AoS Buyer section — NEVER from stamp paper. If two or more buyers are jointly named, put only the first one here and put the rest in CO_APPLICANT below — do not combine all names into this one field.]
+APPLICANT_ADDRESS: [FULL postal address of the Applicant named above, taken from the address block of the Draft Sale Deed / Agreement for Sale / Banakhat / Allotment Letter or any deed recital stating it. If no produced document states it, write exactly "NOT PROVIDED FOR VERIFICATION". NEVER substitute the property address and NEVER invent one.]
 CO_APPLICANT: [every OTHER named buyer besides the first, separated by " & " if more than one — e.g. if the AoS names two buyers jointly, the second buyer's full name goes here, NOT "N/A". Only write "Not Applicable" if there is genuinely a single named buyer with no joint applicant.]
+CO_APPLICANT_ADDRESS: [FULL postal address of the Co-Applicant(s), same sourcing rule as APPLICANT_ADDRESS. "Not Applicable" if there is no co-applicant; "NOT PROVIDED FOR VERIFICATION" if there is one but no document states the address.]
+MORTGAGOR: [the party who will CREATE the mortgage — in a purchase case (Builder Purchase / Resale / Plot Purchase) that is the Applicant/Purchaser; in LAP / Balance Transfer / Seller BT it is the existing owner of the property. Give the full name(s).]
+MORTGAGOR_ADDRESS: [FULL postal address of the Mortgagor, same sourcing rule. "NOT PROVIDED FOR VERIFICATION" if no document states it.]
 CURRENT_OWNER: [from latest deed — full name, and "a Partnership Firm"/"Pvt Ltd" etc if applicable]
 CONSTITUTION: [This describes the BORROWER/APPLICANT(S) specifically — NOT the seller, NOT the developer, NOT the current owner. If the Applicant(s) are named natural persons (e.g. "Sunilkumar Rajendrabhai Patel"), Constitution = "Individual" — this applies even when there are two or more individual co-applicants. Only write "Partnership Firm" if the Applicant ITSELF is named as a firm (e.g. "M/s. XYZ, a Partnership Firm" is the actual buyer/borrower). Do not copy the seller's or developer's constitution here by mistake — check whose constitution this field is asking for every time.]
 MODE_OF_ACQUISITION: [e.g. "Sale Deed" / "Registered Sale Deed" / "Allotment by Developer" — how Current Owner acquired the property]
 REGISTRATION_DETAILS: [Document No. [X] | Dated: [DD-MM-YYYY] | SRO: [name] — of the deed by which Current Owner acquired title]
-PROPERTY_DESCRIPTION: [MANDATORY EXACT PARAGRAPH FORMAT — fill every blank, do not paraphrase or shorten:
-"Opinion on title and search in respect of immovable property bearing [Flat/Unit/Shop/Plot/Office] No. [X] on [Nth] Floor in Block No. "[X]" having Carpet Area admeasuring [X] Sq. Mtrs., along with Balcony area admeasuring [X] Sq. Mtrs. and Wash area admeasuring [X] Sq. Mtrs. together with undivided proportionate share area admeasuring [X] Sq. Mtrs. in the scheme known as "[Scheme Name]" constructed over Non-Agricultural land bearing Final Plot No. [X] of T.P. Scheme No. [X] allotted in lieu of Revenue/Block/Survey/City Survey No. [X], situate lying and being at Mouje: [Village], Taluka: [Taluka], District: [District]."
-If any individual area component (Balcony/Wash/UPS) is not applicable or not found in documents, omit that specific clause naturally rather than leaving a blank.]
-PROPERTY_BOUNDARIES: [East (Purva): | West (Pashchim): | North (Uttar): | South (Dakshin): — from ALL documents including annexures]
+PROPERTY_DESCRIPTION: [MANDATORY EXACT PARAGRAPH FORMAT — a SINGLE compact paragraph carrying every area figure together. Fill every blank, do not paraphrase, do not shorten, do not split into sentences:
+"Opinion on title and search in respect of immovable property bearing Flat/Unit/Shop/Plot/Sub Plot/Office No. [X] on [Nth] Floor having Carpet Area admeasuring [X] Sq. Mtrs., along with Balcony area admeasuring [X] Sq. Mtrs. and Wash area admeasuring [X] Sq. Mtrs. together with undivided proportionate share area admeasuring [X] Sq. Mtrs. in the scheme known as "[Scheme Name]" constructed over Non-Agricultural land bearing Final Plot No. [X] of T.P. Scheme No. [X] allotted in lieu of Revenue/Block/Survey/City Survey No. [X], situate lying and being at Mouje: [Village], Taluka: [Taluka], District [District]."
+Keep only the unit word that actually applies (Flat / Unit / Shop / Plot / Sub Plot / Office) — delete the others.
+If any individual area component (Balcony/Wash/UPS) is not applicable or not found in documents, omit that specific clause naturally rather than leaving a blank.
+IN THIS FIELD ONLY, write "out of" wherever the source says "paiki" — e.g. "Survey No. 288 Paiki" becomes "Survey No. 288 out of". (In the Part IV narrative "paiki" is kept exactly as the source states it.)]
+PROPERTY_BOUNDARIES: [East (Purva): | West (Pashchim): | North (Uttar): | South (Dakshin): — take them from the LATEST provided deed. In a BUILDER PURCHASE case take them from the Allotment Letter / Agreement for Sale / Draft Sale Deed executed in favour of the proposed purchaser instead. Check every document including annexures. All four are mandatory.]
 ---END META---
 
 LANGUAGE RULE — ABSOLUTE, NO EXCEPTIONS:
@@ -204,15 +351,23 @@ PERMANENT RULES — NEVER BREAK:
 1. NEVER "and others" — every name individually always
 2. Applicant = Buyer from Draft/AoS ONLY. Never from stamp paper.
 3. ALL 4 boundaries mandatory — check every document including annexures
-4. Part I = latest first | Part II = oldest first with "Thereafter,"
+4. Part III (documents scrutinised) = chronological, earliest first | Part IV (title chain) = oldest first with "Thereafter,"
 5. Mortgage Release / Giro Mukeli / Bank in LEFT EC column = DISCHARGED — NEVER report as active
-6. EC Applicant = COMPLETELY IGNORE
+6. EC Applicant name = COMPLETELY IGNORE. The EC's LAST column is never extracted and never mentioned.
 7. NEVER mention loan amount
 8. Dukan = Shop in English
-9. NEVER list mutation entries in Part I
+9. NEVER list mutation entries in Part I or Part II — they belong only in the Part IV narration
+
+NON-NEGOTIABLE PRINCIPLES (apply to everything you produce):
+- Never assume facts. Never create facts. Never invent ownership, dates, survey numbers or legal events.
+- Never certify title continuity where documentary support is missing. Never suppress an adverse finding.
+- Keep these four apart and never blend them: VERIFIED FACTS (Part IV) | MISSING INFORMATION (Parts VII/VIII) | LEGAL ISSUES (Part V) | LEGAL CONCLUSIONS (Parts VI and IX).
+- Confidence tiers, used exactly as named: MEDIUM CONFIDENCE = supported by a registered document AND a government record AND the EC AND the revenue record. LOW CONFIDENCE = supported by a single document only. NO CONFIDENCE = unsupported. There is no "HIGH" tier.
+- TITLE CERTIFICATION RULE: certify title ONLY when ownership, title continuity, encumbrance position, revenue reconciliation and mortgageability are ALL established. If any one of them is not, the report must state exactly: INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION.
+- Revenue entries are CORROBORATIVE evidence, never conclusive proof of title. Revenue records are not mandatory for reconstruction where other produced documents establish the position; equally, a certified mutation entry does not require a matching deed, nor a deed a matching mutation entry.
 
 MANDATORY TERMINOLOGY AND DRAFTING STANDARD (SOP — apply to EVERY sentence you write):
-- Keep "paiki" EXACTLY as it appears in the source, e.g. "admeasuring 14366 Sq. Mtrs. paiki 4788.66 Sq. Mtrs." — this is the firm's house wording; do NOT translate or drop it.
+- "paiki": in the PROPERTY_DESCRIPTION field write "out of". Everywhere else — the Part IV narrative — keep "paiki" EXACTLY as the source states it, e.g. "admeasuring 14366 Sq. Mtrs. paiki 4788.66 Sq. Mtrs." That is the firm's house wording in the narrative; do not translate or drop it there.
 - Use "registered under" — NEVER "registered vide". e.g. "registered under Sr. No. 4521".
 - Keep the phrase "unto and in favour of" exactly as-is.
 - Use "were entered" — NEVER "have been entered".
@@ -235,7 +390,7 @@ ACTIVE mortgage: "is subsisting and active as on date — no Release Deed found"
 
 TITLE CHAIN SOURCE — PERMANENT RULE — REVENUE RECORD ONLY, NEVER EC:
 The chronological title chain (Part IV) MUST be constructed from Revenue Record data (7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — see Revenue Record Ground Truth) and the actual registered deeds submitted (Sale Deed, Mortgage Deed, Release Deed, Declaration Deed, Partition Deed, etc).
-The Encumbrance Certificate (EC) is NEVER the source for this chain. EC rows are used ONLY for encumbrance/mortgage status verification (Part V) — they do not drive or anchor the historical narrative.
+The Encumbrance Certificate (EC) is NEVER the source for this chain. EC rows are used ONLY for encumbrance/mortgage status verification — they do not drive or anchor the historical narrative.
 Gujarat banking practice requires a minimum 20-25 year (ideally 30 year) title chain. Build it using:
 - Old/original Survey Numbers (pre-TP Scheme allotment) found in any deed or revenue record
 - 7/12, Village Form 7/8-A/12, FERFAR/Mutation Register entries — every entry, even partial or old ones
@@ -250,10 +405,12 @@ ENTRY COVERAGE: The Revenue Record Ground Truth lists the Mutation/FERFAR entrie
 EC ANALYSIS FORMAT (exactly like this):
 EC bearing E-Application No. [APP_NO] dated [DATE] for search period [FROM] to [TO] issued by Inspector General of Registration, Revenue Department, Government of Gujarat. [N] registered transactions found on row-by-row examination.
 
-PART IV LEGAL OPINION:
+PART VI LEGAL OPINION (standard certifying language, to be used only when the title genuinely is clear):
 "On perusal of the copies of documents referred to herein above, which I believe to be true and genuine and on examination of the entire chain of the documents and what is stated herein above, I do hereby certify that the right, title and interest of [CURRENT OWNER] in respect of the property described hereinabove are covered with all respective Title Deeds the above referred property is legal, clear, marketable, free from anomalies, valid and after the execution and registration of Sale Deed unto and in favour of [APPLICANT], He/She/They will have legal, clear, marketable, free from anomalies, valid and binding on the Mortgagor and a valid Registered Mortgage can be created, beyond reasonable doubt.
 The said immovable property is enforceable under SARFAESI Act, and further no permission for creation of mortgage is required to be obtained from any government authority.
 The property can be accepted by the way of SECURITY for the loan/advances granted or to be granted and a valid Equitable/Registered Mortgage can be created over the said property in favour of your bank."
+
+MORTGAGEABILITY (Part VI): classify the property as exactly one of — Mortgageable / Conditionally Mortgageable / Not Mortgageable — and state the lending risk on the two permitted tiers: MODERATE or LOW. Keep the reasoning short and summarised, not exhaustive prose.
 
 VERDICT: NOT CLEAR / CLEAR SUBJECT TO / CLEAR
 USE ALL TOKENS. MISS NOTHING.`
@@ -263,8 +420,8 @@ USE ALL TOKENS. MISS NOTHING.`
 // ================================================================
 // STEP 3A — PART I SYSTEM
 // ================================================================
-const S3A = `Generate HTML for PART II ONLY — List of Scrutinised Documents.
-(Part I — Property Description with Boundaries — is generated separately and already appears before this. Start directly with Part II.)
+const S3A = `Generate HTML for PART III ONLY — Description of Documents Verified / Scrutinized.
+(Part I — Borrower, Mortgagor and Current Ownership — and Part II — Property Description with Boundaries — are generated separately and already appear before this. Start directly with Part III.)
 
 ═══ STRICT INPUT-DRIVEN RULE — THIS OVERRIDES EVERY OTHER CONVENIENCE DEFAULT ═══
 - List ONLY documents that were ACTUALLY uploaded / produced for scrutiny. If one document was
@@ -285,6 +442,11 @@ const S3A = `Generate HTML for PART II ONLY — List of Scrutinised Documents.
 - Keep the phrase "unto and in favour of" exactly.
 - Keep "paiki" exactly as it appears in the source (house wording) — do not translate it.
 - Keep units (Sq. Mtrs. / Hectares / Acres) exactly as given.
+- Name every document by its canonical type from this taxonomy — never coin a new name:
+${TAXONOMY}
+  If a produced document's type matches nothing above, write it as
+  "DOCUMENT TYPE NOT IDENTIFIABLE — RAW TEXT: [exact printed heading] — REQUIRES MANUAL REVIEW"
+  rather than mapping it to the nearest-sounding entry.
 
 ═══ EXACT TEMPLATES — use the one matching each uploaded document ═══
 - Registered Deed: Copy of "[Document Type]" dated "[Execution Date]" registered under Serial No. "[Registration Number]" executed by "[Executant]" unto and in favour of "[Claimant]".
@@ -301,21 +463,21 @@ const S3A = `Generate HTML for PART II ONLY — List of Scrutinised Documents.
 FORMAT — one <div class="di"> per ACTUALLY-PRODUCED document, nothing more:
 <div class="di"><p><span class="dn">1.</span> [the exact template sentence for that document]</p></div>
 
-ORDER: latest document first, oldest last.
+ORDER: chronological — earliest document first, latest last. Never randomised.
 
-START: <hr><div class="ph">PART II — LIST OF SCRUTINISED DOCUMENTS</div>
+START: <hr><div class="ph">PART III — DESCRIPTION OF DOCUMENTS VERIFIED / SCRUTINIZED</div>
 <p>The following documents have been produced for examination and scrutiny:</p>
 END: after the last document entry.`
 
 // ================================================================
-// STEP 3B — PART III — CHRONOLOGICAL TITLE CHAIN (house-format writer)
+// STEP 3B — PART IV — CHRONOLOGICAL TITLE CHAIN (house-format writer)
 // ================================================================
 // The firm's required chain format is a single flowing chronological narrative of PROPERTY
 // history — an opening "belonged to" line, then one bullet per title-affecting event.
 // Crucially the chain is NOT only Nondh entries: NA/Collector orders, NOCs, Development
 // Permission, construction, project mortgage and finally the Builder→Purchaser document all
 // appear as their own bullets, in date order, interleaved with the mutation bullets.
-const S3B = `You are writing PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY, in the firm's mandatory house format.
+const S3B = `You are writing PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY, in the firm's mandatory house format.
 
 LANGUAGE: Formal English, third person. NEVER Gujarati script. Dates ALWAYS as DD.MM.YYYY.
 
@@ -386,95 +548,172 @@ ABSOLUTE RULES:
 - If a Sale Deed, a Mutation entry and an EC row describe the SAME transfer, that is ONE event = ONE bullet.
 - Never assume or create facts. If a fact is not in the documents, leave it out or write NOT PROVIDED FOR VERIFICATION.
 - Keep areas/units exactly as given. Keep "paiki" exactly as it appears in the source (as in the example above).
+- CERTIFICATION STATUS (each Ground Truth entry carries "Status:"): only CERTIFIED, ownership-relevant entries belong in this narrative. A purely administrative entry stays out. An entry that is Rejected / Cancelled / Disputed / Pending / Uncertified must NOT be narrated here as if it moved title — it is reported in Part V (Alerts) instead. Revenue entries are corroborative evidence, never conclusive proof of title.
+- Do NOT require every mutation entry to have a matching deed, or every deed to have a matching mutation entry. Reconstruct from the best available evidence.
 
-START: <hr><div class="ph">PART III — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
-END: after the closing </ul>.`
+START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
+END: after the closing </ul>. The EC details, the regulatory-compliance sub-section and the Part IV summary are written separately and follow your output — do not write them yourself.`
 
 // ================================================================
 // STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
 // ================================================================
-const S3C = `You generate TWO things: (1) ONE sub-section that CONTINUES Part III — "Details of Encumbrance Certificate (EC)" (use a <div class="sph"> sub-heading; do NOT write any new "PART" header for it), then (2) PART IV — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
+const S3C = `You generate FOUR things, in this exact order: (1) a sub-section that CONTINUES Part IV — "Details of Encumbrance Certificate (EC)"; (2) a sub-section that CONTINUES Part IV — "Regulatory and Statutory Compliance"; (3) a sub-section that CONTINUES Part IV — "Summary of Title Chain"; then (4) PART V — ALERTS. Items 1-3 use a <div class="sph"> sub-heading and carry NO "PART" header of their own. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
 
-CORE RULE: Never assume facts. Never create facts. Wherever information is unavailable, expressly state: NOT PROVIDED FOR VERIFICATION.
+CORE RULE: Never assume facts. Never create facts. Never suppress an adverse finding. Wherever information is unavailable, expressly state: NOT PROVIDED FOR VERIFICATION.
 
-IMPORTANT — DO NOT DUPLICATE THE CHAIN: the chronological chain (mutation entries, NA/Collector orders, NOCs, Development Permission, RERA, construction, project mortgage and the document in favour of the Proposed Purchaser) is ALREADY written above as Part III. Do NOT restate those events here. Write ONLY the EC sub-section, then Part IV.
+IMPORTANT — DO NOT DUPLICATE THE CHAIN: the chronological chain (mutation entries, NA/Collector orders, NOCs, Development Permission, RERA, construction, project mortgage and the document in favour of the Proposed Purchaser) is ALREADY written above as the body of Part IV. Do NOT restate those events. Write only the three sub-sections, then Part V.
 
-═══ PART III TAIL — EC SUB-SECTION ONLY (NO new PART header) ═══
+═══ (1) PART IV SUB-SECTION — EC (NO new PART header) ═══
 
 <div class="sph">Details of Encumbrance Certificate (EC)</div>
-<p>[ONE paragraph from the EC TABLE / MORTGAGE LIFECYCLE data: EC Date, Search Period (from → to), number of registered transactions, and a chronological summary of the material deeds (type, registration number, date, executing party, claimant party). State the overall encumbrance status — subsisting mortgage or all charges discharged (and by which Release/Reconveyance Deed). NEVER reproduce the EC last column or the EC applicant name. Released/discharged mortgages must be stated as discharged, never active. If no EC was produced: NOT PROVIDED FOR VERIFICATION.]</p>
+<p>[ONE paragraph from the EC TABLE / MORTGAGE LIFECYCLE data: EC Date (the date of print from the e-application), Search Period (from → to, as stated on the e-application), number of registered transactions, and a chronological summary — EARLIEST TO MOST RECENT — of the material deeds (type, registration number, date, executing party, claimant party). State the overall encumbrance status: subsisting mortgage, or all charges discharged (and by which Release/Reconveyance Deed). NEVER reproduce the EC's last column, the EC applicant name, or any E-Application Receipt / E-Challan detail beyond the date and search period. Released/discharged mortgages must be stated as discharged, never active. If no EC was produced: NOT PROVIDED FOR VERIFICATION.]</p>
+<p>[ONE short cross-verification paragraph: state whether the EC entries reconcile with the mutation entries and the registered documents, and name any of these that is actually present — missing mutation, unreflected sale, mortgage mismatch, ownership mismatch, survey mismatch, area mismatch. If everything reconciles, say so in one sentence. If any EC entry's document type could not be identified, say that it requires manual review.]</p>
 
-═══ PART IV ═══
-<hr><div class="ph">PART IV — LEGAL ISSUES, OBJECTIONS AND ADVERSE FINDINGS</div>
-[Each issue/objection, most severe first. Format:
+═══ (2) PART IV SUB-SECTION — REGULATORY (NO new PART header) ═══
+
+<div class="sph">Regulatory and Statutory Compliance</div>
+<table class="mt">
+[ONE row per item that is ACTUALLY relevant to this matter, format <tr><td>[Item]</td><td>:</td><td>[status — number and date if produced, or "NOT PROVIDED FOR VERIFICATION", or "Not Applicable"]</td></tr>. Draw only from what the documents establish. Candidate items: RERA Registration; Development Permission; Commencement Certificate; Approved Building Plan; Occupancy / Completion Certificate; BU Permission; NOCs (Fire, Environment, Airport/Height Clearance); N.A. / Conversion Order; Collector Order; T.P. Scheme / Final Plot record; GUDA/AUDA/SUDA or Municipal permission; Section 43 restriction; Agricultural land transfer restriction; Fragmentation Act position; Old Tenure / New Tenure (Juni / Naa Sharat); Gujarat Stamp Act and Registration Act compliance. Omit rows that have no bearing on this property — do not pad the table.]
+</table>
+
+═══ (3) PART IV SUB-SECTION — SUMMARY (NO new PART header) ═══
+
+<div class="sph">Summary of Title Chain</div>
+<p>[3-5 sentences closing Part IV: the earliest established owner and year; how title devolved to the present owner/builder in one line; the present owner and the instrument vesting title in them; the encumbrance position; and whether the chain is continuous and unbroken on the documents produced. State the conclusion only — do not re-list the events.]</p>
+
+═══ (4) PART V ═══
+<hr><div class="ph">PART V — ALERTS</div>
+[Each alert, most severe first, as concise standalone text with NO surrounding commentary — no preamble, no closing remark. Format:
 CRITICAL/HIGH: <div class="ib"><div><span class="sh">CRITICAL</span></div><div class="it">N. [Title]</div><p>[2-3 sentences with exact deed/entry numbers]</p><p><span class="sg">Direction:</span> [action required]</p></div>
 MODERATE: same with class "sm" | LOW: same with class "sl"]
-Raise an objection (do not stay silent) for any of: TITLE BREAK (severity CRITICAL — any ownership transition lacking documentary support); Builder's name absent from the revenue record (MAJOR OBJECTION); Builder title defect; missing N.A. Order or relevant Mutation Entry; EC mismatch with mutation/revenue records; missing development approval; survey/area/boundary/ownership mismatch; litigation, attachment, acquisition or government restriction; subject unit not traceable in the sanctioned plan / RERA / allotment records.
+Raise an alert (do not stay silent) for any of these that is present on the documents produced:
+- TITLE CHAIN BREAK (severity CRITICAL — any ownership transition lacking documentary support)
+- Missing owner in the chain | duplicate owner | ownership overlap | multiple conflicting buyers or sellers
+- Missing sale deed | missing mutation entry | missing EC
+- Survey number conflict | area conflict | boundary conflict | date conflict | property identity mismatch across transfers
+- Invalid or unregistered transfer | POA-based sale risk | minor-owner sale risk
+- A mutation entry that is Rejected / Cancelled / Disputed / Pending / Uncertified but material to title
+- Builder's name absent from the revenue record (MAJOR OBJECTION) | Builder title defect
+- Missing N.A. Order, Collector Order or development approval
+- EC mismatch with the mutation / revenue records
+- Litigation, stay order, injunction, attachment, acquisition, SARFAESI, DRT, NCLT, revenue appeal (RTS), partition or specific-performance suit
+- Where the owner is a company/firm: unsatisfied charge, CERSAI charge, liquidation, strike-off, or missing board resolution
+- Subject unit not traceable in the sanctioned plan / RERA / allotment records
+- Existing subsisting mortgage or charge
+Each alert states: what the defect is, the affected document, its legal implication, and the action required.
 NEVER flag: released/discharged mortgages | EC-confirmed deeds | EC applicant name.
 If no adverse finding exists on the documents produced, write a single <div class="ib"><div><span class="sl">LOW</span></div><div class="it">1. No material adverse findings</div><p>No material adverse finding was noted on the documents produced. Standard pre-disbursement verification is recommended.</p></div>
 
-END: after the last objection.`
+END: after the last alert.`
 
 // ================================================================
 // STEP 3D — PARTS VII-XI SYSTEM
 // ================================================================
-const S3D1 = `Generate HTML for PART V — LEGAL OPINION AND FINAL RECOMMENDATION ONLY. Formal English.
+const S3D1 = `Generate HTML for PART VI — LEGAL OPINION ONLY. Formal English. Keep it summarised — this is an opinion, not a restatement of the file.
 
-<hr><div class="ph">PART V — LEGAL OPINION AND FINAL RECOMMENDATION</div>
-<p>[Legal opinion — 4 to 6 sentences. If the title is clear, expressly state that: legal title is established; marketable title is established; mortgageable title is established; SARFAESI enforceability is established; and the security is acceptable. If defects exist, issue a QUALIFIED opinion instead and state the defect. Cover: whether ownership and title continuity are established from the Revenue Record mutation chain and the documents produced; the encumbrance/mortgage position (subsisting or fully discharged, with the release/reconveyance deed if any); and any conditions the bank must satisfy. Do not repeat the whole chain — state its conclusion.]</p>
+<hr><div class="ph">PART VI — LEGAL OPINION</div>
+<p>[Legal opinion — 4 to 6 sentences. If the title is clear, expressly state that: legal title is established; marketable title is established; mortgageable title is established; SARFAESI enforceability is established; and the security is acceptable. If defects exist, issue a QUALIFIED opinion instead and state the defect. Cover: whether ownership and title continuity are established from the revenue record mutation chain and the documents produced; the encumbrance/mortgage position (subsisting or fully discharged, with the release/reconveyance deed if any); and any conditions the bank must satisfy. Do not repeat the chain — state its conclusion.]</p>
 
-ABSOLUTE RULE: NEVER issue an unconditional approval when a CRITICAL risk exists (e.g. a TITLE BREAK, or any ownership transition unsupported by documentary evidence). In that event the opinion must be qualified and the verdict must not be "CLEAR AND MARKETABLE TITLE".
-If any mandatory verification could not be completed on the documents produced, state exactly: INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION.
+<div class="sph">Mortgageability</div>
+<table class="mt">
+<tr><td>Mortgageability Classification</td><td>:</td><td>[EXACTLY one of: Mortgageable / Conditionally Mortgageable / Not Mortgageable]</td></tr>
+<tr><td>Basis</td><td>:</td><td>[1-2 short sentences — summarised, not exhaustive]</td></tr>
+<tr><td>SARFAESI Enforceability</td><td>:</td><td>[Enforceable / Not Enforceable / Requires verification — with a half-line reason]</td></tr>
+</table>
 
-[Verdict box — choose per the VERDICT given in context:
-CLEAR: <div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p>[brief reason]</p></div>
-CLEAR SUBJECT TO: <div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p>Mortgageable subject to: [short list of conditions]</p></div>
-NOT CLEAR: <div class="vnc"><div class="vt" style="color:#b91c1c;">TITLE NOT CLEAR — BANK SHOULD NOT PROCEED</div><p>[reasons/conditions]</p></div>]
+<div class="sph">Lending Risk</div>
+Compute the risk score by ADDING the score of every risk factor that is actually present on the documents produced. Use EXACTLY this table:
+Title Break = 100 | Court Litigation = 90 | Acquisition Risk = 80 | Missing N.A. Order OR relevant Mutation Entry = 70 | Builder Title Defect = 70 | EC Mismatch = 60 | Missing Development Approval = 50 | Missing Mutation = 40 | Builder Name Missing in Revenue Record = 40 | Existing Mortgage = 10 | Minor Clerical Error = 10
+<table class="mt">
+<tr><td>Risk Factors Present</td><td>:</td><td>[each factor found and its score, e.g. "Missing Development Approval (50); Existing Mortgage (10)" — or "None identified"]</td></tr>
+<tr><td>Total Risk Score</td><td>:</td><td>[the sum]</td></tr>
+<tr><td>Lending Risk Tier</td><td>:</td><td>[EXACTLY one of the two permitted tiers — LOW if the total is 25 or below, MODERATE if the total is 26 or above. There is no HIGH or UNACCEPTABLE tier; where the risk is severe, that is expressed by classifying the property "Not Mortgageable" above and by the CRITICAL alerts in Part V.]</td></tr>
+</table>
 
-START: <hr><div class="ph">PART V — LEGAL OPINION AND FINAL RECOMMENDATION</div>
-END: after the verdict box closing div.`
+<div class="sph">Confidence Level</div>
+<table class="mt">
+<tr><td>Confidence Level</td><td>:</td><td>[EXACTLY one of: MEDIUM CONFIDENCE / LOW CONFIDENCE / NO CONFIDENCE. MEDIUM = supported by a registered document AND a government record AND the EC AND the revenue record. LOW = supported by a single document only. NO CONFIDENCE = unsupported. There is no HIGH tier — never write one.]</td></tr>
+<tr><td>Basis</td><td>:</td><td>[1-2 sentences on what documentary support drives this level]</td></tr>
+</table>
+
+ABSOLUTE RULE: NEVER issue an unconditional approval when a CRITICAL risk exists (e.g. a TITLE BREAK, or any ownership transition unsupported by documentary evidence). In that event the opinion must be qualified, the property must not be classified "Mortgageable", and the report must not certify a clear and marketable title.
+TITLE CERTIFICATION RULE: certify title only where ownership, title continuity, encumbrance position, revenue reconciliation and mortgageability are ALL established. If any one of them could not be completed on the documents produced, state exactly: INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION.
+
+START: <hr><div class="ph">PART VI — LEGAL OPINION</div>
+END: after the Confidence Level table. Do NOT write the final recommendation — Part IX is generated separately.`
 
 // ================================================================
 // STEP 3E — PART IX-XI SYSTEM (split from S3D for parallel speed)
 // ================================================================
-const S3D2 = `Generate HTML for the closing sections ONLY — DOCUMENTS REQUIRED, RISK RATING, CONFIDENCE LEVEL and OVERALL TITLE STATUS. Formal English. These follow Part V and carry NO "PART" numbers.
+const S3D2 = `Generate HTML for PART VII, PART VIII and PART IX ONLY. Formal English, summarised. These follow Part VI.
 
-<hr><div class="ph">DOCUMENTS REQUIRED — PRE-DISBURSEMENT (MANDATORY BEFORE SANCTION)</div>
-<ol>[Each item ONE line: <li><strong>[Document Name]</strong> — [one-line purpose]</li>. Derive these from what is actually missing/needed on this matter — e.g. any document flagged NOT PROVIDED FOR VERIFICATION, missing N.A. Order, missing mutation entry, missing development approval, Builder's title document, Builder's NOC/consent for mortgage.]</ol>
+<hr><div class="ph">PART VII — DOCUMENTS REQUIRED PRE-DISBURSEMENT</div>
+<ol>[Each item ONE line: <li><strong>[Document Name]</strong> — [one-line purpose]</li>. Derive these from what is actually missing or needed on THIS matter — e.g. any document flagged NOT PROVIDED FOR VERIFICATION, an unresolved Part V alert, missing N.A. Order, missing mutation entry, missing development approval, Builder's title document, Builder's NOC/consent for mortgage, Release/Reconveyance of a subsisting charge, original title deeds held by an existing lender. Do not pad with generic items that this file does not need.]</ol>
 
-<hr><div class="ph">DOCUMENTS REQUIRED — POST-DISBURSEMENT</div>
+<hr><div class="ph">PART VIII — DOCUMENTS REQUIRED POST-DISBURSEMENT</div>
 <ol>[5-7 items, ONE line each — e.g. Registered/Equitable Mortgage creation, CERSAI charge registration, original title deeds, property insurance, ROC/CHG charge filing if the borrower is a company, Society NOC / Share Certificate, Occupancy/BU Permission on completion.]</ol>
 
-<hr><div class="ph">RISK RATING</div>
-Compute the risk score by ADDING the score of every risk factor that is actually present on the documents produced. Use EXACTLY this table:
-Title Break = 100 | Court Litigation = 90 | Acquisition Risk = 80 | Missing N.A. Order OR relevant Mutation Entry = 70 | Builder Title Defect = 70 | EC Mismatch = 60 | Missing Development Approval = 50 | Missing Mutation = 40 | Builder Name Missing in Revenue Record = 40 | Existing Mortgage = 10 | Minor Clerical Error = 10
-Classification: 0-25 = LOW RISK | 26-50 = MODERATE RISK | 51-75 = HIGH RISK | 76+ = UNACCEPTABLE RISK
-<table class="mt">
-<tr><td>Risk Factors Present</td><td>:</td><td>[list each factor found and its score, e.g. "Missing Development Approval (50); Existing Mortgage (10)" — or "None identified"]</td></tr>
-<tr><td>Total Risk Score</td><td>:</td><td>[the sum]</td></tr>
-<tr><td>Risk Classification</td><td>:</td><td>[LOW RISK / MODERATE RISK / HIGH RISK / UNACCEPTABLE RISK per the bands above]</td></tr>
-</table>
-
-<hr><div class="ph">CONFIDENCE LEVEL</div>
-<table class="mt">
-<tr><td>Confidence Level</td><td>:</td><td>[HIGH CONFIDENCE / MEDIUM CONFIDENCE / LOW CONFIDENCE — based strictly on the extent of documentary support]</td></tr>
-<tr><td>Basis</td><td>:</td><td>[1-2 sentences on what documentary support drives this level]</td></tr>
-</table>
-
-<hr><div class="ph">OVERALL TITLE STATUS</div>
-<div class="final-rec"><div class="fr-title">OVERALL TITLE STATUS:</div><div class="fr-value">[Use the VERDICT given in context — CLEAR AND MARKETABLE TITLE / CLEAR TITLE SUBJECT TO CONDITIONS / TITLE NOT CLEAR. If any mandatory verification could not be completed on the documents produced, write instead: INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION]</div></div>
+<hr><div class="ph">PART IX — FINAL RECOMMENDATION</div>
+[Use the VERDICT given in context VERBATIM — do not reword it, do not soften it, do not upgrade it.
+If VERDICT is "CLEAR AND MARKETABLE TITLE":
+<div class="vc"><div class="vt" style="color:#15803d;">CLEAR AND MARKETABLE TITLE</div><p>[brief reason]</p></div>
+If VERDICT is "CLEAR TITLE SUBJECT TO CONDITIONS":
+<div class="vs"><div class="vt" style="color:#b45309;">CLEAR TITLE SUBJECT TO CONDITIONS</div><p>Mortgageable subject to: [short list of the conditions]</p></div>
+If VERDICT is "INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION":
+<div class="vnc"><div class="vt" style="color:#b91c1c;">INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION</div><p>[what could not be established, and what is required to complete the certification]</p></div>]
+<div class="final-rec"><div class="fr-title">FINAL RECOMMENDATION:</div><div class="fr-value">[the same VERDICT text, verbatim]</div></div>
 <p>[3-4 sentences: title-chain conclusion | encumbrance status | outstanding conditions | SARFAESI enforceability | bank recommendation.]</p>
 
-START: <hr><div class="ph">DOCUMENTS REQUIRED — PRE-DISBURSEMENT (MANDATORY BEFORE SANCTION)</div>
-END: after the Overall Title Status paragraph.`
+START: <hr><div class="ph">PART VII — DOCUMENTS REQUIRED PRE-DISBURSEMENT</div>
+END: after the final recommendation paragraph.`
 
 
 // ================================================================
 // EC PRE-SCREEN PROMPT
 // ================================================================
-const EC_PS = 'Look at ALL uploaded images. Find Encumbrance Certificate (EC) table.\n\nCRITICAL RULE:\nCOL 3 = Aapnar = LEFT = WHO GIVES\nCOL 4 = Lenar = RIGHT = WHO RECEIVES\nBANK IN COL 3 = RELEASE DEED | BANK IN COL 4 = MORTGAGE DEED\n\nExtract EVERY EC row + header. Also check ALL docs for Release Deed / Giro Mukeli / Reconveyance.\n\nOutput ONLY JSON:\n{"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}],"pre_screen_releases":[{"bank":"","deed_no":"","date":"","source":""}]}'
+const EC_PS = `Look at ALL uploaded images. Find the Encumbrance Certificate (EC) table.
 
-const REV_PS = 'LANGUAGE: Output ONLY English in JSON fields. No Gujarati script anywhere in output.\nTranslate status words: પ્રમાણિત=Certified | કબજાની પ્રમાણિત=Certified | હુકમથી પ્રમાણિત=Certified by Court Order | રદ=Rejected | ચકાસ=Under Revision | બાકી=Pending\nTranslate terms: Bin Kheti=Non-Agricultural | Juni Sharat=Old Tenure | Naa Sharat=New Tenure | Vechan=Sale | Hukam=Court Order | Warsi=Inheritance | Bhagat=Partition\nGujarati digits: ૦=0 ૧=1 ૨=2 ૩=3 ૪=4 ૫=5 ૬=6 ૭=7 ૮=8 ૯=9 — convert ALL Gujarati digits to Arabic numerals in dates and numbers.\n\n═══════════════════════════════════════════\nWHAT IS A MUTATION ENTRY — AND WHAT IS NOT (READ FIRST, ABSOLUTE)\n═══════════════════════════════════════════\nA Mutation/FERFAR entry (Nondh) comes ONLY from the Revenue Record "Entry Details" / FERFAR /\nGamnamuna No. 6 register. Each real entry has a NUMERIC Nondh number (e.g. 3710, 4080, 11685),\na date, a change-type (Sale / Order / Inheritance / NA / etc.), a certified/rejected status, and\na narrative. These numeric Nondh entries are the ONLY thing that goes into the "entries" array.\n\nThe following are NOT mutation entries — NEVER put them in the "entries" array, NEVER invent a\nNondh number for them, NEVER give them a text "entry number":\n- AAI / Airport NOC, Height Clearance NOC\n- GUDA / AUDA / development permission, building plan approval\n- RERA registration certificate / Form-C\n- A registered Sale Deed, Mortgage Deed, Release Deed, Declaration Deed BY ITSELF (the DEED is\n  NOT a Nondh; only the FERFAR Nondh that RECORDS that deed is an entry, and its number is the\n  numeric Nondh number, not the deed/document number)\n- Index-2, tax receipts, layout plans, jantri\nIf you cannot find the FERFAR "Entry Details" register with numeric Nondh entries in the images,\nreturn entries:[] and fill only the 7/12 header fields — do NOT manufacture entries from deeds,\nNOCs, permissions or certificates. An empty entries array is CORRECT and far better than fake\nentries built from non-FERFAR documents.\n\nCOUNT DISCIPLINE: The FERFAR "Entry Details" register usually holds MANY numeric Nondh entries\n(commonly 10-25). Do NOT stop after a handful. Read the entire "Entry Details" / Gamnamuna 6\nsection top to bottom and extract EVERY numeric Nondh entry you can see, oldest to newest.\n\n═══════════════════════════════════════════\n\nFind Revenue Records in ALL uploaded images: Village Form 6, 7/12 (Satbara), 8-A, Property Card, Hakk Patrak, Mutation Register, FERFAR Register, Gamnamuma No. 6.\n\n══════════════════════════════════════════\nVILLAGE FORM NO. 7 (7/12 SATBARA) — EXTRACT:\n══════════════════════════════════════════\nFrom Village Form 7 extract these fields:\n- Village name (Mouje), Taluka, District\n- Survey Number / Block Number / Final Plot Number (old AND new if both visible)\n- Total Area in H.Are.SqMt. or Sq.Mtrs.\n- Land Use (Jaminno Upyog): Non-Agricultural / Agricultural\n- Current owner name (Kabjedar/Khatedar column) — translate to English\n- Boja/Encumbrance column — list ALL entry numbers visible\n- Ganot/Tenant column — NIL if blank\n- Any NA Order or Land Use conversion reference visible in the document\n\n══════════════════════════════════════════\nFERFAR / MUTATION REGISTER / GAMNAMUMA NO. 6 — COLUMN STRUCTURE (PER SOP):\n══════════════════════════════════════════\nEach Nondh/Mutation entry in FERFAR has these columns reading left to right:\n\nCOLUMN 1 (Leftmost) = Entry Date + Mutation Entry Number + Status (Certified / Rejected / Hukam)\n  → ALWAYS extract: Mutation Entry Number, Date, Status from this column\n  → NOTE: Skip the very FIRST sub-column of Entry Details if it is only administrative/serial numbering\n  → The actual Date + Number + Status is what you need from Column 1\n\nCOLUMN 2 (Second from left) = Complete Mutation Details (most important column):\n  → Contains: Nature of change (Sale / Court Order / Inheritance / Death / NA Conversion / Partition etc.)\n  → Contains: All party names — sellers, buyers, applicants, respondents\n  → Contains: Deed references (Sale Deed No., Court Order No., Case No.)\n  → Contains: Consideration amounts if sale\n  → Contains: Court name, case number, order date for court order entries\n  → EXTRACT EVERYTHING from Column 2 and reconstruct the full English narrative\n\nCOLUMN 3 (Third from left) = Survey/Block Number:\n  → Include ONLY if the Survey/Block Number relates to the SUBJECT PROPERTY\n  → If a different property, skip this column entirely for that entry\n\nCOLUMN 4 (Last column) = Remarks:\n  → Extract any legally relevant remarks\n\n══════════════════════════════════════════\nCRITICAL RULES:\n══════════════════════════════════════════\n1. Read ALL pages from beginning to end — do NOT stop after first few entries\n2. Extract EVERY entry — Sale, Court Order, Inheritance, Death, NA Conversion, Rejected entries — ALL\n3. REJECTED entries are LEGALLY IMPORTANT — always extract and report them with Status=REJECTED\n4. PARTIAL EXTRACTION IS VALID — if you cannot read some fields, return empty string for that field\n   NEVER return {found:false} unless the document is genuinely not a Revenue Record at all\n5. Date and Number are in Column 1 — search thoroughly, never output empty date if it is visible\n6. For Court Order entries: extract case number, court name, order date, parties, and what was decided\n7. NA Order references: extract the Non-Agricultural order number and date if visible anywhere\n8. Translate all Gujarati party names: અરજદાર=Applicant | સામાવાળા=Respondent | વેચાણ આપનાર=Seller | વેચાણ લેનાર=Buyer\n9. PER-ENTRY COMPLETENESS — MANDATORY, THE MOST IMPORTANT RULE: for EVERY entry object you MUST fill "d" (the entry DATE from Column 1) AND "r" (the FULL narrative from Column 2). An entry that has "e" (a number) but an empty "d" or empty "r" is a FAILED read — go back to that same row, re-read Column 1 for its date + status and Column 2 for its parties + nature + deed/case number, and fill them before you output. Also fill "s" (status), "po" (previous owner/seller/applicant), "no" (new owner/buyer/respondent) and "n" (nature) whenever they are visible in that row. NEVER emit a number-only entry — a list of bare Nondh numbers with no dates or details is exactly what we must avoid. Read the date, status, both parties, the nature, and the deed/case reference for each and every numeric Nondh, one row at a time, top to bottom.\n\nOUTPUT ONLY THIS JSON — no other text before or after:\n{"document_type_found":"FERFAR OR 7-12 OR Property Card OR mixed","village":"","taluka":"","district":"","survey_block_no":"","total_area":"","land_use":"","tenure":"","ownership_column":"","boja_column":"","ganot_column":"","na_order":"","entries":[{"e":"entry_no","d":"date_DD/MM/YYYY","cd":"certification_date_if_different","s":"Certified OR Rejected OR Certified by Court Order OR Pending","po":"sellers OR applicants OR previous owner — all names in English","no":"buyers OR respondents OR new owner — all names in English","n":"Sale OR Court Order OR Inheritance OR Death OR NA Conversion OR Partition OR Gift OR Mortgage OR Release","r":"complete narrative in English — all parties, deed/case numbers, amounts, what happened and what was decided","sv":"survey_block_no if related to subject property","sd":"deed number OR court case number and date","rm":"any legal remarks or notes"}]}\nPARTIAL RULE: Return whatever you can read. Empty string for unreadable fields. Never found:false unless no revenue record exists.'
+EC COLUMN MAPPING — FIXED, EVERY EC FOLLOWS THIS LAYOUT:
+COL 1 = Type of Deed/Document
+COL 2 = Property Description
+COL 3 = Aapnar = Executing Party = LEFT = WHO GIVES
+COL 4 = Lenar = Claimant Party = RIGHT = WHO RECEIVES
+COL 5 = Date of Registration
+COL 6 = Registration / Dastavej Number (the SECOND-LAST column)
+LAST COLUMN = NEVER extract it, never output it, never mention it.
+Also NEVER extract or output the "Name of Applicant" field — it has no connection to the property.
+Do not output E-Application Receipt or E-Challan details beyond the date and the search period.
+
+BANK IN COL 3 = RELEASE DEED | BANK IN COL 4 = MORTGAGE DEED
+
+ec_date = the date of print shown on the e-application, nothing else.
+ec_from / ec_to = the search period from/to dates on the e-application.
+
+DOCUMENT-TYPE CLASSIFICATION — NO GUESSING:
+1. Copy the type EXACTLY as printed (original script, including any Gujarati) into "raw_type" BEFORE classifying.
+2. Normalise it (strip stray punctuation, hyphens, entry numbers), then match it against THIS canonical taxonomy and nothing else:
+${TAXONOMY}
+3. Match in priority order: exact match -> synonym/root-word match (e.g. root "ગીરો" -> mortgage family, then disambiguate) -> contextual match (using the executant/claimant pattern).
+4. Put the canonical ENGLISH name in "col1_type". NEVER output a type that is not in the taxonomy above. NEVER map a genuinely new term to the nearest-sounding entry.
+5. Mandatory disambiguation before you finalise a type:
+   - Sale Deed vs Agreement to Sell/Banakhat: registered conveyance (actual transfer) vs a promise of future sale. Check whether a later Sale Deed on the same survey number appears elsewhere in this EC.
+   - Sale Deed vs Conveyance Deed vs Absolute Sale Deed: same family unless the printed text itself says "Absolute".
+   - Gift vs Relinquishment vs Family Settlement: voluntary transfer without consideration vs a co-owner giving up their own share vs a multilateral family arrangement. Check the party count and co-ownership.
+   - Release vs Reconveyance vs Mortgage Release: a generic release of a right vs restoration of title after the loan is repaid. If a Mortgage Deed for the SAME survey number appears EARLIER in this EC, classify it as Reconveyance / Mortgage Release Deed, not a generic Release.
+   - Mortgage Deed vs Simple vs Equitable: use the generic "Mortgage Deed" unless the text explicitly says "Simple" or "Equitable".
+   - POA vs GPA vs SPA: use GPA/SPA only when the text explicitly says "General"/"Special"; otherwise generic POA.
+   - Partition vs Family Settlement: one jointly-owned property vs a broader or dispute-driven arrangement.
+   - If two remain equally plausible, pick the BROADER, more conservative category and set match_conf to "CONTEXTUAL MATCH" so an advocate reviews it. Never guess the subtype.
+6. "match_conf" must be EXACTLY one of: "EXACT MATCH" | "SYNONYM MATCH" | "CONTEXTUAL MATCH" | "UNIDENTIFIED".
+7. If nothing in the taxonomy matches with at least medium confidence, set col1_type to "" and match_conf to "UNIDENTIFIED", and still fill raw_type. An honest "not identifiable" is correct; a wrong classification is a fabricated fact.
+8. If the extracted characters are visibly corrupted (broken conjuncts, junk characters), do NOT silently repair them — set match_conf to "UNIDENTIFIED" and put what you can see in raw_type.
+
+Extract EVERY EC row. Also check ALL documents for a Release Deed / Giro Mukeli / Reconveyance.
+
+Output ONLY JSON:
+{"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"","raw_type":"","match_conf":"","col2_property":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}],"pre_screen_releases":[{"bank":"","deed_no":"","date":"","source":""}]}`
+
+const REV_PS = 'LANGUAGE: Output ONLY English in JSON fields. No Gujarati script anywhere in output.\nTranslate status words: પ્રમાણિત=Certified | કબજાની પ્રમાણિત=Certified | હુકમથી પ્રમાણિત=Certified by Court Order | રદ=Rejected | ચકાસ=Under Revision | બાકી=Pending\nSTATUS CLASSIFICATION — the "s" field must be EXACTLY one of: Certified | Certified by Court Order | Uncertified | Cancelled | Disputed | Pending | Rejected. This drives whether the entry may enter the title narrative, so read the status column carefully for every single entry and never leave it blank when it is visible.\nTranslate terms: Bin Kheti=Non-Agricultural | Juni Sharat=Old Tenure | Naa Sharat=New Tenure | Vechan=Sale | Hukam=Court Order | Warsi=Inheritance | Bhagat=Partition\nGujarati digits: ૦=0 ૧=1 ૨=2 ૩=3 ૪=4 ૫=5 ૬=6 ૭=7 ૮=8 ૯=9 — convert ALL Gujarati digits to Arabic numerals in dates and numbers.\n\n═══════════════════════════════════════════\nWHAT IS A MUTATION ENTRY — AND WHAT IS NOT (READ FIRST, ABSOLUTE)\n═══════════════════════════════════════════\nA Mutation/FERFAR entry (Nondh) comes ONLY from the Revenue Record "Entry Details" / FERFAR /\nGamnamuna No. 6 register. Each real entry has a NUMERIC Nondh number (e.g. 3710, 4080, 11685),\na date, a change-type (Sale / Order / Inheritance / NA / etc.), a certified/rejected status, and\na narrative. These numeric Nondh entries are the ONLY thing that goes into the "entries" array.\n\nThe following are NOT mutation entries — NEVER put them in the "entries" array, NEVER invent a\nNondh number for them, NEVER give them a text "entry number":\n- AAI / Airport NOC, Height Clearance NOC\n- GUDA / AUDA / development permission, building plan approval\n- RERA registration certificate / Form-C\n- A registered Sale Deed, Mortgage Deed, Release Deed, Declaration Deed BY ITSELF (the DEED is\n  NOT a Nondh; only the FERFAR Nondh that RECORDS that deed is an entry, and its number is the\n  numeric Nondh number, not the deed/document number)\n- Index-2, tax receipts, layout plans, jantri\nIf you cannot find the FERFAR "Entry Details" register with numeric Nondh entries in the images,\nreturn entries:[] and fill only the 7/12 header fields — do NOT manufacture entries from deeds,\nNOCs, permissions or certificates. An empty entries array is CORRECT and far better than fake\nentries built from non-FERFAR documents.\n\nCOUNT DISCIPLINE: The FERFAR "Entry Details" register usually holds MANY numeric Nondh entries\n(commonly 10-25). Do NOT stop after a handful. Read the entire "Entry Details" / Gamnamuna 6\nsection top to bottom and extract EVERY numeric Nondh entry you can see, oldest to newest.\nSCAN WINDOW: cover the LAST 20-30 YEARS of computerized mutation entries. Do not stop at the EC\nsearch period — go back as far as the register shows.\n\n═══════════════════════════════════════════\n\nFind Revenue Records in ALL uploaded images: Village Form 6, 7/12 (Satbara), 8-A, Property Card, Hakk Patrak, Mutation Register, FERFAR Register, Gamnamuma No. 6.\n\n══════════════════════════════════════════\nVILLAGE FORM NO. 7 (7/12 SATBARA) — EXTRACT:\n══════════════════════════════════════════\nFrom Village Form 7 extract these fields:\n- Village name (Mouje), Taluka, District\n- Survey Number / Block Number / Final Plot Number (old AND new if both visible)\n- Total Area in H.Are.SqMt. or Sq.Mtrs.\n- Land Use (Jaminno Upyog): Non-Agricultural / Agricultural\n- Current owner name (Kabjedar/Khatedar column) — translate to English\n- Boja/Encumbrance column — list ALL entry numbers visible\n- Ganot/Tenant column — NIL if blank\n- Any NA Order or Land Use conversion reference visible in the document\n\n══════════════════════════════════════════\nFERFAR / MUTATION REGISTER / GAMNAMUMA NO. 6 — COLUMN STRUCTURE (PER SOP):\n══════════════════════════════════════════\nEach Nondh/Mutation entry in FERFAR has these columns reading left to right:\n\nCOLUMN 1 (Leftmost) = Entry Date + Mutation Entry Number + Status (Certified / Rejected / Hukam)\n  → ALWAYS extract: Mutation Entry Number, Date, Status from this column\n  → NOTE: Skip the very FIRST sub-column of Entry Details if it is only administrative/serial numbering\n  → The actual Date + Number + Status is what you need from Column 1\n\nCOLUMN 2 (Second from left) = Complete Mutation Details (most important column):\n  → Contains: Nature of change (Sale / Court Order / Inheritance / Death / NA Conversion / Partition etc.)\n  → Contains: All party names — sellers, buyers, applicants, respondents\n  → Contains: Deed references (Sale Deed No., Court Order No., Case No.)\n  → Contains: Consideration amounts if sale\n  → Contains: Court name, case number, order date for court order entries\n  → EXTRACT EVERYTHING from Column 2 and reconstruct the full English narrative\n\nCOLUMN 3 (Third from left) = Survey/Block Number:\n  → Include ONLY if the Survey/Block Number relates to the SUBJECT PROPERTY\n  → If a different property, skip this column entirely for that entry\n\nCOLUMN 4 (Last column) = Remarks:\n  → Extract any legally relevant remarks\n\n══════════════════════════════════════════\nCRITICAL RULES:\n══════════════════════════════════════════\n1. Read ALL pages from beginning to end — do NOT stop after first few entries\n2. Extract EVERY entry — Sale, Court Order, Inheritance, Death, NA Conversion, Rejected entries — ALL\n3. REJECTED entries are LEGALLY IMPORTANT — always extract and report them with Status=REJECTED\n4. PARTIAL EXTRACTION IS VALID — if you cannot read some fields, return empty string for that field\n   NEVER return {found:false} unless the document is genuinely not a Revenue Record at all\n5. Date and Number are in Column 1 — search thoroughly, never output empty date if it is visible\n6. For Court Order entries: extract case number, court name, order date, parties, and what was decided\n7. NA Order references: extract the Non-Agricultural order number and date if visible anywhere\n8. Translate all Gujarati party names: અરજદાર=Applicant | સામાવાળા=Respondent | વેચાણ આપનાર=Seller | વેચાણ લેનાર=Buyer\n9. PER-ENTRY COMPLETENESS — MANDATORY, THE MOST IMPORTANT RULE: for EVERY entry object you MUST fill "d" (the entry DATE from Column 1) AND "r" (the FULL narrative from Column 2). An entry that has "e" (a number) but an empty "d" or empty "r" is a FAILED read — go back to that same row, re-read Column 1 for its date + status and Column 2 for its parties + nature + deed/case number, and fill them before you output. Also fill "s" (status), "po" (previous owner/seller/applicant), "no" (new owner/buyer/respondent) and "n" (nature) whenever they are visible in that row. NEVER emit a number-only entry — a list of bare Nondh numbers with no dates or details is exactly what we must avoid. Read the date, status, both parties, the nature, and the deed/case reference for each and every numeric Nondh, one row at a time, top to bottom.\n\nOUTPUT ONLY THIS JSON — no other text before or after:\n{"document_type_found":"FERFAR OR 7-12 OR Property Card OR mixed","village":"","taluka":"","district":"","survey_block_no":"","total_area":"","land_use":"","tenure":"","ownership_column":"","boja_column":"","ganot_column":"","na_order":"","entries":[{"e":"entry_no","d":"date_DD/MM/YYYY","cd":"certification_date_if_different","s":"Certified OR Certified by Court Order OR Uncertified OR Cancelled OR Disputed OR Pending OR Rejected","po":"sellers OR applicants OR previous owner — all names in English","no":"buyers OR respondents OR new owner — all names in English","n":"Sale OR Court Order OR Inheritance OR Death OR NA Conversion OR Partition OR Gift OR Mortgage OR Release","r":"complete narrative in English — all parties, deed/case numbers, amounts, what happened and what was decided","sv":"survey_block_no if related to subject property","sd":"deed number OR court case number and date","rm":"any legal remarks or notes"}]}\nPARTIAL RULE: Return whatever you can read. Empty string for unreadable fields. Never found:false unless no revenue record exists.'
 
 // ================================================================
 // MAIN API HANDLER
@@ -527,7 +766,16 @@ export async function POST(req: NextRequest) {
 
         const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
         const refNo = 'TITLEMATRIXAI/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-4)
-        const loanMap: Record<string, string> = { builder_purchase: 'BUILDER PURCHASE', resale: 'RESALE PROPERTY', bt: 'BALANCE TRANSFER', seller_bt: 'SELLER BALANCE TRANSFER', lap: 'LOAN AGAINST PROPERTY' }
+        // §2 — the full case-classification list. The upload form currently offers the first five;
+        // the rest are here so a case type added to the form needs no change in this route.
+        const loanMap: Record<string, string> = {
+            builder_purchase: 'BUILDER PURCHASE', resale: 'RESALE PURCHASE', bt: 'BALANCE TRANSFER',
+            seller_bt: 'SELLER BALANCE TRANSFER', lap: 'LOAN AGAINST PROPERTY / MORTGAGE',
+            self_construction: 'SELF-CONSTRUCTION', composite: 'COMPOSITE LOAN', plot_purchase: 'PLOT PURCHASE',
+            industrial: 'INDUSTRIAL PROPERTY', commercial: 'COMMERCIAL PROPERTY', agricultural: 'AGRICULTURAL PROPERTY',
+            leasehold: 'LEASEHOLD PROPERTY', govt_allotted: 'GOVERNMENT ALLOTTED PROPERTY',
+            inherited: 'INHERITED PROPERTY', gift: 'GIFT PROPERTY',
+        }
 
         // Separate by docType tag
         const allImgs: any[] = images.map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
@@ -566,7 +814,16 @@ export async function POST(req: NextRequest) {
             .then(ps => {
                 const p = parseJSON(ps.content[0].type === 'text' ? ps.content[0].text : '{}')
                 if (p?.rows?.length > 0) {
-                    ecRows = p.rows; lc = runLC(ecRows)
+                    // SUBJECT-UNIT FILTER on EC rows, same rule already applied to revenue entries:
+                    // an EC row whose Property Description names a DIFFERENT flat/unit is another
+                    // purchaser's transaction. It must not appear in the EC table and — the part that
+                    // actually matters — its mortgage must not become an "active charge" on THIS
+                    // report. Rows naming no unit are land-level and are kept.
+                    const ecSubjUnit = subjectUnitNo(propertyAddress)
+                    const all: ECRow[] = p.rows
+                    ecRows = all.filter((r: ECRow) => !aboutAnotherUnit([r.col2_property, r.col1_type, r.raw_type].filter(Boolean).join(' '), ecSubjUnit))
+                    if (all.length !== ecRows.length) console.log('EC filter: ' + (all.length - ecRows.length) + ' of ' + all.length + ' rows dropped — about another unit (subject unit = ' + ecSubjUnit + ')')
+                    lc = runLC(ecRows)
                     if (p.ec_app_number) ecMetas.push({ ec_app_number: p.ec_app_number, ec_date: p.ec_date || '', ec_from: p.ec_from || '', ec_to: p.ec_to || '' })
                     if (p.pre_screen_releases?.length > 0) preReleases = p.pre_screen_releases
                     console.log('EC P0: rows=' + ecRows.length + ' status=' + lc.status)
@@ -747,7 +1004,10 @@ export async function POST(req: NextRequest) {
 
         const ecTbl = buildECTable(ecRows, lc, ecMetas)
         const lcSection = buildLifecycleSection(lc)
-        const verdict = extractVerdict(analysis)
+        // `verdict` stays in the legacy code vocabulary for the DB and the dashboards.
+        // `verdictLabel` is what the report itself prints, in the master spec's exact wording.
+        const verdict = gateVerdict(extractVerdict(analysis), lc)
+        const verdictLabel = VERDICT_LABEL[verdict] || VERDICT_LABEL['PENDING']
 
         // Three genuinely different scenarios, each needs its own honest message —
         // previously all three collapsed into one misleading "not tagged" sentence
@@ -766,7 +1026,7 @@ export async function POST(req: NextRequest) {
             revenueProvidedFlag = 'REVENUE_RECORD_PROVIDED: NOT_FOUND — a complete scan of all uploaded documents was performed automatically but no recognizable Revenue Record (7/12 / Property Card / Mutation Register / FERFAR) was identified. Do NOT claim Revenue Record was examined. State plainly: Revenue Record (7/12 / Mutation extract) was not found in the documents produced for examination; independent verification of the Revenue Record is recommended before disbursement.'
         }
         // SPEED: 5k chars of analysis is enough for the report writers (they also have FORM +
-        // GT + facts). Trimming from 8k trims input tokens across the parallel Part-III/V/VII-XI
+        // GT + facts). Trimming from 8k trims input tokens across the parallel Part III-IX
         // writers without losing anything they need.
         // SUBJECT-PROPERTY IDENTITY — the filter EVERY section is written through. A scheme has many
         // units and the revenue records / EC carry entries for all of them; only the land under the
@@ -810,7 +1070,7 @@ export async function POST(req: NextRequest) {
             console.log('STEP3 ' + label + ' err:', e?.message || e)
             return { content: [{ type: 'text', text: '<p style="color:#b91c1c;"><em>' + label + ' could not be generated (' + (e?.message ? String(e.message).substring(0, 150) : 'unknown error') + '). Please retry — other sections of this report are unaffected.</em></p>' }] }
         })
-        // PART III (the chain) is AI-written again — and it MUST be. The firm's house format is a
+        // PART IV (the chain) is AI-written — and it MUST be. The firm's house format is a
         // single chronological PROPERTY history that interleaves mutation entries with NA/Collector
         // orders, NOCs, Development Permission, construction, the project mortgage and finally the
         // Builder→Purchaser document. Those non-mutation events live in the deeds/facts, not in the
@@ -844,11 +1104,11 @@ export async function POST(req: NextRequest) {
         ].join('\n')
 
         const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
-            safeStep3('Part II — documents', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3A, messages: [{ role: 'user', content: ctx }] })),
-            safeStep3('Part III — chain', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
-            safeStep3('Part III-tail + IV', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
-            safeStep3('Part V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] })),
-            safeStep3('Closing sections', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdict }] }))
+            safeStep3('Part III — documents', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3A, messages: [{ role: 'user', content: ctx }] })),
+            safeStep3('Part IV — chain', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
+            safeStep3('Part IV-tail + V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
+            safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] })),
+            safeStep3('Parts VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] }))
         ])
 
         const BT3 = String.fromCharCode(96).repeat(3)
@@ -868,14 +1128,44 @@ export async function POST(req: NextRequest) {
         const p3 = normTerms(stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : ''))
         const p4 = normTerms(stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : ''))
 
-        // Borrower / Mortgagor / Constitution / Mode-of-Acquisition fields are no longer rendered:
-        // the Builder-Purchase master SOP's report structure has no Borrower/Mortgagor part.
-        const finalPropDesc = normTerms(meta.propertyDescription || ('As per documents submitted — ' + propertyAddress))
+        // §5 / §17.11 — "paiki" becomes "out of" in the property description, and only there.
+        // Enforced in code so it cannot drift, exactly like normTerms.
+        const finalPropDesc = paikiOut(normTerms(meta.propertyDescription || ('As per documents submitted — ' + propertyAddress)))
         const finalBounds = normTerms(meta.propertyBoundaries || '')
 
-        // PART I — Property Description along with Boundaries (built deterministically).
-        // Per the Builder-Purchase master SOP the report opens with the property description;
-        // there is no separate Borrower/Mortgagor part in this structure.
+        // ── PART I — BORROWER, MORTGAGOR AND CURRENT OWNERSHIP (built deterministically) ──
+        // §12 puts A. Borrower Details / B. Mortgagor Details / C. Current Ownership first.
+        // Form values win over the model's extraction for names (the form is what the advocate
+        // typed); addresses only exist in the documents, so they come from the META block.
+        const NP = 'NOT PROVIDED FOR VERIFICATION'
+        const borrower = meta.applicant || applicantName || NP
+        const coBorrower = meta.coApplicant || coApplicant || 'Not Applicable'
+        const isNoCo = /^not applicable$/i.test(String(coBorrower).trim())
+        const mortgagor = meta.mortgagor || meta.currentOwner || currentOwner || borrower
+        const row = (l: string, v: string) => '<tr><td>' + l + '</td><td>:</td><td>' + (String(v || '').trim() || NP) + '</td></tr>'
+        const part1 =
+            '<hr><div class="ph">PART I — BORROWER, MORTGAGOR AND CURRENT OWNERSHIP</div>' +
+            '<div class="sph">A. Borrower Details</div>' +
+            '<table class="mt">' +
+            row('Name of Borrower', borrower) +
+            row('Address of Borrower', meta.applicantAddress) +
+            row('Name of Co-Borrower', coBorrower) +
+            (isNoCo ? '' : row('Address of Co-Borrower', meta.coApplicantAddress)) +
+            row('Constitution of Borrower', meta.constitution) +
+            '</table>' +
+            '<div class="sph">B. Mortgagor Details</div>' +
+            '<table class="mt">' +
+            row('Name of Mortgagor', mortgagor) +
+            row('Address of Mortgagor', meta.mortgagorAddress) +
+            '</table>' +
+            '<div class="sph">C. Current Ownership</div>' +
+            '<table class="mt">' +
+            row('Present Owner of the Property', meta.currentOwner || currentOwner) +
+            row('Mode of Acquisition', meta.modeOfAcquisition) +
+            row('Registration Details', meta.registrationDetails) +
+            '</table>'
+
+        // ── PART II — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES (deterministic) ──
         let boundsRows = ''
         if (finalBounds) {
             const eMatch = finalBounds.match(/East[^:]*:\s*([^|]+)/i)
@@ -894,23 +1184,25 @@ export async function POST(req: NextRequest) {
                 '<tr><td>North (Uttar)</td><td>:</td><td>' + (boundaryNorth || 'As per documents') + '</td></tr>' +
                 '<tr><td>South (Dakshin)</td><td>:</td><td>' + (boundarySouth || 'As per documents') + '</td></tr>'
         }
-        const part1 =
-            '<hr><div class="ph">PART I — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>' +
+        const part2 =
+            '<hr><div class="ph">PART II — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>' +
             '<div class="prop-para">' + finalPropDesc + '</div>' +
             '<p><strong>Bounded as Under:</strong></p>' +
             '<table class="mt">' + boundsRows + '</table>'
 
-        // Report order per the Builder-Purchase master SOP:
-        //   PART I  — Property Description along with Boundaries   (part1, deterministic)
-        //   PART II — List of Scrutinised Documents                (p1  = S3A)
-        //   PART III— Chronological Title Chain and History        (part3 deterministic chain,
-        //             then p3's Part III tail: EC + Approvals + the mandatory Builder→Purchaser para)
-        //   PART IV — Legal Issues, Objections and Adverse Findings (p3 continues)
-        //   PART V  — Legal Opinion and Final Recommendation        (p4 = S3D1)
-        //   then Documents Required (Pre/Post), Risk Rating, Confidence Level,
-        //        Overall Title Status                               (p4 continues = S3D2)
+        // FINAL REPORT FORMAT — the nine fixed Parts of the master spec §12, in order:
+        //   PART I    — Borrower, Mortgagor and Current Ownership     (part1, deterministic)
+        //   PART II   — Property Description along with Boundaries    (part2, deterministic)
+        //   PART III  — Description of Documents Verified/Scrutinized (p1  = S3A)
+        //   PART IV   — Chronological Title Chain and History         (part3 = S3B chain, then
+        //               p3's Part IV sub-sections: EC, Regulatory Compliance, Summary)
+        //   PART V    — Alerts                                        (p3 continues = S3C)
+        //   PART VI   — Legal Opinion (+ Mortgageability, Lending Risk, Confidence)  (p4 = S3D1)
+        //   PART VII  — Documents Required Pre-Disbursement           (p4 continues = S3D2)
+        //   PART VIII — Documents Required Post-Disbursement          (p4 continues = S3D2)
+        //   PART IX   — Final Recommendation                          (p4 continues = S3D2)
         const html = buildReport(refNo, appId, today, bankName, loanMap[caseType] || loanType,
-            part1 + p1 + part3 + p3 + p4
+            part1 + part2 + p1 + part3 + p3 + p4
         )
 
         if (userId && DB) { try { await DB.from('reports').insert({ user_id: userId, case_type: caseType, applicant_name: meta.applicant || applicantName || 'Unknown', bank_name: bankName || 'Unknown', property_address: meta.propertyDescription || propertyAddress || 'Unknown', app_id: appId || refNo, verdict, report_html: html }) } catch (e) { console.log('DB:', e) } }
