@@ -251,7 +251,14 @@ Family Settlement (one jointly-owned property vs broader or dispute-driven arran
 Where two remain equally plausible, choose the BROADER category and flag it for manual review —
 never guess the subtype.
 
-LITIGATION / ENTITY / BUILDER SIGNALS — extract if visible anywhere:
+ABSOLUTE — THE LISTS BELOW ARE THINGS TO LOOK FOR, NOT THINGS TO REPORT:
+The checklists that follow (and the document-type names above) tell you WHAT TO SEARCH THE PAGES
+FOR. They are NOT a list of documents in this case. Write a line about an item ONLY if you can
+actually see it on an uploaded page. If an item is not there, say NOTHING about it — do not write
+"not found", "not available" or "not provided", because a later stage reads your output as the
+list of what exists. Never let a checklist item become a fact.
+
+LITIGATION / ENTITY / BUILDER SIGNALS — extract ONLY if actually visible on a page:
 - Court case, stay order, injunction, attachment, acquisition, SARFAESI, DRT, NCLT proceeding,
   revenue appeal (RTS), mutation dispute, family dispute, partition suit, specific performance suit.
 - Where an owner is a company/firm: CIN, director/authorised signatory, board resolution, charge,
@@ -442,11 +449,9 @@ const S3A = `Generate HTML for PART III ONLY — Description of Documents Verifi
 - Keep the phrase "unto and in favour of" exactly.
 - Keep "paiki" exactly as it appears in the source (house wording) — do not translate it.
 - Keep units (Sq. Mtrs. / Hectares / Acres) exactly as given.
-- Name every document by its canonical type from this taxonomy — never coin a new name:
-${TAXONOMY}
-  If a produced document's type matches nothing above, write it as
-  "DOCUMENT TYPE NOT IDENTIFIABLE — RAW TEXT: [exact printed heading] — REQUIRES MANUAL REVIEW"
-  rather than mapping it to the nearest-sounding entry.
+- Name each document by the type printed ON THAT DOCUMENT. Do not consult or reproduce any list of
+  document types — a list of types is NOT a list of documents, and nothing may be added because it
+  appears on such a list.
 
 ═══ EXACT TEMPLATES — use the one matching each uploaded document ═══
 - Registered Deed: Copy of "[Document Type]" dated "[Execution Date]" registered under Serial No. "[Registration Number]" executed by "[Executant]" unto and in favour of "[Claimant]".
@@ -463,7 +468,18 @@ ${TAXONOMY}
 FORMAT — one <div class="di"> per ACTUALLY-PRODUCED document, nothing more:
 <div class="di"><p><span class="dn">1.</span> [the exact template sentence for that document]</p></div>
 
-ORDER: chronological — earliest document first, latest last. Never randomised.
+═══ COMPLETENESS — BOTH DIRECTIONS ARE FAILURES ═══
+Before you output, count the documents in your context and count your <div class="di"> entries.
+The two numbers MUST be equal.
+- ADDING a document that was not produced is a fabricated fact. This is the worse failure.
+- DROPPING a document that WAS produced is equally unacceptable — the bank relies on this list.
+Every produced document gets EXACTLY ONE entry: not zero, not two. If two uploads are two pages
+of the SAME instrument, that is one document. If a document's type or number is unclear, still
+LIST IT and write "Registration Number not available in the uploaded document" — never omit it
+because a field is missing, and never omit it because you are unsure what to call it.
+
+ORDER: chronological — earliest document first, latest last. Never randomised. A document whose
+date cannot be determined goes LAST — ordering must never cause a document to be dropped.
 
 START: <hr><div class="ph">PART III — DESCRIPTION OF DOCUMENTS VERIFIED / SCRUTINIZED</div>
 <p>The following documents have been produced for examination and scrutiny:</p>
@@ -563,11 +579,15 @@ CORE RULE: Never assume facts. Never create facts. Never suppress an adverse fin
 
 IMPORTANT — DO NOT DUPLICATE THE CHAIN: the chronological chain (mutation entries, NA/Collector orders, NOCs, Development Permission, RERA, construction, project mortgage and the document in favour of the Proposed Purchaser) is ALREADY written above as the body of Part IV. Do NOT restate those events. Write only the three sub-sections, then Part V.
 
-═══ (1) PART IV SUB-SECTION — EC (NO new PART header) ═══
+═══ (1) PART IV SUB-SECTION — EC NARRATIVE (NO new PART header, NO sub-heading) ═══
 
-<div class="sph">Details of Encumbrance Certificate (EC)</div>
-<p>[ONE paragraph from the EC TABLE / MORTGAGE LIFECYCLE data: EC Date (the date of print from the e-application), Search Period (from → to, as stated on the e-application), number of registered transactions, and a chronological summary — EARLIEST TO MOST RECENT — of the material deeds (type, registration number, date, executing party, claimant party). State the overall encumbrance status: subsisting mortgage, or all charges discharged (and by which Release/Reconveyance Deed). NEVER reproduce the EC's last column, the EC applicant name, or any E-Application Receipt / E-Challan detail beyond the date and search period. Released/discharged mortgages must be stated as discharged, never active. If no EC was produced: NOT PROVIDED FOR VERIFICATION.]</p>
-<p>[ONE short cross-verification paragraph: state whether the EC entries reconcile with the mutation entries and the registered documents, and name any of these that is actually present — missing mutation, unreflected sale, mortgage mismatch, ownership mismatch, survey mismatch, area mismatch. If everything reconciles, say so in one sentence. If any EC entry's document type could not be identified, say that it requires manual review.]</p>
+ALREADY EMITTED BY THE SYSTEM, DIRECTLY ABOVE YOUR OUTPUT — do NOT repeat any of it: the
+"Details of Encumbrance Certificate (EC)" sub-heading, the E-Application/search-period sentence,
+the full row-by-row EC table, and the mortgage lifecycle table. Do NOT reproduce that table.
+Your output CONTINUES from there and begins with these two paragraphs:
+
+<p>[Chronological walk-through — EARLIEST TO MOST RECENT — of the MATERIAL EC entries: for each, its document type, registration number, date, executing party (Col 3) and claimant party (Col 4), and what it did to the title. Do not compress several entries into "various transactions" — name them. State the overall encumbrance position at the end: subsisting mortgage, or all charges discharged and by which Release/Reconveyance Deed. NEVER reproduce the EC's last column, the EC applicant name, or any E-Application Receipt / E-Challan detail beyond the date and search period. A released/discharged mortgage is stated as discharged, never as active. If no EC was produced, write only: Encumbrance Certificate — NOT PROVIDED FOR VERIFICATION.]</p>
+<p>[ONE short cross-verification paragraph: whether the EC entries reconcile with the mutation entries and the registered documents, naming any of these that is actually present — missing mutation, unreflected sale, mortgage mismatch, ownership mismatch, survey mismatch, area mismatch. If everything reconciles, say so in one sentence. If any EC entry's document type could not be identified, say it requires manual review.]</p>
 
 ═══ (2) PART IV SUB-SECTION — REGULATORY (NO new PART header) ═══
 
@@ -708,7 +728,14 @@ ${TAXONOMY}
 7. If nothing in the taxonomy matches with at least medium confidence, set col1_type to "" and match_conf to "UNIDENTIFIED", and still fill raw_type. An honest "not identifiable" is correct; a wrong classification is a fabricated fact.
 8. If the extracted characters are visibly corrupted (broken conjuncts, junk characters), do NOT silently repair them — set match_conf to "UNIDENTIFIED" and put what you can see in raw_type.
 
-Extract EVERY EC row. Also check ALL documents for a Release Deed / Giro Mukeli / Reconveyance.
+Extract EVERY EC row — do not stop early, do not summarise, do not skip a row because it looks
+routine. Every single row of the EC table must appear in "rows".
+Also check ALL documents for a Release Deed / Giro Mukeli / Reconveyance.
+
+KEEP THE OUTPUT COMPACT so the JSON is never cut off mid-array:
+- "col2_property": ONLY the identifier (e.g. "Survey No. 210/001" or "Flat No. 401, Block D"). Do
+  NOT copy the full property description paragraph.
+- "raw_type": just the type heading as printed, not the whole cell.
 
 Output ONLY JSON:
 {"ec_app_number":"","ec_date":"","ec_from":"","ec_to":"","rows":[{"row_number":1,"col1_type":"","raw_type":"","match_conf":"","col2_property":"","col3_aapnar":"","col4_lenar":"","col5_date":"","col6_deed_no":""}],"pre_screen_releases":[{"bank":"","deed_no":"","date":"","source":""}]}`
@@ -785,6 +812,39 @@ export async function POST(req: NextRequest) {
         const psImgs = ecImgs.length > 0 ? [...ecImgs, ...relImgs] : allImgs
         console.log('Images: all=' + allImgs.length + ' EC-tagged=' + ecImgs.length + ' Release/Mortgage=' + relImgs.length + ' Revenue-tagged=' + revImgs.length)
 
+        // ── UPLOADED-FILE INVENTORY — the only hard ground truth for "what was produced" ──
+        // The frontend sends a name + docType tag per page (multi-page PDFs arrive as name_p1,
+        // name_p2 ...). Until now the route threw the names away and the Part III writer had to
+        // infer the document list from prose, which is exactly how documents got invented and
+        // real ones got dropped. The inventory is now stated explicitly to every writer.
+        const docInventory = (() => {
+            const m = new Map<string, { pages: number; tags: Set<string> }>()
+            for (const img of images) {
+                const base = String(img.name || 'Unnamed upload').replace(/_p\d+$/i, '').trim() || 'Unnamed upload'
+                const e = m.get(base) || { pages: 0, tags: new Set<string>() }
+                e.pages++
+                if (img.docType && img.docType !== 'auto') e.tags.add(img.docType)
+                m.set(base, e)
+            }
+            const lines = [...m.entries()].map(([n, e], i) =>
+                '  ' + (i + 1) + '. ' + n + (e.tags.size ? ' [tagged: ' + [...e.tags].join(', ') + ']' : '') + ' — ' + e.pages + ' page' + (e.pages > 1 ? 's' : ''))
+            return [
+                '=== FILES ACTUALLY PRODUCED FOR SCRUTINY — ' + m.size + ' FILE(S). THIS LIST IS COMPLETE AND CLOSED ===',
+                ...lines,
+                'HOW TO USE THIS LIST:',
+                '- NOTHING may be listed as scrutinised that does not come out of these files. If a document',
+                '  is not in these files it WAS NOT PRODUCED — omit it entirely, no placeholder, no',
+                '  "Not Available", no assumption that it exists.',
+                '- EVERY one of these files must be accounted for. Do not silently skip a file because it is',
+                '  hard to read or because you are unsure what to call it.',
+                '- The mapping is not always one-to-one: a single file may contain more than one instrument',
+                '  (list each instrument separately), and two files may be two parts of one instrument',
+                '  (list it once). Judge by the instruments, but every file must be represented.',
+                '===',
+            ].join('\n')
+        })()
+        console.log('DOC INVENTORY: ' + (docInventory.match(/\n {2}\d+\. /g) || []).length + ' distinct files from ' + images.length + ' pages')
+
         const FORM = ['=== FORM DATA (ALWAYS PRIORITY) ===', 'FORM_APPLICANT: ' + applicantName, 'FORM_CO: ' + (coApplicant || 'Not Applicable'), 'FORM_OWNER: ' + (currentOwner || applicantName), 'FORM_BANK: ' + bankName, 'FORM_PROPERTY: ' + propertyAddress, 'EAST: ' + boundaryEast, 'WEST: ' + boundaryWest, 'NORTH: ' + boundaryNorth, 'SOUTH: ' + boundarySouth, 'Applicant = FORM_APPLICANT always. Never advocate name.', '==='].join('\n')
 
         // ── STEP 0 + STEP 1 — ALL RUN IN PARALLEL (was sequential, fixes 504 timeout) ──
@@ -810,19 +870,20 @@ export async function POST(req: NextRequest) {
             console.log('REV: pre-computed revData provided by dedicated scan — hasSignal=' + hasSignal + ' entries=' + _pe.length)
         }
 
-        const ecPrescreen = AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
+        // 8000, not 3000: each EC row now carries raw_type, match_conf and a short property
+        // reference on top of the original five fields. At 3000 the JSON was being cut off
+        // mid-array, parseJSON returned null, and the report came out with NO EC data at all.
+        const ecPrescreen = AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, messages: [{ role: 'user', content: [...psImgs, { type: 'text', text: EC_PS }] }] })
             .then(ps => {
                 const p = parseJSON(ps.content[0].type === 'text' ? ps.content[0].text : '{}')
                 if (p?.rows?.length > 0) {
-                    // SUBJECT-UNIT FILTER on EC rows, same rule already applied to revenue entries:
-                    // an EC row whose Property Description names a DIFFERENT flat/unit is another
-                    // purchaser's transaction. It must not appear in the EC table and — the part that
-                    // actually matters — its mortgage must not become an "active charge" on THIS
-                    // report. Rows naming no unit are land-level and are kept.
-                    const ecSubjUnit = subjectUnitNo(propertyAddress)
-                    const all: ECRow[] = p.rows
-                    ecRows = all.filter((r: ECRow) => !aboutAnotherUnit([r.col2_property, r.col1_type, r.raw_type].filter(Boolean).join(' '), ecSubjUnit))
-                    if (all.length !== ecRows.length) console.log('EC filter: ' + (all.length - ecRows.length) + ' of ' + all.length + ' rows dropped — about another unit (subject unit = ' + ecSubjUnit + ')')
+                    // NO subject-unit filter on EC rows — deliberately. It was tried and reverted:
+                    // an EC row's Property Description routinely names some other unit of the same
+                    // scheme in passing, so filtering on it silently dropped genuine land-level rows
+                    // AND could hide a subsisting charge. Suppressing an encumbrance is far worse
+                    // than showing one extra row, so EVERY extracted EC row is kept and reported.
+                    // The unit filter stays where it is safe: the revenue-record mutation entries.
+                    ecRows = p.rows
                     lc = runLC(ecRows)
                     if (p.ec_app_number) ecMetas.push({ ec_app_number: p.ec_app_number, ec_date: p.ec_date || '', ec_from: p.ec_from || '', ec_to: p.ec_to || '' })
                     if (p.pre_screen_releases?.length > 0) preReleases = p.pre_screen_releases
@@ -885,7 +946,11 @@ export async function POST(req: NextRequest) {
         const s1Imgs = revImgs.length > 0
             ? images.filter((img: any) => img.docType !== 'revenue').map((img: any) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } }))
             : allImgs
-        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: S1, messages: [{ role: 'user', content: [...s1Imgs, { type: 'text', text: FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress }] }] })
+        // 10000, not 6000: S1 now also extracts party addresses, litigation/entity/builder signals
+        // and per-document detail. At 6000 its output truncated, and every downstream section was
+        // being written from an incomplete fact base — the "missing data from documents that WERE
+        // provided" symptom. The per-document sweep below is what Part III depends on.
+        const step1Promise = AI.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 10000, system: S1, messages: [{ role: 'user', content: [...s1Imgs, { type: 'text', text: docInventory + '\n\n' + FORM + '\n\nExtract ALL facts. Case: ' + caseType + '. Property: ' + propertyAddress + '\n\nWork through the uploaded pages ONE DOCUMENT AT A TIME. For EVERY document produce a block headed with its exact title as printed, then its date, its registration/order number, its parties, and the property it concerns. Do not merge two documents into one block and do not skip a document because it is hard to read — for an illegible one, state its title and write what IS legible. Finish every document before you stop.' }] }] })
             .then(s1 => {
                 facts = s1.content[0].type === 'text' ? s1.content[0].text : ''
                 console.log('STEP1: facts extracted, length=' + facts.length)
@@ -998,7 +1063,9 @@ export async function POST(req: NextRequest) {
         const GT = ecGT + revGT
 
         // ── STEP 2: Deep legal analysis (Sonnet) — facts already extracted in parallel above ──
-        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: getS2(caseType), messages: [{ role: 'user', content: FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
+        // 6000, not 4000: the META block grew by four fields, so at 4000 the analysis that follows
+        // it was being squeezed out — and the analysis is what the report sections are written from.
+        const s2 = await AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 6000, system: getS2(caseType), messages: [{ role: 'user', content: docInventory + '\n\n' + FORM + '\n\n' + GT + '\n\nEXTRACTED FACTS:\n' + facts }] })
         const analysis = s2.content[0].type === 'text' ? s2.content[0].text : ''
         const meta = parseMeta(analysis)
 
@@ -1062,7 +1129,14 @@ export async function POST(req: NextRequest) {
             '===',
         ].join('\n')
 
-        const ctx = subjectProperty + '\n\n' + FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag + '\n\nANALYSIS:\n' + analysis.substring(0, 5000) + '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
+        // The writers get the RAW extracted facts as well as the condensed analysis. The analysis
+        // alone was losing per-document detail — S2 compresses, and its META block now eats a large
+        // slice of the window — so sections were written from a summary of a summary. `facts` is
+        // what the vision pass actually read off the pages, and it is the deepest source available.
+        const ctx = docInventory + '\n\n' + subjectProperty + '\n\n' + FORM + '\n\n' + GT + '\n\n' + revenueProvidedFlag +
+            '\n\nEXTRACTED FACTS (raw, read directly off the uploaded pages — use these for detail):\n' + facts.substring(0, 14000) +
+            '\n\nANALYSIS:\n' + analysis.substring(0, 8000) +
+            '\n\nAPPLICANT: ' + (meta.applicant || applicantName) + '\nOWNER: ' + (meta.currentOwner || currentOwner) + '\nCASE: ' + caseType + '\nBANK: ' + bankName
 
 
         // ── STEP 3: Parallel HTML generation (4x Sonnet) — each call isolated so one failure can't sink the whole report ──
@@ -1088,9 +1162,9 @@ export async function POST(req: NextRequest) {
             'RERA, construction, project mortgage, and the document in favour of the Proposed',
             'Purchaser) — take these from the facts and analysis below and give each its OWN bullet',
             'in date order, WITHOUT any "Mutation Entry No." ===',
-            'EXTRACTED FACTS:\n' + facts.substring(0, 9000),
+            'EXTRACTED FACTS:\n' + facts.substring(0, 14000),
             '',
-            'ANALYSIS:\n' + analysis.substring(0, 5000),
+            'ANALYSIS:\n' + analysis.substring(0, 8000),
             '',
             '=== EC (for cross-reference of the same transfers — do NOT create separate bullets from EC rows) ===',
             ecCrossVerifyLine,
@@ -1104,11 +1178,14 @@ export async function POST(req: NextRequest) {
         ].join('\n')
 
         const [r3a, r3b, r3c, r3d1, r3d2] = await Promise.all([
-            safeStep3('Part III — documents', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3A, messages: [{ role: 'user', content: ctx }] })),
+            // Token budgets sized to what each section now has to WRITE. They were left at their old
+            // values when the sections grew, and every one of them was truncating mid-output — which
+            // is what dropped documents from Part III and detail from Parts IV-VI.
+            safeStep3('Part III — documents', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
             safeStep3('Part IV — chain', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
-            safeStep3('Part IV-tail + V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3C, messages: [{ role: 'user', content: ctx + '\n\nEC TABLE HTML:\n' + ecTbl + '\n\nMORTGAGE LIFECYCLE:\n' + lcSection }] })),
-            safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] })),
-            safeStep3('Parts VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] }))
+            safeStep3('Part IV-tail + V', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 6500, system: S3C, messages: [{ role: 'user', content: ctx + '\n\n=== EC DATA — ALREADY RENDERED INTO THE REPORT ABOVE YOUR OUTPUT. This is source data for your narrative paragraphs ONLY. Do NOT output any of this HTML. ===\n' + ecTbl + '\n' + lcSection }] })),
+            safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] })),
+            safeStep3('Parts VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] }))
         ])
 
         const BT3 = String.fromCharCode(96).repeat(3)
@@ -1125,7 +1202,11 @@ export async function POST(req: NextRequest) {
         // "were entered") is enforced in code across the whole report, so no AI section can drift.
         const p1 = normTerms(stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : ''))
         const part3 = normTerms(stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : ''))
+        // The EC heading and table are emitted deterministically as ecBlock. If the model echoes
+        // them anyway, drop the duplicate rather than print the table twice.
         const p3 = normTerms(stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : ''))
+            .replace(/<table class="ec-tbl">[\s\S]*?<\/table>/gi, '')
+            .replace(/<div class="sph">\s*Details of Encumbrance Certificate[^<]*<\/div>/gi, '')
         const p4 = normTerms(stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : ''))
 
         // §5 / §17.11 — "paiki" becomes "out of" in the property description, and only there.
@@ -1184,6 +1265,24 @@ export async function POST(req: NextRequest) {
                 '<tr><td>North (Uttar)</td><td>:</td><td>' + (boundaryNorth || 'As per documents') + '</td></tr>' +
                 '<tr><td>South (Dakshin)</td><td>:</td><td>' + (boundarySouth || 'As per documents') + '</td></tr>'
         }
+        // ── PART IV SUB-SECTION — EC, built in CODE ──
+        // The EC table and lifecycle table were computed deterministically and then merely handed to
+        // the model as reference text, with no instruction to output them — so whether any EC data
+        // reached the report at all depended on the model choosing to echo it. It is now emitted
+        // directly. As long as rows were extracted, the EC data cannot go missing from the report.
+        const ecm = ecMetas[0]
+        const ecHead = ecm
+            ? ('Encumbrance Certificate bearing E-Application No. ' + (ecm.ec_app_number || 'not stated in the copy produced') +
+                ' dated ' + (ecm.ec_date || 'not stated') + ' for the search period ' + (ecm.ec_from || 'not stated') +
+                ' to ' + (ecm.ec_to || 'not stated') + ', issued by the Inspector General of Registration, Revenue Department, Government of Gujarat. ' +
+                ecRows.length + ' registered transaction' + (ecRows.length === 1 ? ' was' : 's were') + ' found on row-by-row examination.')
+            : ecRows.length > 0
+                ? (ecRows.length + ' registered transaction' + (ecRows.length === 1 ? ' was' : 's were') + ' found on row-by-row examination of the Encumbrance Certificate produced. The E-Application number and search period were not legible in the copy produced.')
+                : 'Encumbrance Certificate — NOT PROVIDED FOR VERIFICATION.'
+        const ecBlock = '<div class="sph">Details of Encumbrance Certificate (EC)</div><p>' + ecHead + '</p>' +
+            (ecRows.length > 0 ? ecTbl + lcSection : '')
+        console.log('EC BLOCK: rows=' + ecRows.length + ' meta=' + (ecm ? 'yes' : 'no') + ' status=' + lc.status)
+
         const part2 =
             '<hr><div class="ph">PART II — PROPERTY DESCRIPTION ALONG WITH BOUNDARIES</div>' +
             '<div class="prop-para">' + finalPropDesc + '</div>' +
@@ -1195,14 +1294,15 @@ export async function POST(req: NextRequest) {
         //   PART II   — Property Description along with Boundaries    (part2, deterministic)
         //   PART III  — Description of Documents Verified/Scrutinized (p1  = S3A)
         //   PART IV   — Chronological Title Chain and History         (part3 = S3B chain, then
-        //               p3's Part IV sub-sections: EC, Regulatory Compliance, Summary)
+        //               ecBlock = the EC heading/table/lifecycle built in code, then p3's
+        //               remaining Part IV sub-sections: EC narrative, Regulatory, Summary)
         //   PART V    — Alerts                                        (p3 continues = S3C)
         //   PART VI   — Legal Opinion (+ Mortgageability, Lending Risk, Confidence)  (p4 = S3D1)
         //   PART VII  — Documents Required Pre-Disbursement           (p4 continues = S3D2)
         //   PART VIII — Documents Required Post-Disbursement          (p4 continues = S3D2)
         //   PART IX   — Final Recommendation                          (p4 continues = S3D2)
         const html = buildReport(refNo, appId, today, bankName, loanMap[caseType] || loanType,
-            part1 + part2 + p1 + part3 + p3 + p4
+            part1 + part2 + p1 + part3 + ecBlock + p3 + p4
         )
 
         if (userId && DB) { try { await DB.from('reports').insert({ user_id: userId, case_type: caseType, applicant_name: meta.applicant || applicantName || 'Unknown', bank_name: bankName || 'Unknown', property_address: meta.propertyDescription || propertyAddress || 'Unknown', app_id: appId || refNo, verdict, report_html: html }) } catch (e) { console.log('DB:', e) } }
