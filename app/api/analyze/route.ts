@@ -99,7 +99,7 @@ function buildECTable(rows: ECRow[], lc: LC, metas: ECMeta[]): string {
     if (!rows.length) return '<p style="color:#888;font-size:12px;">No EC entries found.</p>'
     // §8 — chronological, earliest to most recent (the extraction order is page order, not date order).
     const ordered = [...rows].sort((a, b) => ecDateKey(a.col5_date) - ecDateKey(b.col5_date))
-    let h = '<table class="ec-tbl"><tr><th>Sr.</th><th>Type as Printed (Raw)</th><th>Classified Type</th><th>Match Confidence</th><th>Deed No.</th><th>Date</th><th>Col 3 — Aapnar (Executing)</th><th>Col 4 — Lenar (Claimant)</th><th>Status</th></tr>'
+    let h = '<table class="ec-tbl"><tr><th>Sr.</th><th>Classified Type</th><th>Match Confidence</th><th>Deed No.</th><th>Date</th><th>Col 3 — Aapnar (Executing)</th><th>Col 4 — Lenar (Claimant)</th><th>Status</th></tr>'
     ordered.forEach((r, i) => {
         const isRel = lc.released.some(x => x.release_deed_no === r.col6_deed_no) || (isBank(r.col3_aapnar) && !isBank(r.col4_lenar))
         const isAct = lc.active.some(x => x.deed_no === r.col6_deed_no)
@@ -107,20 +107,19 @@ function buildECTable(rows: ECRow[], lc: LC, metas: ECMeta[]): string {
         const st = isRel ? '✅ DISCHARGED — Released and extinguished. No subsisting charge.' : isAct ? '⚠ ACTIVE MORTGAGE — Subsisting as on date. No Release Deed found.' : '✅ TITLE DOCUMENT — No encumbrance.'
         // §4.5 failure protocol: an unmatched type is flagged honestly, never mapped to the
         // nearest-sounding taxonomy entry. §4.6: only the four permitted tiers may appear here.
-        const raw = r.raw_type || r.col1_type || ''
         const stated = normMatchConf(r.match_conf || '')
         const unmatched = !r.col1_type || stated === 'UNIDENTIFIED'
         // Release/mortgage is settled by EC column position + the prior mortgage in the same EC —
         // that is precisely §4.6's CONTEXTUAL MATCH, not a literal reading of the printed text.
         const ct = isRel ? 'Reconveyance / Mortgage Release Deed'
             : isAct ? 'Mortgage Deed'
-                : unmatched ? 'DOCUMENT TYPE NOT IDENTIFIABLE — RAW TEXT: ' + (raw || '(blank)') + ' — REQUIRES MANUAL REVIEW'
+                : unmatched ? 'DOCUMENT TYPE NOT IDENTIFIABLE — REQUIRES MANUAL REVIEW'
                     : r.col1_type
         const conf = (isRel || isAct) ? 'CONTEXTUAL MATCH — derived from EC column position (judgment call, verify)'
             : unmatched ? 'UNIDENTIFIED'
                 : stated ? (stated + (stated === 'CONTEXTUAL MATCH' ? ' — judgment call, verify' : ''))
                     : 'NOT STATED BY CLASSIFIER — REQUIRES MANUAL REVIEW'
-        h += '<tr><td>' + (i + 1) + '</td><td>' + (raw || '--') + '</td><td>' + ct + '</td><td>' + conf + '</td><td>' + (r.col6_deed_no || '--') + '</td><td>' + (r.col5_date || '--') + '</td><td>' + (r.col3_aapnar || '--') + '</td><td>' + (r.col4_lenar || '--') + '</td><td class="' + cls + '">' + st + '</td></tr>'
+        h += '<tr><td>' + (i + 1) + '</td><td>' + ct + '</td><td>' + conf + '</td><td>' + (r.col6_deed_no || '--') + '</td><td>' + (r.col5_date || '--') + '</td><td>' + (r.col3_aapnar || '--') + '</td><td>' + (r.col4_lenar || '--') + '</td><td class="' + cls + '">' + st + '</td></tr>'
     })
     return h + '</table>'
 }
@@ -137,7 +136,7 @@ function buildLifecycleSection(lc: LC): string {
 const CSS = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Georgia','Times New Roman',serif;font-size:13px;line-height:1.9;color:#1a1a1a;max-width:920px;margin:0 auto;padding:48px 60px}.hdr{border-bottom:3px solid #1B3A6B;padding-bottom:18px;margin-bottom:18px;display:flex;justify-content:space-between}.firm{font-size:22px;font-weight:bold;color:#1B3A6B}.sub{font-size:11px;color:#555;margin-top:2px}.hdr-right{text-align:right;font-size:12px;line-height:2}.rtitle{font-size:14px;font-weight:bold;text-align:center;text-decoration:underline;text-transform:uppercase;margin:16px 0 4px}hr{border:none;border-top:1px solid #ccc;margin:16px 0}.ph{font-size:12px;font-weight:bold;text-transform:uppercase;margin:22px 0 10px;background:#1B3A6B;color:#fff;padding:7px 14px}.sph{font-size:12px;font-weight:bold;color:#1B3A6B;margin:14px 0 6px;border-left:4px solid #1B3A6B;padding-left:10px;text-transform:uppercase}.mt{width:100%;margin-bottom:10px;border-collapse:collapse}.mt td{font-size:12px;padding:5px 4px;vertical-align:top;border-bottom:1px solid #f0f0f0}.mt td:first-child{width:260px;color:#555}.mt td:nth-child(2){width:14px}.mt td:last-child{font-weight:500}p{margin-bottom:10px;text-align:justify}.prop-para{background:#f7f9fc;border-left:4px solid #1B3A6B;padding:12px 16px;margin:10px 0 14px;font-style:italic}.di{margin-bottom:16px;padding-bottom:12px;border-bottom:1px dotted #ddd}.dn{font-weight:bold}.ib{margin-bottom:18px;padding:12px 16px;border-left:4px solid #e5e7eb;background:#fafafa}.sh{display:inline-block;background:#b91c1c;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.sm{display:inline-block;background:#b45309;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.sl{display:inline-block;background:#1d4ed8;color:#fff;font-size:10px;font-weight:bold;padding:2px 10px;margin-bottom:6px}.it{font-weight:bold;font-size:13px;margin-bottom:6px}.sg{font-weight:bold;font-style:italic;color:#1B3A6B}ol,ul{padding-left:22px;margin-bottom:10px}ol li,ul li{margin-bottom:8px}ul.chain{padding-left:20px;margin:10px 0}ul.chain li{margin-bottom:10px;text-align:justify;line-height:1.9}table.ec-tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}table.ec-tbl th{background:#1B3A6B;color:#fff;padding:6px 8px;text-align:left;font-size:10px}table.ec-tbl td{border:1px solid #ddd;padding:6px 8px;vertical-align:top}table.ec-tbl tr:nth-child(even){background:#f7f9fc}.ec-rel{color:#15803d;font-weight:bold}.ec-act{color:#b91c1c;font-weight:bold}.vc{margin-top:20px;padding:14px 18px;border:2px solid #15803d;background:#f0fdf4}.vs{margin-top:20px;padding:14px 18px;border:2px solid #b45309;background:#fffbeb}.vnc{margin-top:20px;padding:14px 18px;border:2px solid #b91c1c;background:#fff5f5}.vt{font-size:13px;font-weight:bold;text-transform:uppercase;margin-bottom:6px}.final-rec{margin-top:22px;padding:18px 22px;border:3px solid #1B3A6B;background:#EFF3FB}.fr-title{font-size:11px;font-weight:bold;color:#1B3A6B;margin-bottom:8px;text-transform:uppercase}.fr-value{font-size:16px;font-weight:bold;color:#1B3A6B}.sigrow{margin-top:50px;display:flex;justify-content:space-between}.sigbox{text-align:center}.sigline{width:200px;border-bottom:1px solid #1a1a1a;margin:0 auto 6px;height:40px}.ftr{margin-top:36px;border-top:1px solid #ccc;padding-top:14px;font-size:11px;color:#666;text-align:center}.disc{margin-top:10px;font-size:10px;color:#999;text-align:justify}.wm{font-size:10px;color:#bbb;text-align:center;margin-top:8px;letter-spacing:2px;text-transform:uppercase}@media print{body{padding:30px 40px}.ib{page-break-inside:avoid}}`
 
 function buildReport(refNo: string, appId: string, today: string, bankName: string, loanType: string, body: string): string {
-    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Legal Scrutiny Report</title><style>' + CSS + '</style></head><body><div class="hdr"><div><div class="firm">TITLEMATRIXAI</div><div class="sub">ADVOCATES, TITLE SEARCH &amp; LEGAL SCRUTINY CONSULTANTS</div><div class="sub">Panel Legal Counsel — Mortgage, Banking &amp; Real Estate Transactions</div><div class="sub">support@titlematrixai.com | www.titlematrixai.com</div></div><div class="hdr-right"><div><strong>Reference No.:</strong> ' + refNo + '</div><div><strong>Application ID:</strong> ' + appId + '</div><div><strong>Report Date:</strong> ' + today + '</div><div><strong>Bank:</strong> ' + bankName + '</div></div></div><div class="rtitle">LEGAL SCRUTINY REPORT — ' + loanType + '</div><hr>' + body + '<hr><div class="sigrow"><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">TITLEMATRIXAI</div><div style="font-size:10px;color:#666;">Date: ' + today + '</div></div><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">Authorised Signatory</div><div style="font-size:10px;color:#666;">' + bankName + '</div></div></div><div class="ftr">Generated by TITLEMATRIXAI | support@titlematrixai.com<div class="disc">DISCLAIMER: This Report is prepared exclusively for ' + bankName + ' for Application ID ' + appId + '. Based solely on documents produced. Does not constitute a guarantee of title.</div><div class="wm">TITLEMATRIXAI — CONFIDENTIAL — FOR BANK USE ONLY</div></div></body></html>'
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Legal Scrutiny Report</title><style>' + CSS + '</style></head><body><div class="hdr"><div><div class="firm">TITLEMATRIXAI</div><div class="sub">support@titlematrixai.com | www.titlematrixai.com</div></div><div class="hdr-right"><div><strong>Reference No.:</strong> ' + refNo + '</div><div><strong>Application ID:</strong> ' + appId + '</div><div><strong>Report Date:</strong> ' + today + '</div><div><strong>Bank:</strong> ' + bankName + '</div></div></div><div class="rtitle">LEGAL SCRUTINY REPORT — ' + loanType + '</div><hr>' + body + '<hr><div class="sigrow"><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">TITLEMATRIXAI</div><div style="font-size:10px;color:#666;">Date: ' + today + '</div></div><div class="sigbox"><div class="sigline"></div><div style="font-size:11px;font-weight:bold;">Authorised Signatory</div><div style="font-size:10px;color:#666;">' + bankName + '</div></div></div><div class="ftr">Generated by TITLEMATRIXAI | support@titlematrixai.com<div class="disc">DISCLAIMER: This Report is prepared exclusively for ' + bankName + ' for Application ID ' + appId + '. Based solely on documents produced. Does not constitute a guarantee of title.</div><div class="wm">TITLEMATRIXAI — CONFIDENTIAL — FOR BANK USE ONLY</div></div></body></html>'
 }
 
 function parseMeta(t: string) { const b = t.match(/---META---\s*([\s\S]*?)---END META---/i)?.[1] || ''; const g = (k: string) => b.match(new RegExp('^' + k + ':\\s*(.+)$', 'mi'))?.[1]?.trim() || ''; return { applicant: g('APPLICANT'), applicantAddress: g('APPLICANT_ADDRESS'), coApplicant: g('CO_APPLICANT'), coApplicantAddress: g('CO_APPLICANT_ADDRESS'), mortgagor: g('MORTGAGOR'), mortgagorAddress: g('MORTGAGOR_ADDRESS'), propertyDescription: g('PROPERTY_DESCRIPTION'), propertyBoundaries: g('PROPERTY_BOUNDARIES'), currentOwner: g('CURRENT_OWNER'), constitution: g('CONSTITUTION'), modeOfAcquisition: g('MODE_OF_ACQUISITION'), registrationDetails: g('REGISTRATION_DETAILS') } }
@@ -572,50 +571,17 @@ ABSOLUTE RULES:
 - Do NOT require every mutation entry to have a matching deed, or every deed to have a matching mutation entry. Reconstruct from the best available evidence.
 
 START: <hr><div class="ph">PART IV — CHRONOLOGICAL TITLE CHAIN AND HISTORY OF PROPERTY</div>
-END: after the closing </ul>. The EC details, the regulatory-compliance sub-section and the Part IV summary are written separately and follow your output — do not write them yourself.`
+END: after the closing </ul>. The EC details (the sub-heading and the row-by-row table) are emitted by the system and follow your output — do not write them yourself, and write no summary or closing paragraph after the list.`
 
 // ================================================================
-// STEP 3C — PART V (REGULATORY) + PART VI (ALERTS) SYSTEM
-// ================================================================
-const S3C = `You generate THREE sub-sections that CONTINUE Part IV, in this exact order: (1) the EC narrative; (2) "Regulatory and Statutory Compliance"; (3) "Summary of Title Chain". Items 2-3 use a <div class="sph"> sub-heading. Write NO "PART" header at all — Part IV is already open, and PART V is written separately by another writer. Formal English only, NEVER Gujarati script (write 'Non-Agricultural (Bin Kheti)', 'Koba').
-
-CORE RULE: Never assume facts. Never create facts. Never suppress an adverse finding. Wherever information is unavailable, expressly state: NOT PROVIDED FOR VERIFICATION.
-
-IMPORTANT — DO NOT DUPLICATE THE CHAIN: the chronological chain (mutation entries, NA/Collector orders, NOCs, Development Permission, RERA, construction, project mortgage and the document in favour of the Proposed Purchaser) is ALREADY written above as the body of Part IV. Do NOT restate those events. Write only the three sub-sections.
-
-═══ (1) PART IV SUB-SECTION — EC NARRATIVE (NO new PART header, NO sub-heading) ═══
-
-ALREADY EMITTED BY THE SYSTEM, DIRECTLY ABOVE YOUR OUTPUT — do NOT repeat any of it: the
-"Details of Encumbrance Certificate (EC)" sub-heading, the E-Application/search-period sentence,
-the full row-by-row EC table, and the mortgage lifecycle table. Do NOT reproduce that table.
-Your output CONTINUES from there and begins with these two paragraphs:
-
-<p>[Chronological walk-through — EARLIEST TO MOST RECENT — of the MATERIAL EC entries: for each, its document type, registration number, date, executing party (Col 3) and claimant party (Col 4), and what it did to the title. Do not compress several entries into "various transactions" — name them. State the overall encumbrance position at the end: subsisting mortgage, or all charges discharged and by which Release/Reconveyance Deed. NEVER reproduce the EC's last column, the EC applicant name, or any E-Application Receipt / E-Challan detail beyond the date and search period. A released/discharged mortgage is stated as discharged, never as active. If no EC was produced, write only: Encumbrance Certificate — NOT PROVIDED FOR VERIFICATION.]</p>
-<p>[ONE short cross-verification paragraph: whether the EC entries reconcile with the mutation entries and the registered documents, naming any of these that is actually present — missing mutation, unreflected sale, mortgage mismatch, ownership mismatch, survey mismatch, area mismatch. If everything reconciles, say so in one sentence. If any EC entry's document type could not be identified, say it requires manual review.]</p>
-
-═══ (2) PART IV SUB-SECTION — REGULATORY (NO new PART header) ═══
-
-<div class="sph">Regulatory and Statutory Compliance</div>
-<table class="mt">
-[ONE row per item that is ACTUALLY relevant to this matter, format <tr><td>[Item]</td><td>:</td><td>[status — number and date if produced, or "NOT PROVIDED FOR VERIFICATION", or "Not Applicable"]</td></tr>. Draw only from what the documents establish. Candidate items: RERA Registration; Development Permission; Commencement Certificate; Approved Building Plan; Occupancy / Completion Certificate; BU Permission; NOCs (Fire, Environment, Airport/Height Clearance); N.A. / Conversion Order; Collector Order; T.P. Scheme / Final Plot record; GUDA/AUDA/SUDA or Municipal permission; Section 43 restriction; Agricultural land transfer restriction; Fragmentation Act position; Old Tenure / New Tenure (Juni / Naa Sharat); Gujarat Stamp Act and Registration Act compliance. Omit rows that have no bearing on this property — do not pad the table.]
-</table>
-
-═══ (3) PART IV SUB-SECTION — SUMMARY (NO new PART header) ═══
-
-<div class="sph">Summary of Title Chain</div>
-<p>[3-5 sentences closing Part IV: the earliest established owner and year; how title devolved to the present owner/builder in one line; the present owner and the instrument vesting title in them; the encumbrance position; and whether the chain is continuous and unbroken on the documents produced. State the conclusion only — do not re-list the events.]</p>
-
-END: after the Summary of Title Chain paragraph. Do NOT write PART V.`
-
-// ================================================================
-// STEP 3C2 — PART V (ALERTS) — split out of S3C so it runs in parallel.
-// S3C was writing four sections in one call and had become the slowest branch of the
-// parallel wave, which is what pushed a 14-file job past the 300s platform ceiling.
+// STEP 3C2 — PART V (ALERTS).
+// This used to share a call with the EC narrative, the regulatory table and the title-chain
+// summary. Those three sections were dropped from the report, so only the alerts remain.
 // ================================================================
 const S3C2 = `Generate HTML for PART V — ALERTS ONLY. Formal English, NEVER Gujarati script.
-Write nothing before the PART V header and nothing after the last alert. The Part IV sub-sections
-(EC details, Regulatory and Statutory Compliance, Summary of Title Chain) are written separately —
-do not write or repeat them.
+Write nothing before the PART V header and nothing after the last alert. The Part IV EC details
+(sub-heading and row-by-row table) are emitted by the system — do not write or repeat them, and do
+not add any regulatory-compliance table or title-chain summary of your own.
 
 CORE RULE: Never assume facts. Never create facts. Never suppress an adverse finding.
 
@@ -651,33 +617,11 @@ const S3D1 = `Generate HTML for PART VI — LEGAL OPINION ONLY. Formal English. 
 <hr><div class="ph">PART VI — LEGAL OPINION</div>
 <p>[Legal opinion — 4 to 6 sentences. If the title is clear, expressly state that: legal title is established; marketable title is established; mortgageable title is established; SARFAESI enforceability is established; and the security is acceptable. If defects exist, issue a QUALIFIED opinion instead and state the defect. Cover: whether ownership and title continuity are established from the revenue record mutation chain and the documents produced; the encumbrance/mortgage position (subsisting or fully discharged, with the release/reconveyance deed if any); and any conditions the bank must satisfy. Do not repeat the chain — state its conclusion.]</p>
 
-<div class="sph">Mortgageability</div>
-<table class="mt">
-<tr><td>Mortgageability Classification</td><td>:</td><td>[EXACTLY one of: Mortgageable / Conditionally Mortgageable / Not Mortgageable]</td></tr>
-<tr><td>Basis</td><td>:</td><td>[1-2 short sentences — summarised, not exhaustive]</td></tr>
-<tr><td>SARFAESI Enforceability</td><td>:</td><td>[Enforceable / Not Enforceable / Requires verification — with a half-line reason]</td></tr>
-</table>
-
-<div class="sph">Lending Risk</div>
-Compute the risk score by ADDING the score of every risk factor that is actually present on the documents produced. Use EXACTLY this table:
-Title Break = 100 | Court Litigation = 90 | Acquisition Risk = 80 | Missing N.A. Order OR relevant Mutation Entry = 70 | Builder Title Defect = 70 | EC Mismatch = 60 | Missing Development Approval = 50 | Missing Mutation = 40 | Builder Name Missing in Revenue Record = 40 | Existing Mortgage = 10 | Minor Clerical Error = 10
-<table class="mt">
-<tr><td>Risk Factors Present</td><td>:</td><td>[each factor found and its score, e.g. "Missing Development Approval (50); Existing Mortgage (10)" — or "None identified"]</td></tr>
-<tr><td>Total Risk Score</td><td>:</td><td>[the sum]</td></tr>
-<tr><td>Lending Risk Tier</td><td>:</td><td>[EXACTLY one of the two permitted tiers — LOW if the total is 25 or below, MODERATE if the total is 26 or above. There is no HIGH or UNACCEPTABLE tier; where the risk is severe, that is expressed by classifying the property "Not Mortgageable" above and by the CRITICAL alerts in Part V.]</td></tr>
-</table>
-
-<div class="sph">Confidence Level</div>
-<table class="mt">
-<tr><td>Confidence Level</td><td>:</td><td>[EXACTLY one of: MEDIUM CONFIDENCE / LOW CONFIDENCE / NO CONFIDENCE. MEDIUM = supported by a registered document AND a government record AND the EC AND the revenue record. LOW = supported by a single document only. NO CONFIDENCE = unsupported. There is no HIGH tier — never write one.]</td></tr>
-<tr><td>Basis</td><td>:</td><td>[1-2 sentences on what documentary support drives this level]</td></tr>
-</table>
-
-ABSOLUTE RULE: NEVER issue an unconditional approval when a CRITICAL risk exists (e.g. a TITLE BREAK, or any ownership transition unsupported by documentary evidence). In that event the opinion must be qualified, the property must not be classified "Mortgageable", and the report must not certify a clear and marketable title.
+ABSOLUTE RULE: NEVER issue an unconditional approval when a CRITICAL risk exists (e.g. a TITLE BREAK, or any ownership transition unsupported by documentary evidence). In that event the opinion must be qualified and the report must not certify a clear and marketable title.
 TITLE CERTIFICATION RULE: certify title only where ownership, title continuity, encumbrance position, revenue reconciliation and mortgageability are ALL established. If any one of them could not be completed on the documents produced, state exactly: INSUFFICIENT DOCUMENTATION FOR FINAL TITLE CERTIFICATION.
 
 START: <hr><div class="ph">PART VI — LEGAL OPINION</div>
-END: after the Confidence Level table. Do NOT write the final recommendation — Part IX is generated separately.`
+END: after the legal opinion paragraph. Do NOT write the final recommendation — Part IX is generated separately.`
 
 // ================================================================
 // STEP 3E — PART IX-XI SYSTEM (split from S3D for parallel speed)
@@ -1221,13 +1165,12 @@ export async function POST(req: NextRequest) {
         ].join('\n')
 
         const TS3 = Date.now()
-        const [r3a, r3b, r3c, r3c2, r3d1, r3d2] = await Promise.all([
+        const [r3a, r3b, r3c2, r3d1, r3d2] = await Promise.all([
             // Token budgets sized to what each section now has to WRITE. They were left at their old
             // values when the sections grew, and every one of them was truncating mid-output — which
             // is what dropped documents from Part III and detail from Parts IV-VI.
             safeStep3('Part III — documents', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 5000, system: S3A, messages: [{ role: 'user', content: ctx }] })),
             safeStep3('Part IV — chain', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 8000, temperature: 0, system: S3B, messages: [{ role: 'user', content: ctxS3B }] })),
-            safeStep3('Part IV tail', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C, messages: [{ role: 'user', content: ctx + '\n\n=== EC DATA — ALREADY RENDERED INTO THE REPORT ABOVE YOUR OUTPUT. This is source data for your narrative paragraphs ONLY. Do NOT output any of this HTML. ===\n' + ecTbl + '\n' + lcSection }] })),
             safeStep3('Part V — alerts', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3C2, messages: [{ role: 'user', content: ctx + '\n\n=== EC DATA (source for encumbrance-related alerts) ===\n' + ecTbl + '\n' + lcSection }] })),
             safeStep3('Part VI', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4500, system: S3D1, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] })),
             safeStep3('Parts VII-IX', AI.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: S3D2, messages: [{ role: 'user', content: ctx + '\n\nVERDICT: ' + verdictLabel }] }))
@@ -1249,11 +1192,14 @@ export async function POST(req: NextRequest) {
         // "were entered") is enforced in code across the whole report, so no AI section can drift.
         const p1 = normTerms(stripFences(r3a.content[0].type === 'text' ? r3a.content[0].text : ''))
         const part3 = normTerms(stripFences(r3b.content[0].type === 'text' ? r3b.content[0].text : ''))
-        // The EC heading and table are emitted deterministically as ecBlock. If the model echoes
-        // them anyway, drop the duplicate rather than print the table twice.
-        const p3 = normTerms(stripFences(r3c.content[0].type === 'text' ? r3c.content[0].text : '') + stripFences(r3c2.content[0].type === 'text' ? r3c2.content[0].text : ''))
+        // p3 is now Part V (Alerts) alone. The EC heading and table are emitted deterministically
+        // as ecBlock, and the Regulatory-Compliance and Summary-of-Title-Chain sub-sections were
+        // dropped from the report — so anything resembling them that a writer emits anyway is
+        // stripped below rather than printed.
+        const p3 = normTerms(stripFences(r3c2.content[0].type === 'text' ? r3c2.content[0].text : ''))
             .replace(/<table class="ec-tbl">[\s\S]*?<\/table>/gi, '')
             .replace(/<div class="sph">\s*Details of Encumbrance Certificate[^<]*<\/div>/gi, '')
+            .replace(/<div class="sph">\s*(?:Regulatory and Statutory Compliance|Summary of Title Chain)\s*<\/div>/gi, '')
         const p4 = normTerms(stripFences(r3d1.content[0].type === 'text' ? r3d1.content[0].text : '') + stripFences(r3d2.content[0].type === 'text' ? r3d2.content[0].text : ''))
 
         // §5 / §17.11 — "paiki" becomes "out of" in the property description, and only there.
@@ -1341,10 +1287,12 @@ export async function POST(req: NextRequest) {
         //   PART II   — Property Description along with Boundaries    (part2, deterministic)
         //   PART III  — Description of Documents Verified/Scrutinized (p1  = S3A)
         //   PART IV   — Chronological Title Chain and History         (part3 = S3B chain, then
-        //               ecBlock = the EC heading/table/lifecycle built in code, then p3's
-        //               remaining Part IV sub-sections: EC narrative, Regulatory, Summary)
-        //   PART V    — Alerts                                        (p3 continues = S3C)
-        //   PART VI   — Legal Opinion (+ Mortgageability, Lending Risk, Confidence)  (p4 = S3D1)
+        //               ecBlock = the EC heading + row-by-row table + mortgage lifecycle table,
+        //               all built in code. The EC narrative, the Regulatory-Compliance table and
+        //               the Summary of Title Chain were removed from the report on request.)
+        //   PART V    — Alerts                                        (p3 = S3C2)
+        //   PART VI   — Legal Opinion                                 (p4 = S3D1; Mortgageability,
+        //               Lending Risk and Confidence Level were removed.)
         //   PART VII  — Documents Required Pre-Disbursement           (p4 continues = S3D2)
         //   PART VIII — Documents Required Post-Disbursement          (p4 continues = S3D2)
         //   PART IX   — Final Recommendation                          (p4 continues = S3D2)
